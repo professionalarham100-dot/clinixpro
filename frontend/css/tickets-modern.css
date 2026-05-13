@@ -1,0 +1,88 @@
+/* Modern tickets page visual alignment (safe overrides) */
+body {
+    background:
+        radial-gradient(circle at 8% -10%, rgba(59, 130, 246, 0.1), transparent 36%),
+        radial-gradient(circle at 94% 6%, rgba(139, 92, 246, 0.11), transparent 30%),
+        var(--cp-bg);
+    color: var(--cp-text);
+}
+
+.navbar {
+    background: rgba(255, 255, 255, 0.84);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: var(--cp-shadow-sm);
+}
+
+.tickets-header,
+.tickets-controls,
+.ticket-stats,
+.tickets-list-section {
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: var(--cp-radius-lg);
+    box-shadow: var(--cp-shadow-sm);
+}
+
+.tickets-header,
+.tickets-controls,
+.ticket-stats {
+    padding: var(--cp-space-5);
+    margin-bottom: var(--cp-space-4);
+}
+
+.search-bar {
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: var(--cp-radius-md);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.search-bar input {
+    color: var(--cp-text);
+}
+
+.filter-select {
+    border-radius: var(--cp-radius-md);
+}
+
+.stat-card {
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: var(--cp-radius-lg);
+    box-shadow: var(--cp-shadow-sm);
+    background: #fff;
+}
+
+.ticket-item {
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: var(--cp-radius-lg);
+    box-shadow: var(--cp-shadow-sm);
+    transition: transform var(--cp-dur-md) var(--cp-ease-standard), box-shadow var(--cp-dur-md) var(--cp-ease-standard);
+}
+
+.ticket-item:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--cp-shadow-md);
+}
+
+.modal-content {
+    border-radius: var(--cp-radius-xl);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: var(--cp-shadow-lg);
+}
+
+.ticket-detail-header,
+.detail-section {
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+.reply-form textarea,
+.reply-form input[type="file"] {
+    border-radius: var(--cp-radius-md);
+}
+
+.empty-state {
+    border: 1px dashed rgba(148, 163, 184, 0.35);
+    border-radius: var(--cp-radius-lg);
+    background: rgba(255, 255, 255, 0.82);
+}

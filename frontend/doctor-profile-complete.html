@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Profile - ClinixPro</title>
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/design-tokens.css">
+    <link rel="stylesheet" href="css/accessibility.css">
+    <link rel="stylesheet" href="css/components-base.css">
+    <link rel="stylesheet" href="css/responsive-polish.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/auth-modern.css">
+    <style>
+        .back-home-link {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 20;
+            text-decoration: none;
+            color: #1e3a8a;
+            font-weight: 700;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid #dbe4ef;
+            border-radius: 999px;
+            padding: 8px 12px;
+            box-shadow: 0 6px 18px rgba(15,23,42,0.08);
+        }
+        .feedback { display: none; margin: 12px 0 6px; color: #b91c1c; font-size: 0.9rem; font-weight: 600; }
+        .feedback.show { display: block; }
+        .days-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+        .days-grid label { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <a class="back-home-link" href="login.html"><i class="fas fa-arrow-left"></i> Back to Login</a>
+    <div class="auth-container">
+        <div class="auth-box auth-box-large">
+            <div class="auth-header">
+                <i class="fas fa-user-check auth-icon"></i>
+                <h1>Complete Your Profile</h1>
+                <p>Set your photo, fee, availability, and confirm your bio before entering the dashboard.</p>
+            </div>
+
+            <form id="doctorOnboardForm" class="auth-form">
+                <div class="form-group">
+                    <label for="profilePhoto"><i class="fas fa-camera"></i> Profile photo</label>
+                    <input type="file" id="profilePhoto" accept="image/*" required>
+                </div>
+                <div class="form-group">
+                    <label for="consultationFee"><i class="fas fa-money-bill-wave"></i> Consultation fee (PKR)</label>
+                    <input type="number" id="consultationFee" min="1" step="100" placeholder="e.g. 2500" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-week"></i> Available days</label>
+                    <div class="days-grid" id="daysGrid">
+                        <label><input type="checkbox" name="day" value="Mon"> Mon</label>
+                        <label><input type="checkbox" name="day" value="Tue"> Tue</label>
+                        <label><input type="checkbox" name="day" value="Wed"> Wed</label>
+                        <label><input type="checkbox" name="day" value="Thu"> Thu</label>
+                        <label><input type="checkbox" name="day" value="Fri"> Fri</label>
+                        <label><input type="checkbox" name="day" value="Sat"> Sat</label>
+                        <label><input type="checkbox" name="day" value="Sun"> Sun</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="officeStart"><i class="fas fa-clock"></i> Office start</label>
+                        <input type="time" id="officeStart" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="officeEnd"><i class="fas fa-clock"></i> Office end</label>
+                        <input type="time" id="officeEnd" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="bioConfirm"><i class="fas fa-align-left"></i> Confirm bio</label>
+                    <textarea id="bioConfirm" rows="4" placeholder="Professional summary for patients" required></textarea>
+                </div>
+                <div class="feedback" id="onboardFeedback"></div>
+                <button type="submit" class="btn-login"><i class="fas fa-check"></i> Save and continue</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        (function () {
+            const token = localStorage.getItem("token");
+            const role = String(localStorage.getItem("userRole") || localStorage.getItem("userType") || "").toLowerCase();
+            if (!token || role !== "doctor") {
+                window.location.href = "login.html";
+                return;
+            }
+            const API_BASE = window.location.port === "5000" ? "" : "http://127.0.0.1:5000";
+            const doctorId = localStorage.getItem("userId");
+            const feedback = document.getElementById("onboardFeedback");
+            const bioEl = document.getElementById("bioConfirm");
+
+            function showErr(msg) {
+                feedback.textContent = msg;
+                feedback.classList.add("show");
+            }
+            function clearErr() {
+                feedback.textContent = "";
+                feedback.classList.remove("show");
+            }
+
+            function readFileAsDataUrl(file) {
+                return new Promise(function (resolve, reject) {
+                    const reader = new FileReader();
+                    reader.onload = function () { resolve(String(reader.result || "")); };
+                    reader.onerror = function () { reject(new Error("Could not read photo.")); };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            fetch(API_BASE + "/api/doctors/" + encodeURIComponent(doctorId), {
+                headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }
+            })
+                .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+                .then(function (res) {
+                    if (res.ok && res.body && res.body.bio) {
+                        bioEl.value = String(res.body.bio);
+                    }
+                })
+                .catch(function () {});
+
+            document.getElementById("doctorOnboardForm").addEventListener("submit", function (e) {
+                e.preventDefault();
+                clearErr();
+                var fileInput = document.getElementById("profilePhoto");
+                var file = fileInput.files && fileInput.files[0];
+                if (!file) {
+                    showErr("Please upload a profile photo.");
+                    return;
+                }
+                var fee = Number(document.getElementById("consultationFee").value);
+                if (!fee || fee <= 0) {
+                    showErr("Enter a valid consultation fee.");
+                    return;
+                }
+                var days = Array.prototype.slice.call(document.querySelectorAll('input[name="day"]:checked')).map(function (c) { return c.value; });
+                if (!days.length) {
+                    showErr("Select at least one available day.");
+                    return;
+                }
+                var start = document.getElementById("officeStart").value;
+                var end = document.getElementById("officeEnd").value;
+                if (!start || !end) {
+                    showErr("Please set office hours.");
+                    return;
+                }
+                var bio = bioEl.value.trim();
+                if (bio.length < 10) {
+                    showErr("Bio must be at least 10 characters.");
+                    return;
+                }
+                readFileAsDataUrl(file).then(function (photoData) {
+                    return fetch(API_BASE + "/api/doctor/profile-onboarding", {
+                        method: "POST",
+                        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            consultation_fee: fee,
+                            office_hours_start: start,
+                            office_hours_end: end,
+                            availability_days: days.join(","),
+                            bio: bio,
+                            photo_data: photoData
+                        })
+                    });
+                }).then(function (r) {
+                    return r.json().then(function (body) { return { ok: r.ok, body: body }; });
+                }).then(function (res) {
+                    if (!res.ok) {
+                        showErr((res.body && res.body.error) || "Could not save profile.");
+                        return;
+                    }
+                    window.location.href = "doctor-dashboard.html";
+                }).catch(function () {
+                    showErr("Network error. Is the backend running?");
+                });
+            });
+        })();
+    </script>
+</body>
+</html>

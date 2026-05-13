@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClinixPro | Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/design-tokens.css">
+    <link rel="stylesheet" href="css/accessibility.css">
+    <link rel="stylesheet" href="css/components-base.css">
+    <link rel="stylesheet" href="css/responsive-polish.css">
+    <link rel="stylesheet" href="css/chatbot.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/admin-dashboard.css">
+    <style>body.session-pending{visibility:hidden}</style>
+</head>
+<body class="session-pending">
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="logo"><i class="fa-solid fa-heart-pulse"></i> ClinixPro</div>
+            <ul class="menu">
+                <li><a href="#" class="active" data-section="dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+                <li><a href="#" data-section="patients"><i class="fa-solid fa-users"></i> Patients</a></li>
+                <li><a href="#" data-section="doctors"><i class="fa-solid fa-user-doctor"></i> Doctors</a></li>
+                <li><a href="#" data-section="appointments"><i class="fa-solid fa-calendar-check"></i> Appointments</a></li>
+                <li><a href="#" data-section="billing"><i class="fa-solid fa-credit-card"></i> Billing</a></li>
+                <li><a href="#" data-section="tickets"><i class="fa-solid fa-life-ring"></i> Support Tickets</a></li>
+                <li><a href="#" data-section="settings"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            </ul>
+            <div class="logout"><a href="#" id="logoutBtn" class="menu-link" style="color:#fecaca; text-decoration:none; padding:10px 12px; display:flex; gap:10px; border-radius:10px;"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></div>
+        </aside>
+
+        <main class="content">
+            <header class="top">
+                <div>
+                    <h1 id="sectionTitle">Main Dashboard</h1>
+                    <p id="sectionSubtitle">Operational overview for ClinixPro</p>
+                </div>
+                <div class="tools">
+                    <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" placeholder="Search..."></div>
+                    <button class="icon" aria-label="notifications"><i class="fa-regular fa-bell"></i></button>
+                    <div class="profile"><span class="avatar" id="avatar">A</span><div><strong id="name">Admin User</strong><br><small>Administrator</small></div></div>
+                </div>
+            </header>
+
+            <div id="error" class="error"></div>
+
+            <!-- ==================== DASHBOARD SECTION ==================== -->
+            <section id="section-dashboard" class="admin-section active">
+                <div class="admin-tabs" role="tablist">
+                    <button type="button" class="admin-tab active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+                    <button type="button" class="admin-tab" data-tab="pending" role="tab" aria-selected="false">Pending Doctors</button>
+                </div>
+
+                <div id="tabOverview" class="tab-panel active">
+                    <section class="stats">
+                        <article class="card blue"><h3>Total Patients</h3><div class="value" id="totalPatients">0</div><small>+8.2% from last week</small></article>
+                        <article class="card green"><h3>Today Appointments</h3><div class="value" id="todayAppointments">0</div><small>+3.4% from yesterday</small></article>
+                        <article class="card purple"><h3>Total Doctors</h3><div class="value" id="totalDoctors">0</div><small>+1.8% this month</small></article>
+                        <article class="card orange"><h3>Pending Bills</h3><div class="value" id="pendingBills">0</div><small>-2.1% from last week</small></article>
+                    </section>
+
+                    <section class="charts">
+                        <article class="panel"><h2>Appointments This Week</h2><div class="chart-wrap"><canvas id="lineChart"></canvas></div></article>
+                        <article class="panel"><h2>Patient Types</h2><div class="chart-wrap"><canvas id="doughnutChart"></canvas></div></article>
+                    </section>
+
+                    <section class="panel table-panel">
+                        <h2 style="margin-bottom:10px;">Recent Appointments</h2>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Patient</th><th>Doctor</th><th>Date</th><th>Status</th></tr></thead>
+                                <tbody id="appointmentsBody"><tr><td colspan="4">Loading...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="tabPending" class="tab-panel">
+                    <section class="panel pending-doctors-panel">
+                        <h2 style="margin-bottom:10px;">Pending doctor registrations</h2>
+                        <p style="color:var(--muted); font-size:.88rem; margin-bottom:10px;">Review applications and approve or reject. Rejected applications are moved out of the queue (audit trail retained).</p>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Name</th><th>Email</th><th>Specialization</th><th>License Number</th><th>Apply Date</th><th>Actions</th></tr></thead>
+                                <tbody id="pendingDoctorsBody"><tr><td colspan="6">Loading...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <!-- ==================== PATIENTS SECTION ==================== -->
+            <section id="section-patients" class="admin-section">
+                <section class="panel">
+                    <div class="section-header">
+                        <h2>All Patients</h2>
+                        <input type="search" id="patientSearch" class="search-input" placeholder="Search by name, email, or phone">
+                    </div>
+                    <div class="table-wrap" style="margin-top:14px;">
+                        <table>
+                            <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Gender</th><th>Blood Group</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="patientsBody"><tr><td colspan="7">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+            <!-- ==================== DOCTORS SECTION ==================== -->
+            <section id="section-doctors" class="admin-section">
+                <section class="panel">
+                    <div class="section-header">
+                        <h2>Active Doctors</h2>
+                        <input type="search" id="doctorSearch" class="search-input" placeholder="Search by name, email, or specialization">
+                    </div>
+                    <div class="table-wrap" style="margin-top:14px;">
+                        <table>
+                            <thead><tr><th>Name</th><th>Email</th><th>Specialization</th><th>License</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="doctorsBody"><tr><td colspan="6">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+            <!-- ==================== APPOINTMENTS SECTION ==================== -->
+            <section id="section-appointments" class="admin-section">
+                <section class="panel">
+                    <div class="section-header"><h2>All Appointments</h2></div>
+                    <div class="table-wrap" style="margin-top:14px;">
+                        <table>
+                            <thead><tr><th>Patient</th><th>Doctor</th><th>Date</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="allAppointmentsBody"><tr><td colspan="6">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+            <!-- ==================== BILLING SECTION ==================== -->
+            <section id="section-billing" class="admin-section">
+                <section class="panel">
+                    <div class="section-header"><h2>All Bills</h2></div>
+                    <div class="table-wrap" style="margin-top:14px;">
+                        <table>
+                            <thead><tr><th>Patient</th><th>Amount</th><th>Status</th><th>Invoice</th><th>Date</th><th>Actions</th></tr></thead>
+                            <tbody id="billingBody"><tr><td colspan="6">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+            <!-- ==================== SUPPORT TICKETS SECTION ==================== -->
+            <section id="section-tickets" class="admin-section">
+                <section class="panel tickets-panel">
+                    <div class="section-header"><h2>Support Tickets</h2></div>
+                    <div class="table-wrap" style="margin-top:14px;">
+                        <table>
+                            <thead><tr><th>Name</th><th>Email</th><th>Message</th><th>Date</th><th>Status</th></tr></thead>
+                            <tbody id="supportTicketsBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+            <!-- ==================== SETTINGS SECTION ==================== -->
+            <section id="section-settings" class="admin-section">
+                <section class="panel">
+                    <div class="section-header"><h2>System Information</h2></div>
+                    <div id="settingsBody" style="margin-top:14px;">Loading...</div>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            function clearSession() {
+                [
+                    "token","userRole","userData","userId","userName","userEmail","userType",
+                    "patientId","patientName","doctorId","doctorName"
+                ].forEach((k) => localStorage.removeItem(k));
+            }
+
+            const token = localStorage.getItem("token");
+            if (!token) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            const API_BASE = window.location.port === "5000" ? "/api" : "http://127.0.0.1:5000/api";
+            const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+            const PAGE_LOAD_AT = Date.now();
+
+            const errorEl = document.getElementById("error");
+            const appointmentsBody = document.getElementById("appointmentsBody");
+            const supportTicketsBody = document.getElementById("supportTicketsBody");
+            const pendingDoctorsBody = document.getElementById("pendingDoctorsBody");
+            const patientsBody = document.getElementById("patientsBody");
+            const doctorsBody = document.getElementById("doctorsBody");
+            const allAppointmentsBody = document.getElementById("allAppointmentsBody");
+            const billingBody = document.getElementById("billingBody");
+            const settingsBody = document.getElementById("settingsBody");
+            const sectionTitle = document.getElementById("sectionTitle");
+            const sectionSubtitle = document.getElementById("sectionSubtitle");
+            const tabOverview = document.getElementById("tabOverview");
+            const tabPending = document.getElementById("tabPending");
+            const tabButtons = document.querySelectorAll(".admin-tab");
+            let lineChart, doughnutChart;
+
+            const STATE = {
+                patients: [],
+                doctors: [],
+                appointments: [],
+                billing: [],
+                tickets: [],
+                stats: null,
+                loaded: new Set(["dashboard"])
+            };
+
+            const SECTION_TITLES = {
+                dashboard:    { title: "Main Dashboard",  subtitle: "Operational overview for ClinixPro" },
+                patients:     { title: "Patients",         subtitle: "Manage patient records" },
+                doctors:      { title: "Doctors",          subtitle: "Manage active doctor accounts" },
+                appointments: { title: "Appointments",     subtitle: "Review scheduled visits" },
+                billing:      { title: "Billing",          subtitle: "Invoices and payment status" },
+                tickets:      { title: "Support Tickets",  subtitle: "Review customer support requests" },
+                settings:     { title: "Settings",         subtitle: "System information and status" }
+            };
+
+            function escapeHtml(value) {
+                if (value === null || value === undefined) return "";
+                return String(value)
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll('"', "&quot;")
+                    .replaceAll("'", "&#39;");
+            }
+
+            function setAdminTab(name) {
+                const isOverview = name === "overview";
+                tabButtons.forEach((btn) => {
+                    const active = btn.getAttribute("data-tab") === name;
+                    btn.classList.toggle("active", active);
+                    btn.setAttribute("aria-selected", active ? "true" : "false");
+                });
+                tabOverview.classList.toggle("active", isOverview);
+                tabPending.classList.toggle("active", !isOverview);
+            }
+            tabButtons.forEach((btn) => {
+                btn.addEventListener("click", () => setAdminTab(btn.getAttribute("data-tab") || "overview"));
+            });
+
+            function setError(message) {
+                errorEl.textContent = message;
+                errorEl.classList.add("show");
+            }
+            function clearError() {
+                errorEl.textContent = "";
+                errorEl.classList.remove("show");
+            }
+
+            function formatDate(value) {
+                if (value === null || value === undefined || value === "") return "Not available";
+                const date = new Date(value);
+                return Number.isNaN(date.getTime()) ? "Not available" : date.toLocaleString();
+            }
+
+            function safeText(value, fallback) {
+                if (value === null || value === undefined) return fallback;
+                const text = String(value).trim();
+                return text ? text : fallback;
+            }
+
+            function getStatusClass(status) {
+                const s = String(status || "").toLowerCase();
+                if (s === "completed" || s === "paid" || s === "active" || s === "approved" || s === "resolved" || s === "closed") return "ok";
+                if (s === "scheduled" || s === "pending" || s === "partial" || s === "open" || s === "in_progress") return "warn";
+                if (s === "cancelled" || s === "rejected" || s === "inactive" || s === "archived") return "bad";
+                return "neutral";
+            }
+
+            async function fetchJson(url) {
+                const res = await fetch(url, { headers });
+                if (res.status === 401) {
+                    clearSession();
+                    window.location.href = "login.html";
+                    throw new Error("Session expired");
+                }
+                if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+                return res.json();
+            }
+
+            async function apiSend(url, method, body) {
+                const options = { method, headers };
+                if (body !== undefined) options.body = JSON.stringify(body);
+                const res = await fetch(url, options);
+                if (res.status === 401) {
+                    clearSession();
+                    window.location.href = "login.html";
+                    throw new Error("Session expired");
+                }
+                let payload = {};
+                try { payload = await res.json(); } catch (_e) { payload = {}; }
+                if (!res.ok) throw new Error(payload.error || payload.message || `Request failed: ${res.status}`);
+                return payload;
+            }
+
+            async function validateSession() {
+                let me;
+                try {
+                    me = await fetchJson(`${API_BASE}/auth/me`);
+                } catch (_err) {
+                    clearSession();
+                    window.location.href = "login.html";
+                    throw new Error("Session expired");
+                }
+                const role = String(me.user_type || "").toLowerCase();
+                localStorage.setItem("userRole", role);
+                if (role && role !== "admin") {
+                    clearSession();
+                    const target = role === "doctor"
+                        ? "doctor-dashboard.html"
+                        : (role === "patient" ? "patient-dashboard.html" : "login.html");
+                    alert("This session belongs to a " + role + " account. Redirecting to the correct dashboard.");
+                    window.location.href = target;
+                    throw new Error("Role mismatch");
+                }
+                document.body.classList.remove("session-pending");
+                return true;
+            }
+
+            function renderLine(appointments) {
+                const counts = [0,0,0,0,0,0,0];
+                const map = {1:0,2:1,3:2,4:3,5:4,6:5,0:6};
+                appointments.forEach(a => {
+                    const d = new Date(a.appointment_date);
+                    if (!Number.isNaN(d.getTime())) counts[map[d.getDay()]] += 1;
+                });
+                const ctx = document.getElementById("lineChart").getContext("2d");
+                if (lineChart) lineChart.destroy();
+                lineChart = new Chart(ctx, {
+                    type: "line",
+                    data: { labels:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], datasets:[{ data:counts, borderColor:"#0066CC", backgroundColor:"rgba(0,102,204,.14)", fill:true, tension:.35 }] },
+                    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+                });
+            }
+
+            function renderDoughnut(patients) {
+                let male=0, female=0, other=0;
+                patients.forEach(p => {
+                    const g = String(p.gender || "").toLowerCase();
+                    if (g === "male" || g === "m") male++; else if (g === "female" || g === "f") female++; else other++;
+                });
+                const ctx = document.getElementById("doughnutChart").getContext("2d");
+                if (doughnutChart) doughnutChart.destroy();
+                doughnutChart = new Chart(ctx, {
+                    type:"doughnut",
+                    data:{ labels:["Male","Female","Other"], datasets:[{ data:[male,female,other], backgroundColor:["#0066CC","#7c3aed","#16a34a"], borderWidth:0 }] },
+                    options:{ responsive:true, maintainAspectRatio:false, cutout:"62%" }
+                });
+            }
+
+            function renderRecentAppointments(appointments, patients, doctors) {
+                const patientMap = new Map((patients || []).map(p => [p.patient_id, p.name]));
+                const doctorMap = new Map((doctors || []).map(d => [d.doctor_id, d.name]));
+                const rows = [...(appointments || [])]
+                    .sort((a,b) => new Date(b.appointment_date) - new Date(a.appointment_date))
+                    .slice(0,8);
+                if (!rows.length) {
+                    appointmentsBody.innerHTML = '<tr><td colspan="4">No recent appointments.</td></tr>';
+                    return;
+                }
+                appointmentsBody.innerHTML = rows.map(r => `
+                    <tr>
+                        <td>${escapeHtml(safeText(patientMap.get(r.patient_id), `Patient #${safeText(r.patient_id, "N/A")}`))}</td>
+                        <td>${escapeHtml(safeText(doctorMap.get(r.doctor_id), `Doctor #${safeText(r.doctor_id, "N/A")}`))}</td>
+                        <td>${escapeHtml(formatDate(r.appointment_date))}</td>
+                        <td><span class="badge ${getStatusClass(r.status)}">${escapeHtml(safeText(r.status, "unknown"))}</span></td>
+                    </tr>
+                `).join("");
+            }
+
+            function renderSupportTickets(tickets) {
+                const rows = Array.isArray(tickets) ? tickets.slice(0, 50) : [];
+                if (!rows.length) {
+                    supportTicketsBody.innerHTML = '<tr><td colspan="5">No support tickets found.</td></tr>';
+                    return;
+                }
+                supportTicketsBody.innerHTML = rows.map((t) => `
+                    <tr>
+                        <td>${escapeHtml(safeText(t.name, "Not available"))}</td>
+                        <td>${escapeHtml(safeText(t.email, "Not available"))}</td>
+                        <td>${escapeHtml(safeText(t.message || t.subject, "Not available"))}</td>
+                        <td>${escapeHtml(formatDate(t.date || t.created_at))}</td>
+                        <td><span class="badge ${getStatusClass(t.status)}">${escapeHtml(safeText(t.status, "open"))}</span></td>
+                    </tr>
+                `).join("");
+            }
+
+            function renderPendingDoctors(applications) {
+                const rows = Array.isArray(applications) ? applications : [];
+                if (!rows.length) {
+                    pendingDoctorsBody.innerHTML = '<tr><td colspan="6">No pending doctor applications.</td></tr>';
+                    return;
+                }
+                pendingDoctorsBody.innerHTML = rows.map((d) => `
+                    <tr>
+                        <td>${escapeHtml(safeText(d.name, "Not available"))}</td>
+                        <td>${escapeHtml(safeText(d.email, "Not available"))}</td>
+                        <td>${escapeHtml(safeText(d.specialization, "General"))}</td>
+                        <td>${escapeHtml(safeText(d.medical_license_number, "Not available"))}</td>
+                        <td>${escapeHtml(formatDate(d.applied_at || d.created_at || d.application_date))}</td>
+                        <td>
+                            <button class="action-btn action-approve" data-action="approve" data-id="${escapeHtml(d.application_id)}">Approve</button>
+                            <button class="action-btn action-reject" data-action="reject" data-id="${escapeHtml(d.application_id)}">Reject</button>
+                        </td>
+                    </tr>
+                `).join("");
+            }
+
+            function renderPatients() {
+                const term = (document.getElementById("patientSearch").value || "").trim().toLowerCase();
+                const rows = STATE.patients.filter(p => !term ||
+                    (p.name || "").toLowerCase().includes(term) ||
+                    (p.email || "").toLowerCase().includes(term) ||
+                    (p.phone || "").toLowerCase().includes(term));
+                if (!rows.length) {
+                    patientsBody.innerHTML = '<tr><td colspan="7">No patients found.</td></tr>';
+                    return;
+                }
+                patientsBody.innerHTML = rows.map(p => `
+                    <tr>
+                        <td>${escapeHtml(safeText(p.name, "Not available"))}</td>
+                        <td>${escapeHtml(safeText(p.email, "Not available"))}</td>
+                        <td>${escapeHtml(safeText(p.phone, "Not available"))}</td>
+                        <td>${escapeHtml(safeText(p.gender, "N/A"))}</td>
+                        <td>${escapeHtml(safeText(p.blood_group || p.blood_type, "N/A"))}</td>
+                        <td><span class="badge ${getStatusClass(p.status || "active")}">${escapeHtml(safeText(p.status, "active"))}</span></td>
+                        <td>
+                            <button class="action-btn action-view" data-action="view" data-id="${escapeHtml(p.patient_id)}">View</button>
+                            <button class="action-btn action-deactivate" data-action="deactivate" data-id="${escapeHtml(p.patient_id)}">Deactivate</button>
+                        </td>
+                    </tr>
+                `).join("");
+            }
+
+            function renderDoctors() {
+                const term = (document.getElementById("doctorSearch").value || "").trim().toLowerCase();
+                const rows = STATE.doctors.filter(d => !term ||
+                    (d.name || "").toLowerCase().includes(term) ||
+                    (d.email || "").toLowerCase().includes(term) ||
+                    (d.specialty || d.specialization || "").toLowerCase().includes(term));
+                if (!rows.length) {
+                    doctorsBody.innerHTML = '<tr><td colspan="6">No doctors found.</td></tr>';
+                    return;
+                }
+                doctorsBody.innerHTML = rows.map(d => `
+                    <tr>
+                        <td>${escapeHtml(safeText(d.name, "Not available"))}</td>
+                        <td>${escapeHtml(safeText(d.email, "Not available"))}</td>
+                        <td>${escapeHtml(safeText(d.specialty || d.specialization, "General"))}</td>
+                        <td>${escapeHtml(safeText(d.license_number, "Not available"))}</td>
+                        <td><span class="badge ${getStatusClass(d.status || "active")}">${escapeHtml(safeText(d.status, "active"))}</span></td>
+                        <td>
+                            <button class="action-btn action-view" data-action="view" data-id="${escapeHtml(d.doctor_id)}">View</button>
+                            <button class="action-btn action-deactivate" data-action="deactivate" data-id="${escapeHtml(d.doctor_id)}">Deactivate</button>
+                        </td>
+                    </tr>
+                `).join("");
+            }
+
+            function renderAllAppointments() {
+                const patientMap = new Map((STATE.patients || []).map(p => [p.patient_id, p.name]));
+                const doctorMap = new Map((STATE.doctors || []).map(d => [d.doctor_id, d.name]));
+                const rows = [...(STATE.appointments || [])]
+                    .sort((a,b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+                if (!rows.length) {
+                    allAppointmentsBody.innerHTML = '<tr><td colspan="6">No appointments found.</td></tr>';
+                    return;
+                }
+                allAppointmentsBody.innerHTML = rows.map(r => {
+                    const status = String(r.status || "").toLowerCase();
+                    const cancellable = status === "scheduled" || status === "pending";
+                    return `
+                        <tr>
+                            <td>${escapeHtml(safeText(patientMap.get(r.patient_id), `Patient #${safeText(r.patient_id, "N/A")}`))}</td>
+                            <td>${escapeHtml(safeText(doctorMap.get(r.doctor_id), `Doctor #${safeText(r.doctor_id, "N/A")}`))}</td>
+                            <td>${escapeHtml(formatDate(r.appointment_date))}</td>
+                            <td>${escapeHtml(safeText(r.reason, "—"))}</td>
+                            <td><span class="badge ${getStatusClass(r.status)}">${escapeHtml(safeText(r.status, "unknown"))}</span></td>
+                            <td>
+                                ${cancellable
+                                    ? `<button class="action-btn action-cancel" data-action="cancel" data-id="${escapeHtml(r.appointment_id)}">Cancel</button>`
+                                    : `<span style="color:var(--muted); font-size:0.82rem;">—</span>`}
+                            </td>
+                        </tr>
+                    `;
+                }).join("");
+            }
+
+            function renderBilling() {
+                const patientMap = new Map((STATE.patients || []).map(p => [p.patient_id, p.name]));
+                const rows = STATE.billing || [];
+                if (!rows.length) {
+                    billingBody.innerHTML = '<tr><td colspan="6">No bills found.</td></tr>';
+                    return;
+                }
+                billingBody.innerHTML = rows.map(b => {
+                    const amount = b.total_amount ?? b.amount ?? "";
+                    const status = b.payment_status || b.status || "pending";
+                    const id = b.bill_id ?? b.billing_id ?? "";
+                    const invoice = b.invoice_number || b.description || "—";
+                    const isPaid = String(status).toLowerCase() === "paid";
+                    return `
+                        <tr>
+                            <td>${escapeHtml(safeText(patientMap.get(b.patient_id), `Patient #${safeText(b.patient_id, "N/A")}`))}</td>
+                            <td>Rs ${escapeHtml(safeText(amount, "0"))}</td>
+                            <td><span class="badge ${getStatusClass(status)}">${escapeHtml(status)}</span></td>
+                            <td>${escapeHtml(invoice)}</td>
+                            <td>${escapeHtml(formatDate(b.created_at || b.date))}</td>
+                            <td>
+                                ${isPaid
+                                    ? `<span style="color:var(--muted); font-size:0.82rem;">Paid</span>`
+                                    : `<button class="action-btn action-markpaid" data-action="markpaid" data-id="${escapeHtml(id)}">Mark Paid</button>`}
+                            </td>
+                        </tr>
+                    `;
+                }).join("");
+            }
+
+            function renderSettings() {
+                const stats = STATE.stats || {};
+                const uptimeMs = Date.now() - PAGE_LOAD_AT;
+                const uptimeSeconds = Math.floor(uptimeMs / 1000);
+                const uptimeDisplay = `${Math.floor(uptimeSeconds / 60)}m ${uptimeSeconds % 60}s (session)`;
+                const dbStatus = "Connected";
+                const totalPatients = STATE.patients.length || stats.total_patients || 0;
+                const totalDoctors  = STATE.doctors.length  || stats.doctors_available || 0;
+                const connectedUsers = totalPatients + totalDoctors;
+                settingsBody.innerHTML = `
+                    <div class="settings-grid">
+                        <div class="settings-item"><strong>API Base URL</strong><span>${escapeHtml(API_BASE)}</span></div>
+                        <div class="settings-item"><strong>Database</strong><span>${escapeHtml(dbStatus)}</span></div>
+                        <div class="settings-item"><strong>Registered Patients</strong><span>${escapeHtml(totalPatients)}</span></div>
+                        <div class="settings-item"><strong>Active Doctors</strong><span>${escapeHtml(totalDoctors)}</span></div>
+                        <div class="settings-item"><strong>Connected Users (total)</strong><span>${escapeHtml(connectedUsers)}</span></div>
+                        <div class="settings-item"><strong>Server Uptime</strong><span>${escapeHtml(uptimeDisplay)}</span></div>
+                    </div>
+                `;
+            }
+
+            async function reviewDoctorApplication(applicationId, action) {
+                const endpoint = `${API_BASE}/admin/doctor-applications/${applicationId}/${action}`;
+                const options = { method: "POST", headers };
+                if (action === "reject") {
+                    const reason = window.prompt("Enter rejection reason:");
+                    if (!reason || !reason.trim()) {
+                        setError("Rejection reason is required.");
+                        return;
+                    }
+                    options.body = JSON.stringify({ reason: reason.trim() });
+                }
+                const response = await fetch(endpoint, options);
+                let payload = {};
+                try { payload = await response.json(); } catch (_e) { payload = {}; }
+                if (!response.ok) {
+                    throw new Error(payload.error || "Unable to process doctor application.");
+                }
+            }
+
+            async function loadSectionData(id) {
+                if (STATE.loaded.has(id)) return;
+                try {
+                    clearError();
+                    if (id === "patients") {
+                        const data = await fetchJson(`${API_BASE}/patients`);
+                        STATE.patients = Array.isArray(data) ? data : (data && (data.data || data.patients)) || [];
+                        renderPatients();
+                    } else if (id === "doctors") {
+                        const data = await fetchJson(`${API_BASE}/doctors`);
+                        STATE.doctors = Array.isArray(data) ? data : (data && (data.data || data.doctors)) || [];
+                        renderDoctors();
+                    } else if (id === "appointments") {
+                        const [appts, patients, doctors] = await Promise.all([
+                            fetchJson(`${API_BASE}/appointments`),
+                            STATE.patients.length ? Promise.resolve(STATE.patients) : fetchJson(`${API_BASE}/patients`),
+                            STATE.doctors.length  ? Promise.resolve(STATE.doctors)  : fetchJson(`${API_BASE}/doctors`)
+                        ]);
+                        STATE.appointments = Array.isArray(appts) ? appts : [];
+                        STATE.patients = Array.isArray(patients) ? patients : STATE.patients;
+                        STATE.doctors  = Array.isArray(doctors)  ? doctors  : STATE.doctors;
+                        renderAllAppointments();
+                    } else if (id === "billing") {
+                        const [bills, patients] = await Promise.all([
+                            fetchJson(`${API_BASE}/billing`),
+                            STATE.patients.length ? Promise.resolve(STATE.patients) : fetchJson(`${API_BASE}/patients`)
+                        ]);
+                        STATE.billing = Array.isArray(bills) ? bills : (bills && (bills.data || bills.bills)) || [];
+                        STATE.patients = Array.isArray(patients) ? patients : STATE.patients;
+                        renderBilling();
+                    } else if (id === "tickets") {
+                        const payload = await fetchJson(`${API_BASE}/admin/support/tickets`);
+                        STATE.tickets = (payload && payload.tickets) || [];
+                        renderSupportTickets(STATE.tickets);
+                    } else if (id === "settings") {
+                        renderSettings();
+                    }
+                    STATE.loaded.add(id);
+                } catch (err) {
+                    if (String(err && err.message || "") === "Session expired") return;
+                    setError(`Unable to load ${id}: ${err.message || "request failed"}`);
+                }
+            }
+
+            function renderSection(id) {
+                // Always paint the section's table from STATE so the "Loading…"
+                // placeholder is replaced, even when init() pre-fetched the data
+                // and lazy loadSectionData() short-circuits as already loaded.
+                if (id === "patients")          renderPatients();
+                else if (id === "doctors")      renderDoctors();
+                else if (id === "appointments") renderAllAppointments();
+                else if (id === "billing")      renderBilling();
+                else if (id === "tickets")      renderSupportTickets(STATE.tickets || []);
+                else if (id === "settings")     renderSettings();
+            }
+
+            function switchSection(id) {
+                document.querySelectorAll(".admin-section").forEach(s => s.classList.remove("active"));
+                const target = document.getElementById("section-" + id);
+                if (target) target.classList.add("active");
+                document.querySelectorAll(".menu a").forEach(a => {
+                    a.classList.toggle("active", a.getAttribute("data-section") === id);
+                });
+                const titleInfo = SECTION_TITLES[id] || SECTION_TITLES.dashboard;
+                sectionTitle.textContent = titleInfo.title;
+                sectionSubtitle.textContent = titleInfo.subtitle;
+                renderSection(id);
+                loadSectionData(id);
+            }
+
+            async function init() {
+                try {
+                    await validateSession();
+                    const [stats, appointments, patients, doctors, ticketsPayload, pendingDoctorsPayload] = await Promise.all([
+                        fetchJson(`${API_BASE}/dashboard/stats`),
+                        fetchJson(`${API_BASE}/appointments`),
+                        fetchJson(`${API_BASE}/patients`),
+                        fetchJson(`${API_BASE}/doctors`),
+                        fetchJson(`${API_BASE}/admin/support/tickets`),
+                        fetchJson(`${API_BASE}/admin/doctor-applications?status=pending`)
+                    ]);
+
+                    STATE.stats = stats || {};
+                    STATE.appointments = appointments || [];
+                    STATE.patients = patients || [];
+                    STATE.doctors = doctors || [];
+                    STATE.tickets = (ticketsPayload || {}).tickets || [];
+
+                    document.getElementById("totalPatients").textContent = stats.total_patients || 0;
+                    document.getElementById("todayAppointments").textContent = stats.today_appointments || 0;
+                    document.getElementById("totalDoctors").textContent = stats.doctors_available || 0;
+                    document.getElementById("pendingBills").textContent = stats.pending_bills || 0;
+
+                    renderLine(STATE.appointments);
+                    renderDoughnut(STATE.patients);
+                    renderRecentAppointments(STATE.appointments, STATE.patients, STATE.doctors);
+                    renderPendingDoctors((pendingDoctorsPayload || {}).applications || []);
+
+                    STATE.loaded.add("dashboard");
+                    STATE.loaded.add("appointments");
+                    STATE.loaded.add("patients");
+                    STATE.loaded.add("doctors");
+                    STATE.loaded.add("tickets");
+                } catch (error) {
+                    if (String(error && error.message || "") === "Session expired") {
+                        return;
+                    }
+                    if (!navigator.onLine) {
+                        setError("You appear offline. Reconnect to load live dashboard data.");
+                    } else {
+                        setError("Unable to load dashboard data. Please ensure backend is running and your session is valid.");
+                    }
+                }
+            }
+
+            const name = localStorage.getItem("userName") || "Admin User";
+            document.getElementById("name").textContent = name;
+            document.getElementById("avatar").textContent = (name[0] || "A").toUpperCase();
+
+            document.getElementById("logoutBtn").addEventListener("click", function (e) {
+                e.preventDefault();
+                clearSession();
+                window.location.href = "login.html";
+            });
+
+            document.querySelectorAll(".menu a").forEach((a) => {
+                a.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const section = a.getAttribute("data-section") || "dashboard";
+                    switchSection(section);
+                });
+            });
+
+            pendingDoctorsBody.addEventListener("click", async function (e) {
+                const action = e.target && e.target.getAttribute("data-action");
+                const applicationId = e.target && e.target.getAttribute("data-id");
+                if (!action || !applicationId) return;
+                try {
+                    await reviewDoctorApplication(applicationId, action);
+                    const pendingPayload = await fetchJson(`${API_BASE}/admin/doctor-applications?status=pending`);
+                    renderPendingDoctors((pendingPayload || {}).applications || []);
+                } catch (error) {
+                    setError(error.message || "Unable to process doctor review action.");
+                }
+            });
+
+            document.getElementById("patientSearch").addEventListener("input", renderPatients);
+            document.getElementById("doctorSearch").addEventListener("input", renderDoctors);
+
+            patientsBody.addEventListener("click", async function (e) {
+                const action = e.target && e.target.getAttribute("data-action");
+                const id = e.target && e.target.getAttribute("data-id");
+                if (!action || !id) return;
+                if (action === "view") {
+                    const patient = STATE.patients.find(p => String(p.patient_id) === String(id));
+                    if (patient) alert(`Patient #${patient.patient_id}\nName: ${patient.name || "—"}\nEmail: ${patient.email || "—"}\nPhone: ${patient.phone || "—"}\nGender: ${patient.gender || "—"}\nBlood: ${patient.blood_group || patient.blood_type || "—"}\nStatus: ${patient.status || "active"}`);
+                } else if (action === "deactivate") {
+                    if (!confirm("Deactivate this patient account?")) return;
+                    try {
+                        await apiSend(`${API_BASE}/patients/${id}`, "PUT", { status: "inactive" });
+                        const p = STATE.patients.find(p => String(p.patient_id) === String(id));
+                        if (p) p.status = "inactive";
+                        renderPatients();
+                    } catch (err) { setError(err.message || "Unable to deactivate patient."); }
+                }
+            });
+
+            doctorsBody.addEventListener("click", async function (e) {
+                const action = e.target && e.target.getAttribute("data-action");
+                const id = e.target && e.target.getAttribute("data-id");
+                if (!action || !id) return;
+                if (action === "view") {
+                    const doctor = STATE.doctors.find(d => String(d.doctor_id) === String(id));
+                    if (doctor) alert(`Doctor #${doctor.doctor_id}\nName: ${doctor.name || "—"}\nEmail: ${doctor.email || "—"}\nSpecialization: ${doctor.specialization || "—"}\nLicense: ${doctor.license_number || "—"}\nStatus: ${doctor.status || "active"}`);
+                } else if (action === "deactivate") {
+                    if (!confirm("Deactivate this doctor account?")) return;
+                    try {
+                        await apiSend(`${API_BASE}/doctors/${id}`, "PUT", { status: "inactive" });
+                        const d = STATE.doctors.find(d => String(d.doctor_id) === String(id));
+                        if (d) d.status = "inactive";
+                        renderDoctors();
+                    } catch (err) { setError(err.message || "Unable to deactivate doctor."); }
+                }
+            });
+
+            allAppointmentsBody.addEventListener("click", async function (e) {
+                const action = e.target && e.target.getAttribute("data-action");
+                const id = e.target && e.target.getAttribute("data-id");
+                if (action !== "cancel" || !id) return;
+                if (!confirm("Cancel this appointment?")) return;
+                try {
+                    await apiSend(`${API_BASE}/appointments/${id}`, "PUT", { status: "cancelled" });
+                    const appt = STATE.appointments.find(a => String(a.appointment_id) === String(id));
+                    if (appt) appt.status = "cancelled";
+                    renderAllAppointments();
+                } catch (err) { setError(err.message || "Unable to cancel appointment."); }
+            });
+
+            billingBody.addEventListener("click", async function (e) {
+                const action = e.target && e.target.getAttribute("data-action");
+                const id = e.target && e.target.getAttribute("data-id");
+                if (action !== "markpaid" || !id) return;
+                if (!confirm("Mark this bill as paid?")) return;
+                try {
+                    await apiSend(`${API_BASE}/billing/${id}`, "PUT", { payment_status: "paid" });
+                    const bill = STATE.billing.find(b => String(b.bill_id ?? b.billing_id) === String(id));
+                    if (bill) { bill.payment_status = "paid"; bill.status = "paid"; }
+                    renderBilling();
+                } catch (err) { setError(err.message || "Unable to mark bill as paid. Backend may not yet support this endpoint."); }
+            });
+
+            init();
+        })();
+    </script>
+    <script src="js/chatbot.js"></script>
+</body>
+</html>

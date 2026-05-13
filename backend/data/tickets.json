@@ -1,0 +1,29 @@
+{
+  "TKT-1777110366": {
+    "id": "TKT-1777110366",
+    "name": "Test User",
+    "email": "test@clinicxpro.com",
+    "phone": "03001234567",
+    "category": "technical",
+    "subject": "Test Support Ticket",
+    "description": "This is a test ticket to verify the support system is working.",
+    "priority": "medium",
+    "status": "closed",
+    "createdAt": "2026-04-25T14:46:06.045508",
+    "updatedAt": "2026-04-25T14:46:06.075632",
+    "messages": [
+      {
+        "author": "Customer",
+        "content": "This is a test ticket to verify the support system is working.",
+        "timestamp": "2026-04-25T14:46:06.045508",
+        "isSupport": false
+      },
+      {
+        "author": "Support Team",
+        "content": "Thank you for contacting us. We will help you shortly.",
+        "timestamp": "2026-04-25T14:46:06.066115",
+        "isSupport": false
+      }
+    ]
+  }
+}

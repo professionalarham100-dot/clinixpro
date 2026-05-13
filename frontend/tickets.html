@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Support Tickets - ClinixPro</title>
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/design-tokens.css">
+    <link rel="stylesheet" href="css/accessibility.css">
+    <link rel="stylesheet" href="css/components-base.css">
+    <link rel="stylesheet" href="css/responsive-polish.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/tickets.css">
+    <link rel="stylesheet" href="css/tickets-modern.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-logo">
+                <span class="logo-icon">🏥</span>
+                ClinixPro
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="support.html" class="nav-link">Support</a></li>
+                <li><a href="tickets.html" class="nav-link active">My Tickets</a></li>
+                <li><a href="login.html" class="nav-link btn-login"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="tickets-container">
+        <!-- Header -->
+        <section class="tickets-header">
+            <div class="header-content">
+                <h1>My Support Tickets</h1>
+                <p>Track and manage your support requests</p>
+            </div>
+            <button class="btn btn-primary" onclick="window.location.href='support.html#contact'">
+                <i class="fas fa-plus"></i> Create New Ticket
+            </button>
+        </section>
+
+        <!-- Filters & Search -->
+        <section class="tickets-controls">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" id="ticketSearch" placeholder="Search tickets by ID or subject...">
+            </div>
+
+            <div class="filters">
+                <select id="statusFilter" class="filter-select">
+                    <option value="">All Status</option>
+                    <option value="open">Open</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="waiting">Waiting for Customer</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                </select>
+
+                <select id="categoryFilter" class="filter-select">
+                    <option value="">All Categories</option>
+                    <option value="technical">Technical Issue</option>
+                    <option value="billing">Billing/Payment</option>
+                    <option value="account">Account Issue</option>
+                    <option value="feature">Feature Request</option>
+                    <option value="other">Other</option>
+                </select>
+
+                <select id="sortFilter" class="filter-select">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="updated">Recently Updated</option>
+                    <option value="priority">Priority</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Stats Cards -->
+        <section class="ticket-stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalTickets">0</div>
+                <div class="stat-label">Total Tickets</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="openTickets">0</div>
+                <div class="stat-label">Open</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="inProgressTickets">0</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="resolvedTickets">0</div>
+                <div class="stat-label">Resolved</div>
+            </div>
+        </section>
+
+        <!-- Tickets List -->
+        <section class="tickets-list-section">
+            <div id="ticketsList" class="tickets-list">
+                <!-- Tickets will be loaded here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-icon">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <h3>No Support Tickets Yet</h3>
+                <p>You haven't created any support tickets. Create one to get help from our team.</p>
+                <button class="btn btn-primary" onclick="window.location.href='support.html#contact'">
+                    <i class="fas fa-plus"></i> Create First Ticket
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Ticket Detail Modal -->
+    <div id="ticketModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeTicketModal()">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <div class="ticket-detail-header">
+                <div>
+                    <h2 id="modalTicketId"></h2>
+                    <p id="modalTicketSubject"></p>
+                </div>
+                <div class="ticket-actions">
+                    <button class="btn btn-secondary btn-small" id="replyBtn" onclick="scrollToReply()">
+                        <i class="fas fa-reply"></i> Reply
+                    </button>
+                    <button class="btn btn-secondary btn-small" id="closeTicketBtn" onclick="closeTicket()">
+                        <i class="fas fa-check"></i> Close
+                    </button>
+                </div>
+            </div>
+
+            <div class="ticket-detail-body">
+                <div class="detail-section">
+                    <h4>Ticket Information</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="label">Status:</span>
+                            <span class="value" id="modalStatus"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Category:</span>
+                            <span class="value" id="modalCategory"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Priority:</span>
+                            <span class="value" id="modalPriority"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Created:</span>
+                            <span class="value" id="modalCreated"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4>Description</h4>
+                    <div class="ticket-description" id="modalDescription"></div>
+                </div>
+
+                <!-- Conversation Thread -->
+                <div class="detail-section">
+                    <h4>Conversation</h4>
+                    <div id="conversationThread" class="conversation-thread">
+                        <!-- Messages will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Reply Form -->
+                <div class="detail-section" id="replySection">
+                    <h4>Add a Reply</h4>
+                    <form id="replyForm" class="reply-form">
+                        <div class="form-group">
+                            <textarea id="replyMessage" rows="4" placeholder="Type your reply..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="replyAttachment">
+                                <i class="fas fa-paperclip"></i> Attachment (Optional)
+                            </label>
+                            <input type="file" id="replyAttachment" accept=".pdf,.jpg,.png,.jpeg">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Send Reply
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>ClinixPro</h4>
+                <p>Healthcare management made simple and secure.</p>
+            </div>
+            <div class="footer-section">
+                <h5>Quick Links</h5>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="support.html">Support</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h5>Contact</h5>
+                <p>Email: support@clinixpro.com</p>
+                <p>Phone: +92 (300) 123-4567</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 ClinixPro. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/tickets.js"></script>
+</body>
+</html>

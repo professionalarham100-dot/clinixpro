@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Verification - ClinixPro</title>
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/design-tokens.css">
+    <link rel="stylesheet" href="css/accessibility.css">
+    <link rel="stylesheet" href="css/components-base.css">
+    <link rel="stylesheet" href="css/responsive-polish.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/auth-modern.css">
+    <style>
+        .back-home-link {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 20;
+            text-decoration: none;
+            color: #1e3a8a;
+            font-weight: 700;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid #dbe4ef;
+            border-radius: 999px;
+            padding: 8px 12px;
+            box-shadow: 0 6px 18px rgba(15,23,42,0.08);
+        }
+        .feedback {
+            display: none;
+            margin: 12px 0 6px;
+            color: #b91c1c;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .feedback.show { display: block; }
+        .pending-message {
+            display: none;
+            margin-top: 14px;
+            border-radius: 10px;
+            border: 1px solid #86efac;
+            background: #f0fdf4;
+            color: #166534;
+            padding: 12px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+        .pending-message.show { display: block; }
+    </style>
+</head>
+<body>
+    <a class="back-home-link" href="index.html"><i class="fas fa-arrow-left"></i> Home</a>
+    <div class="auth-container">
+        <div class="auth-box auth-box-large">
+            <div class="auth-header">
+                <i class="fas fa-user-shield auth-icon"></i>
+                <h1>Doctor Verification</h1>
+                <p>Submit your details for account verification</p>
+            </div>
+
+            <form id="doctorRegisterForm" class="auth-form">
+                <div class="form-group">
+                    <label for="medicalLicenseNumber"><i class="fas fa-id-card"></i> PMDC License Number</label>
+                    <input type="text" id="medicalLicenseNumber" placeholder="e.g. PMDC-123456" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="specialization"><i class="fas fa-stethoscope"></i> Specialization</label>
+                    <select id="specialization" required>
+                        <option value="">Select specialization</option>
+                        <option value="General">General</option>
+                        <option value="Cardiology">Cardiology</option>
+                        <option value="Dermatology">Dermatology</option>
+                        <option value="Neurology">Neurology</option>
+                        <option value="Orthopedics">Orthopedics</option>
+                        <option value="Pediatrics">Pediatrics</option>
+                        <option value="Gynecology">Gynecology</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="clinicName"><i class="fas fa-hospital"></i> Hospital/Clinic Name</label>
+                    <input type="text" id="clinicName" placeholder="Enter clinic or hospital name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="experienceYears"><i class="fas fa-briefcase-medical"></i> Years of Experience</label>
+                    <input type="number" id="experienceYears" min="0" placeholder="e.g. 5" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="city"><i class="fas fa-city"></i> City</label>
+                    <input type="text" id="city" placeholder="e.g. Gujrat" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="doctorBio"><i class="fas fa-align-left"></i> Short bio</label>
+                    <textarea id="doctorBio" rows="4" placeholder="Brief professional background (min. 20 characters)" required></textarea>
+                </div>
+
+                <div class="feedback" id="doctorRegisterFeedback"></div>
+                <button type="submit" class="btn-login"><i class="fas fa-paper-plane"></i> Submit for Verification</button>
+            </form>
+            <div class="pending-message" id="doctorPendingMessage">
+                Application submitted! We will review within 24 hours.
+            </div>
+        </div>
+    </div>
+    <script src="js/auth.js"></script>
+</body>
+</html>

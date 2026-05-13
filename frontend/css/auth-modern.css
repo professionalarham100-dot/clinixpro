@@ -1,0 +1,56 @@
+/* Modern auth page visual alignment (safe overrides) */
+body {
+    background:
+        radial-gradient(circle at 12% -8%, rgba(59, 130, 246, 0.14), transparent 36%),
+        radial-gradient(circle at 90% 4%, rgba(139, 92, 246, 0.14), transparent 32%),
+        var(--cp-bg);
+    color: var(--cp-text);
+}
+
+.auth-container {
+    padding: var(--cp-space-8) var(--cp-space-4);
+}
+
+.auth-box,
+.auth-box-large {
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: var(--cp-radius-xl);
+    box-shadow: var(--cp-shadow-lg);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.auth-header h1,
+.auth-header h2,
+.auth-header p {
+    text-align: center;
+}
+
+.auth-form .form-group input,
+.auth-form .form-group select,
+.auth-form .form-group textarea {
+    border-radius: var(--cp-radius-md);
+}
+
+.btn-login,
+.auth-form button[type="submit"] {
+    border-radius: var(--cp-radius-md);
+    transition: all var(--cp-dur-md) var(--cp-ease-standard);
+}
+
+.btn-login:hover,
+.auth-form button[type="submit"]:hover {
+    transform: translateY(-1px);
+}
+
+.back-home-link {
+    border-radius: var(--cp-radius-md);
+    box-shadow: var(--cp-shadow-sm);
+}
+
+.rv-card {
+    border-radius: var(--cp-radius-xl);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: var(--cp-shadow-lg);
+}

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - ClinixPro</title>
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/design-tokens.css">
+    <link rel="stylesheet" href="css/accessibility.css">
+    <link rel="stylesheet" href="css/components-base.css">
+    <link rel="stylesheet" href="css/responsive-polish.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/register.css">
+    <link rel="stylesheet" href="css/auth-modern.css">
+</head>
+<body>
+    <a class="back-home-link" href="index.html"><i class="fas fa-arrow-left"></i> Home</a>
+    <div class="auth-container">
+        <div class="auth-box auth-box-large">
+            <div class="auth-header">
+                <i class="fas fa-clinic-medical auth-icon"></i>
+                <h1>Create Account</h1>
+                <p>Join ClinixPro Healthcare Management</p>
+            </div>
+
+            <form id="registerForm" class="auth-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName"><i class="fas fa-user"></i> First Name</label>
+                        <input type="text" id="firstName" name="firstName" placeholder="First name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName"><i class="fas fa-user"></i> Last Name</label>
+                        <input type="text" id="lastName" name="lastName" placeholder="Last name" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="regEmail"><i class="fas fa-envelope"></i> Email Address</label>
+                    <input type="email" id="regEmail" name="regEmail" placeholder="your@email.com" required>
+                    <div class="inline-error" id="regEmailError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone"><i class="fas fa-phone"></i> Phone Number</label>
+                    <input type="tel" id="phone" name="phone" placeholder="03001234567" required>
+                    <div class="inline-error" id="phoneError"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="regPassword"><i class="fas fa-lock"></i> Password</label>
+                        <input type="password" id="regPassword" name="regPassword" placeholder="Min 6 characters" required>
+                        <div class="inline-error" id="regPasswordError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword"><i class="fas fa-lock"></i> Confirm Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Re-enter password" required>
+                        <div class="inline-error" id="confirmPasswordError"></div>
+                    </div>
+                </div>
+                <div class="register-feedback" id="registerFeedback"></div>
+
+                <div class="form-group">
+                    <label for="userType"><i class="fas fa-user-md"></i> Register As</label>
+                    <select id="userType" name="userType" required>
+                        <option value="">Select your role</option>
+                        <option value="patient">Patient</option>
+                        <option value="doctor">Healthcare Provider</option>
+                    </select>
+                </div>
+
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="terms" name="terms" required>
+                    <label for="terms">I agree to the Terms and Conditions</label>
+                </div>
+
+                <button type="submit" class="btn-login"><i class="fas fa-check"></i> Create Account</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="login.html"><i class="fas fa-sign-in-alt"></i> Sign In</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="verifyModal" class="rv-modal" aria-hidden="true">
+        <div class="rv-backdrop" data-rv-close></div>
+        <div class="rv-card" role="dialog" aria-modal="true" aria-labelledby="rvTitle">
+            <button type="button" class="rv-close" data-rv-close aria-label="Close">&times;</button>
+
+            <div class="rv-step" data-rv-step="1">
+                <div class="rv-icon"><i class="fas fa-envelope-circle-check"></i></div>
+                <h3 id="rvTitle">Verify your email</h3>
+                <p class="rv-sub">We sent a 6-digit code to <strong id="rvEmailDisplay">your email</strong>. Enter it below to activate your account. The code expires in 15 minutes.</p>
+                <form id="verifyForm" novalidate>
+                    <label for="rvCode">Verification Code</label>
+                    <input type="text" id="rvCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="123456" required autocomplete="one-time-code">
+                    <div class="rv-msg" id="rvMsg"></div>
+                    <button type="submit" class="rv-btn" id="rvVerifyBtn">
+                        <span class="label"><i class="fas fa-circle-check"></i> Verify &amp; Activate</span>
+                        <span class="spinner"><i class="fas fa-spinner fa-spin"></i> Verifying...</span>
+                    </button>
+                    <button type="button" class="rv-link-btn" id="rvResendBtn">Didn't get a code? Resend</button>
+                </form>
+            </div>
+
+            <div class="rv-step" data-rv-step="2" hidden>
+                <div class="rv-icon rv-icon-success"><i class="fas fa-circle-check"></i></div>
+                <h3 id="rvWelcomeTitle">Welcome to ClinixPro!</h3>
+                <p class="rv-sub" id="rvWelcomeText">Your account is verified and ready to use.</p>
+                <button type="button" class="rv-btn" id="rvGoLoginBtn">
+                    <span class="label"><i class="fas fa-arrow-right-to-bracket"></i> Continue to login</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "TKT-1777110250": {
+    "id": "TKT-1777110250",
+    "name": "A",
+    "email": "a@b.com",
+    "phone": "",
+    "category": "technical",
+    "subject": "s",
+    "description": "m",
+    "priority": "medium",
+    "status": "open",
+    "createdAt": "2026-04-25T14:44:10.571535",
+    "updatedAt": "2026-04-25T14:44:10.571535",
+    "messages": [
+      {
+        "author": "Customer",
+        "content": "m",
+        "timestamp": "2026-04-25T14:44:10.571535",
+        "isSupport": false
+      }
+    ]
+  }
+}

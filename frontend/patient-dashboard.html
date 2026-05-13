@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClinixPro | Patient Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/design-tokens.css">
+    <link rel="stylesheet" href="css/accessibility.css">
+    <link rel="stylesheet" href="css/components-base.css">
+    <link rel="stylesheet" href="css/responsive-polish.css">
+    <link rel="stylesheet" href="css/chatbot.css">
+    <link rel="stylesheet" href="css/patient-dashboard.css">
+    <style>body.session-pending{visibility:hidden}</style>
+</head>
+<body class="session-pending">
+    <div class="app-layout">
+        <aside id="sidebar" class="sidebar">
+            <div class="brand"><i class="fa-solid fa-heart-pulse"></i> ClinixPro</div>
+            <div class="patient-box">
+                <div id="avatar" class="avatar">P</div>
+                <div>
+                    <small>Patient Portal</small>
+                    <strong id="sidebarName">Patient</strong>
+                </div>
+            </div>
+
+            <nav class="side-nav">
+                <button class="side-link active" data-section="dashboard"><i class="fa-solid fa-house"></i> Dashboard</button>
+                <button class="side-link" data-section="appointments"><i class="fa-solid fa-calendar-days"></i> My Appointments</button>
+                <button class="side-link" data-section="records"><i class="fa-solid fa-file-medical"></i> Medical Records</button>
+                <button class="side-link" data-section="my-uploads"><i class="fa-solid fa-folder-open"></i> My Records</button>
+                <button class="side-link" data-section="prescriptions"><i class="fa-solid fa-pills"></i> Prescriptions</button>
+                <button class="side-link" data-section="billing"><i class="fa-solid fa-credit-card"></i> Billing</button>
+                <button class="side-link" data-section="messages"><i class="fa-solid fa-comments"></i> Messages</button>
+                <button class="side-link" data-section="profile"><i class="fa-solid fa-user"></i> Profile</button>
+            </nav>
+
+            <div class="logout-wrap">
+                <button id="logoutBtn" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div id="demoBanner" class="demo-banner">
+                You are viewing a Demo Account
+            </div>
+            <header class="topbar">
+                <div>
+                    <h1>Welcome back, <span id="headerName">Patient</span></h1>
+                    <p id="todayDate">Today</p>
+                </div>
+                <div class="topbar-actions">
+                    <button id="menuBtn" class="menu-btn" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
+                    <button id="bellBtn" class="bell-btn" aria-label="Notifications"><i class="fa-regular fa-bell"></i></button>
+                    <div id="notifDropdown" class="notif-dropdown">
+                        <div class="notif-head">Notifications</div>
+                        <div id="notifList"></div>
+                    </div>
+                </div>
+            </header>
+
+            <section id="dashboard" class="section active">
+                <div class="stats-grid">
+                    <article class="stat-card c-blue" data-jump-section="appointments">
+                        <div>
+                            <div class="stat-title">📅 Upcoming Appointments</div>
+                            <div id="statAppointments" class="stat-value">0</div>
+                        </div>
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </article>
+                    <article class="stat-card c-green" data-jump-section="records">
+                        <div>
+                            <div class="stat-title">📋 Medical Records</div>
+                            <div id="statRecords" class="stat-value">0</div>
+                        </div>
+                        <i class="fa-solid fa-file-waveform"></i>
+                    </article>
+                    <article class="stat-card c-purple" data-jump-section="prescriptions">
+                        <div>
+                            <div class="stat-title">💊 Prescriptions</div>
+                            <div id="statPrescriptions" class="stat-value">0</div>
+                        </div>
+                        <i class="fa-solid fa-capsules"></i>
+                    </article>
+                    <article class="stat-card c-orange" data-jump-section="billing">
+                        <div>
+                            <div class="stat-title">💰 Bills</div>
+                            <div id="statBills" class="stat-value">0</div>
+                        </div>
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </article>
+                </div>
+            </section>
+
+            <section id="appointments" class="section">
+                <article class="panel">
+                    <div class="panel-head">
+                        <h2><i class="fa-solid fa-calendar-days"></i> Upcoming Appointments</h2>
+                        <button id="openAppointmentModalBtn" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Book New Appointment</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointmentsBody"></tbody>
+                    </table>
+                    <div id="appointmentsEmpty" class="empty-state" style="display:none;">
+                        <i class="fa-regular fa-calendar-xmark"></i>
+                        No upcoming appointments found
+                    </div>
+                </article>
+            </section>
+
+            <section id="records" class="section">
+                <article class="panel">
+                    <div class="panel-head">
+                        <h2><i class="fa-solid fa-file-medical"></i> Medical Records</h2>
+                    </div>
+                    <div id="recordsList" class="record-list"></div>
+                    <div id="recordsEmpty" class="empty-state" style="display:none;">
+                        <i class="fa-regular fa-folder-open"></i>
+                        No medical records yet
+                    </div>
+                </article>
+            </section>
+
+            <section id="my-uploads" class="section">
+                <article class="panel">
+                    <div class="panel-head">
+                        <h2><i class="fa-solid fa-folder-open"></i> My Records</h2>
+                        <button id="openUploadRecordBtn" type="button" class="btn btn-primary">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Add Record
+                        </button>
+                    </div>
+                    <p class="panel-subtitle">
+                        Save your past medical history here — lab reports, prescriptions, x-rays, vaccination cards. Stored permanently and visible to any doctor you book an appointment with.
+                    </p>
+                    <div id="myUploadsList" class="upload-grid"></div>
+                    <div id="myUploadsEmpty" class="empty-state">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        No personal records yet — click <strong>Add Record</strong> to upload your first one.
+                    </div>
+                </article>
+            </section>
+
+            <section id="prescriptions" class="section">
+                <article class="panel">
+                    <div class="panel-head">
+                        <h2><i class="fa-solid fa-pills"></i> Prescriptions</h2>
+                    </div>
+                    <div id="prescriptionsList" class="rx-list"></div>
+                    <div id="prescriptionsEmpty" class="empty-state" style="display:none;">
+                        <i class="fa-solid fa-capsules"></i>
+                        No prescriptions found
+                    </div>
+                </article>
+            </section>
+
+            <section id="billing" class="section">
+                <article class="panel">
+                    <div class="panel-head">
+                        <h2><i class="fa-solid fa-credit-card"></i> Billing</h2>
+                    </div>
+                    <div id="billingList" class="record-list" style="display:none;"></div>
+                    <div id="billingEmpty" class="empty-state">
+                        <i class="fa-regular fa-file-lines"></i>
+                        No billing records yet
+                    </div>
+                </article>
+            </section>
+
+            <section id="messages" class="section">
+                <article class="panel">
+                    <div class="panel-head">
+                        <h2><i class="fa-solid fa-comments"></i> Messages</h2>
+                        <div class="panel-actions">
+                            <button id="openComposeMessageBtn" class="btn btn-primary" type="button"><i class="fa-solid fa-paper-plane"></i> New Message</button>
+                        </div>
+                    </div>
+                    <div id="messagesList" class="record-list" style="display:none;"></div>
+                    <div id="messagesEmpty" class="empty-state">
+                        <i class="fa-regular fa-message"></i>
+                        No messages yet
+                    </div>
+                </article>
+            </section>
+
+            <section id="profile" class="section">
+                <article class="panel">
+                    <div class="panel-head">
+                        <h2><i class="fa-solid fa-user"></i> Profile</h2>
+                        <div class="panel-actions">
+                            <input id="profilePhotoInput" type="file" accept="image/*" style="display:none;">
+                            <button id="uploadPhotoBtn" class="btn btn-soft" type="button"><i class="fa-solid fa-camera"></i> Upload Photo</button>
+                            <button id="openProfileEditBtn" class="btn btn-soft" type="button"><i class="fa-solid fa-pen"></i> Edit Profile</button>
+                        </div>
+                    </div>
+                    <div class="profile-grid">
+                        <div class="profile-field"><small>Name</small><strong id="pfName">Not available</strong></div>
+                        <div class="profile-field"><small>Email</small><strong id="pfEmail">Not available</strong></div>
+                        <div class="profile-field"><small>Phone</small><strong id="pfPhone">Not available</strong></div>
+                        <div class="profile-field"><small>Blood Group</small><strong id="pfBlood">Not available</strong></div>
+                        <div class="profile-field"><small>Date of Birth</small><strong id="pfDob">Not available</strong></div>
+                        <div class="profile-field"><small>Address</small><strong id="pfAddress">Not available</strong></div>
+                        <div class="profile-field"><small>Emergency Contact</small><strong id="pfEmergency">Not available</strong></div>
+                    </div>
+                </article>
+            </section>
+        </main>
+    </div>
+
+    <div id="appointmentModalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal">
+            <div class="modal-head">
+                <h3>Book New Appointment</h3>
+                <button type="button" class="close-btn" data-close-modal="appointmentModalBackdrop">&times;</button>
+            </div>
+            <form id="appointmentForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="doctorSelect">Select Doctor</label>
+                        <select id="doctorSelect" required>
+                            <option value="">Select doctor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="appointmentDate">Date</label>
+                        <input id="appointmentDate" type="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="appointmentTime">Time</label>
+                        <input id="appointmentTime" type="time" required>
+                    </div>
+                    <div class="form-group full">
+                        <label for="appointmentReason">Reason for visit</label>
+                        <textarea id="appointmentReason" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-soft" data-close-modal="appointmentModalBackdrop">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="profileModalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal">
+            <div class="modal-head">
+                <h3>Edit Profile</h3>
+                <button type="button" class="close-btn" data-close-modal="profileModalBackdrop">&times;</button>
+            </div>
+            <form id="profileForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editName">Name</label>
+                        <input id="editName" type="text" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPhone">Phone</label>
+                        <input id="editPhone" type="text" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editBlood">Blood Group</label>
+                        <input id="editBlood" type="text" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDob">Date of Birth</label>
+                        <input id="editDob" type="date">
+                        <small id="editDobNote" class="hint-note">You can only set your date of birth once. Please choose carefully.</small>
+                    </div>
+                    <div class="form-group full">
+                        <label for="editAddress">Address</label>
+                        <input id="editAddress" type="text" required>
+                    </div>
+                    <div class="form-group full">
+                        <label for="editEmergency">Emergency Contact</label>
+                        <input id="editEmergency" type="text" required>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-soft" data-close-modal="profileModalBackdrop">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="recordModalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal">
+            <div class="modal-head">
+                <h3>Medical Record Details</h3>
+                <button type="button" class="close-btn" data-close-modal="recordModalBackdrop">&times;</button>
+            </div>
+            <div id="recordDetailContent" class="record-detail-grid"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-soft" data-close-modal="recordModalBackdrop">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="uploadRecordModalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal upload-modal">
+            <div class="modal-head">
+                <h3><i class="fa-solid fa-cloud-arrow-up"></i> Add Personal Record</h3>
+                <button type="button" class="close-btn" data-close-modal="uploadRecordModalBackdrop">&times;</button>
+            </div>
+            <form id="uploadRecordForm" novalidate>
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label for="uploadRecordTitle">Title</label>
+                        <input id="uploadRecordTitle" type="text" maxlength="200" placeholder="e.g. Blood Test Report — May 2024" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="uploadRecordCategory">Category</label>
+                        <select id="uploadRecordCategory" required>
+                            <option value="lab_report">Lab Report</option>
+                            <option value="prescription">Prescription</option>
+                            <option value="imaging">Imaging / Scan</option>
+                            <option value="x_ray">X-Ray</option>
+                            <option value="discharge_summary">Discharge Summary</option>
+                            <option value="vaccination">Vaccination</option>
+                            <option value="insurance">Insurance</option>
+                            <option value="consultation">Consultation Note</option>
+                            <option value="other" selected>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="uploadRecordDate">Record Date</label>
+                        <input id="uploadRecordDate" type="date">
+                    </div>
+                    <div class="form-group full">
+                        <label for="uploadRecordDescription">Notes (optional)</label>
+                        <textarea id="uploadRecordDescription" rows="3" maxlength="2000" placeholder="Anything a doctor should know about this document"></textarea>
+                    </div>
+                    <div class="form-group full">
+                        <label>Attach file (photo or PDF, up to 12 MB)</label>
+                        <div id="uploadDropZone" class="upload-drop-zone">
+                            <input id="uploadRecordFile" type="file" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.heic,.webp,.doc,.docx" hidden>
+                            <div class="upload-empty">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                <strong>Click to choose a file</strong>
+                                <span>or drag &amp; drop here • images, PDFs, docs</span>
+                            </div>
+                            <div class="upload-preview" hidden>
+                                <div class="upload-preview-icon"><i class="fa-solid fa-file"></i></div>
+                                <div class="upload-preview-meta">
+                                    <strong id="uploadFileName">file.pdf</strong>
+                                    <span id="uploadFileSize">0 KB</span>
+                                </div>
+                                <button type="button" id="uploadClearFile" class="upload-clear-btn" aria-label="Remove file">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-soft" data-close-modal="uploadRecordModalBackdrop">Cancel</button>
+                    <button type="submit" id="uploadRecordSubmit" class="btn btn-primary">
+                        <span class="label"><i class="fa-solid fa-floppy-disk"></i> Save Record</span>
+                        <span class="spinner" hidden><i class="fa-solid fa-spinner fa-spin"></i> Saving…</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="messageThreadModalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal message-thread-modal">
+            <div class="modal-head">
+                <h3 id="messageThreadSubject">Message</h3>
+                <button type="button" class="close-btn" data-close-modal="messageThreadModalBackdrop">&times;</button>
+            </div>
+            <div class="message-thread-body">
+                <div id="messageThreadMeta" class="message-thread-meta"></div>
+                <div id="messageThreadBody" class="message-thread-text"></div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-soft" data-close-modal="messageThreadModalBackdrop">Close</button>
+                <button id="messageThreadReplyBtn" type="button" class="btn btn-primary"><i class="fa-solid fa-reply"></i> Reply</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="composeMessageModalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal">
+            <div class="modal-head">
+                <h3>New Message</h3>
+                <button type="button" class="close-btn" data-close-modal="composeMessageModalBackdrop">&times;</button>
+            </div>
+            <form id="composeMessageForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="messageToSelect">Send to</label>
+                        <select id="messageToSelect" required>
+                            <option value="">Select doctor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="messageSubject">Subject</label>
+                        <input id="messageSubject" type="text" required>
+                    </div>
+                    <div class="form-group full">
+                        <label for="messageBody">Message</label>
+                        <textarea id="messageBody" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-soft" data-close-modal="composeMessageModalBackdrop">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastWrap" class="toast-wrap"></div>
+
+    <script>
+        (function () {
+            function clearSession() {
+                [
+                    "token","userRole","userData","userId","userName","userEmail","userType",
+                    "patientId","patientName","doctorId","doctorName",
+                    "patientProfileLocal","patientProfileExtras"
+                ].forEach((k) => localStorage.removeItem(k));
+            }
+
+            function getStoredRole() {
+                return String(localStorage.getItem("userRole") || localStorage.getItem("userType") || "").toLowerCase();
+            }
+
+            const token = localStorage.getItem("token");
+            if (!token) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            const API_BASE = "http://127.0.0.1:5000/api";
+
+            const state = {
+                stats: { upcoming: 0, records: 0, prescriptions: 0, bills: 0 },
+                appointments: [],
+                records: [],
+                prescriptions: [],
+                billing: [],
+                messages: [],
+                profile: {},
+                notifications: [],
+                doctors: [],
+                myUploads: [],
+                resolvedPatientId: "",
+                currentUserId: "",
+                currentUserName: "",
+                activeMessage: null,
+                uploadFile: null
+            };
+            state.profile = Object.assign(
+                {},
+                parseJsonSafe(localStorage.getItem("patientProfileLocal")),
+                parseJsonSafe(localStorage.getItem("patientProfileExtras")),
+                parseJsonSafe(localStorage.getItem("userData")),
+                { name: localStorage.getItem("userName") || localStorage.getItem("patientName") || "" }
+            );
+
+            const sidebar = document.getElementById("sidebar");
+            const sideLinks = document.querySelectorAll(".side-link");
+            const sections = document.querySelectorAll(".section");
+            const bellBtn = document.getElementById("bellBtn");
+            const notifDropdown = document.getElementById("notifDropdown");
+            const notifList = document.getElementById("notifList");
+            const menuBtn = document.getElementById("menuBtn");
+            const toastWrap = document.getElementById("toastWrap");
+
+            function safeText(value, fallback) {
+                if (value === null || value === undefined) return fallback;
+                const text = String(value).trim();
+                return text ? text : fallback;
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text === null || text === undefined ? '' : String(text);
+                return div.innerHTML;
+            }
+
+            function parseJsonSafe(raw) {
+                if (!raw) return {};
+                try { return JSON.parse(raw); } catch (_err) { return {}; }
+            }
+
+            function notify(message) {
+                const toast = document.createElement("div");
+                toast.className = "toast";
+                toast.textContent = message;
+                toastWrap.appendChild(toast);
+                setTimeout(() => toast.remove(), 2600);
+            }
+
+            function getStatusBadgeClass(status) {
+                const key = safeText(status, "").toLowerCase();
+                if (["completed", "active", "paid"].includes(key)) return "badge-green";
+                if (["scheduled", "confirmed"].includes(key)) return "badge-blue";
+                if (["pending"].includes(key)) return "badge-yellow";
+                if (["cancelled", "expired", "overdue"].includes(key)) return "badge-red";
+                return "badge-gray";
+            }
+
+            function formatDate(dateLike) {
+                if (!dateLike) return "Not available";
+                const raw = String(dateLike).trim();
+                // Extract date part directly to avoid timezone shift
+                const directMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (directMatch) {
+                    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                    const year = directMatch[1];
+                    const month = months[parseInt(directMatch[2], 10) - 1];
+                    const day = parseInt(directMatch[3], 10);
+                    return `${month} ${day}, ${year}`;
+                }
+                const date = new Date(dateLike);
+                if (Number.isNaN(date.getTime())) return "Not available";
+                return date.toLocaleDateString(undefined, {
+                    year: "numeric", month: "short", day: "numeric"
+                });
+            }
+
+            function formatTime(dateLike) {
+                if (!dateLike) return "Not available";
+                const raw = String(dateLike).trim();
+                // If format is "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DD HH:MM"
+                // extract time directly without timezone conversion
+                const directMatch = raw.match(/\d{4}-\d{2}-\d{2}[T ](\d{2}):(\d{2})/);
+                if (directMatch) {
+                    let hours = parseInt(directMatch[1], 10);
+                    const minutes = directMatch[2];
+                    const ampm = hours >= 12 ? "PM" : "AM";
+                    hours = hours % 12 || 12;
+                    return `${hours}:${minutes} ${ampm}`;
+                }
+                const date = new Date(dateLike);
+                if (Number.isNaN(date.getTime())) return "Not available";
+                return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            }
+
+            function getUser() {
+                const legacyUser = parseJsonSafe(localStorage.getItem("user"));
+                const loginUser = parseJsonSafe(localStorage.getItem("userData"));
+                const merged = Object.assign({}, legacyUser, loginUser);
+                return merged && typeof merged === "object" ? merged : {};
+            }
+
+            function currentPatientName() {
+                const user = getUser();
+                return safeText(
+                    state.currentUserName ||
+                    state.profile.name ||
+                    state.profile.full_name ||
+                    localStorage.getItem("patientName") ||
+                    localStorage.getItem("name") ||
+                    localStorage.getItem("userName") ||
+                    user.full_name ||
+                    user.name,
+                    "Patient"
+                );
+            }
+
+            function currentPatientId() {
+                const user = getUser();
+                return (
+                    state.currentUserId ||
+                    user.id ||
+                    user.user_id ||
+                    user.patient_id ||
+                    user.patientId ||
+                    localStorage.getItem("patientId") ||
+                    localStorage.getItem("userId") ||
+                    ""
+                );
+            }
+
+            function currentPatientEmail() {
+                const user = getUser();
+                return safeText(state.profile.email || localStorage.getItem("userEmail") || user.email, "");
+            }
+
+            function normalizeProfile(rawProfile) {
+                const raw = rawProfile && typeof rawProfile === "object" ? rawProfile : {};
+                return {
+                    patient_id: raw.patient_id || raw.id || "",
+                    name: raw.name || raw.full_name || "",
+                    email: raw.email || "",
+                    phone: raw.phone || raw.phone_number || "",
+                    blood_group: raw.blood_group || raw.blood_type || "",
+                    dob: raw.dob || raw.date_of_birth || raw.birth_date || "",
+                    address: raw.address || raw.home_address || "",
+                    emergency_contact_phone: raw.emergency_contact_phone || raw.emergency_contact || "",
+                    gender: raw.gender || ""
+                };
+            }
+
+            function avatarStorageKey() {
+                const email = safeText(state.profile.email || currentPatientEmail(), "").toLowerCase();
+                return email ? `patientAvatarDataUrl:${email}` : "";
+            }
+
+            function findDoctorNameById(doctorId) {
+                const idNum = Number(doctorId);
+                if (!idNum) return "Not assigned";
+                const match = state.doctors.find((doctor) => Number(doctor.doctor_id || doctor.id) === idNum);
+                return safeText(match && (match.name || match.full_name), "Not assigned");
+            }
+
+            function apiHeaders() {
+                return {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                };
+            }
+
+            function buildApiUrl(url) {
+                const path = String(url || "");
+                // Always use absolute URL to Flask backend
+                const base = "http://127.0.0.1:5000/api";
+                // Strip any leading /api or api/ prefix from path to avoid doubling
+                let clean = path;
+                if (clean.startsWith("/api/")) clean = clean.slice(4);
+                else if (clean.startsWith("api/")) clean = "/" + clean.slice(4);
+                else if (clean.startsWith("/api")) clean = clean.slice(4);
+                // Ensure single leading slash
+                if (!clean.startsWith("/")) clean = "/" + clean;
+                return base + clean;
+            }
+
+            function handleAuthFailure() {
+                clearSession();
+                window.location.href = "login.html";
+                throw new Error("Session expired");
+            }
+
+            async function apiGet(url) {
+                const response = await fetch(buildApiUrl(url), { method: "GET", headers: apiHeaders() });
+                if (response.status === 401) handleAuthFailure();
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(safeText(payload.error || payload.message, `GET ${url} failed`));
+                }
+                return payload;
+            }
+
+            async function apiPost(url, body) {
+                const response = await fetch(buildApiUrl(url), { method: "POST", headers: apiHeaders(), body: JSON.stringify(body) });
+                if (response.status === 401) handleAuthFailure();
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(safeText(payload.error || payload.message, `POST ${url} failed`));
+                }
+                return payload;
+            }
+
+            async function apiPut(url, body) {
+                const response = await fetch(buildApiUrl(url), { method: "PUT", headers: apiHeaders(), body: JSON.stringify(body) });
+                if (response.status === 401) handleAuthFailure();
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(safeText(payload.error || payload.message, `PUT ${url} failed`));
+                }
+                return payload;
+            }
+
+            function toArray(payload) {
+                if (Array.isArray(payload)) return payload;
+                if (payload && Array.isArray(payload.data)) return payload.data;
+                if (payload && Array.isArray(payload.items)) return payload.items;
+                if (payload && Array.isArray(payload.results)) return payload.results;
+                return [];
+            }
+
+            function switchSection(sectionId) {
+                sections.forEach((section) => section.classList.toggle("active", section.id === sectionId));
+                sideLinks.forEach((link) => link.classList.toggle("active", link.dataset.section === sectionId));
+                if (window.innerWidth <= 900) sidebar.classList.remove("open");
+            }
+
+            function renderTopInfo() {
+                const name = currentPatientName();
+                document.getElementById("headerName").textContent = name;
+                document.getElementById("sidebarName").textContent = name;
+                renderAvatar(name);
+                document.getElementById("todayDate").textContent = new Date().toLocaleDateString(undefined, {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric"
+                });
+            }
+
+            function renderAvatar(name) {
+                const avatar = document.getElementById("avatar");
+                if (localStorage.getItem("patientAvatarDataUrl")) {
+                    localStorage.removeItem("patientAvatarDataUrl");
+                }
+                const key = avatarStorageKey();
+                const photo = key ? localStorage.getItem(key) : "";
+                if (photo) {
+                    avatar.textContent = "";
+                    avatar.style.backgroundImage = `url("${photo}")`;
+                    avatar.style.backgroundSize = "cover";
+                    avatar.style.backgroundPosition = "center";
+                    return;
+                }
+                avatar.style.backgroundImage = "";
+                avatar.textContent = (name || "P").charAt(0).toUpperCase();
+            }
+
+            function renderStats() {
+                document.getElementById("statAppointments").textContent = String(Number(state.stats.upcoming || 0));
+                document.getElementById("statRecords").textContent = String(Number(state.stats.records || 0));
+                document.getElementById("statPrescriptions").textContent = String(Number(state.stats.prescriptions || 0));
+                document.getElementById("statBills").textContent = String(Number(state.stats.bills || 0));
+            }
+
+            function renderAppointments() {
+                const body = document.getElementById("appointmentsBody");
+                const empty = document.getElementById("appointmentsEmpty");
+                body.innerHTML = "";
+                if (!state.appointments.length) {
+                    empty.style.display = "block";
+                    return;
+                }
+                empty.style.display = "none";
+                state.appointments.forEach((appointment) => {
+                    const doctor = safeText(
+                        appointment.doctor_name || appointment.doctor || appointment.physician,
+                        findDoctorNameById(appointment.doctor_id)
+                    );
+                    const dateTime = appointment.date_time || appointment.datetime || appointment.appointment_date || appointment.date;
+                    const reason = safeText(appointment.reason || appointment.chief_complaint, "Not available");
+                    const status = safeText(appointment.status, "pending");
+                    const statusLabel = status.toLowerCase() === "scheduled" ? "Pending" : status;
+                    const appointmentId = appointment.appointment_id || appointment.id || "";
+                    const normalizedStatus = status.toLowerCase();
+                    const canCancel = Boolean(appointmentId) && !["cancelled", "completed"].includes(normalizedStatus);
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${escapeHtml(doctor)}</td>
+                        <td>${escapeHtml(formatDate(dateTime))}</td>
+                        <td>${escapeHtml(formatTime(dateTime))}</td>
+                        <td>${escapeHtml(reason)}</td>
+                        <td><span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(statusLabel)}</span></td>
+                        <td>
+                            ${canCancel
+                                ? `<button type="button" class="btn btn-danger-soft cancel-appointment-btn" data-appointment-id="${escapeHtml(appointmentId)}"><i class="fa-solid fa-xmark"></i> Cancel</button>`
+                                : `<span class="badge badge-gray">Not available</span>`
+                            }
+                        </td>
+                    `;
+                    body.appendChild(row);
+                });
+            }
+
+            function renderRecords() {
+                const list = document.getElementById("recordsList");
+                const empty = document.getElementById("recordsEmpty");
+                list.innerHTML = "";
+                if (!state.records.length) {
+                    empty.style.display = "block";
+                    return;
+                }
+                empty.style.display = "none";
+                state.records.forEach((record, index) => {
+                    const doctor = safeText(
+                        record.doctor_name || record.doctor,
+                        findDoctorNameById(record.doctor_id)
+                    );
+                    const diagnosis = safeText(record.diagnosis || record.summary || record.notes, "Not available");
+                    const date = formatDate(record.record_date || record.date_created || record.created_at || record.date);
+                    const recordId = String(record.record_id || record.id || index);
+                    const row = document.createElement("div");
+                    row.className = "record-item";
+                    row.innerHTML = `
+                        <div class="item-meta">
+                            <h3>${escapeHtml(diagnosis)}</h3>
+                            <p>${escapeHtml(doctor)} | ${escapeHtml(date)}</p>
+                        </div>
+                        <button type="button" class="btn btn-soft" data-record-id="${escapeHtml(recordId)}"><i class="fa-solid fa-eye"></i> View</button>
+                    `;
+                    list.appendChild(row);
+                });
+            }
+
+            const RECORD_CATEGORY_META = {
+                lab_report:        { label: "Lab Report",        icon: "fa-flask",                color: "#0ea5e9" },
+                prescription:      { label: "Prescription",      icon: "fa-prescription-bottle-medical", color: "#10b981" },
+                imaging:           { label: "Imaging / Scan",    icon: "fa-magnifying-glass-chart", color: "#a855f7" },
+                x_ray:             { label: "X-Ray",             icon: "fa-bone",                 color: "#6366f1" },
+                discharge_summary: { label: "Discharge Summary", icon: "fa-file-medical",         color: "#f59e0b" },
+                vaccination:       { label: "Vaccination",       icon: "fa-syringe",              color: "#22c55e" },
+                insurance:         { label: "Insurance",         icon: "fa-shield-halved",        color: "#0284c7" },
+                consultation:      { label: "Consultation",      icon: "fa-stethoscope",          color: "#ec4899" },
+                other:             { label: "Other",             icon: "fa-folder-open",          color: "#64748b" },
+            };
+
+            function recordFileIcon(fileType) {
+                const t = String(fileType || "").toLowerCase();
+                if (t.startsWith("image/")) return "fa-image";
+                if (t.includes("pdf")) return "fa-file-pdf";
+                if (t.includes("word") || t.includes("document")) return "fa-file-word";
+                if (t.startsWith("text/")) return "fa-file-lines";
+                return "fa-file";
+            }
+
+            function formatFileSize(bytes) {
+                const n = Number(bytes || 0);
+                if (!n) return "—";
+                if (n < 1024) return `${n} B`;
+                if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+                return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+            }
+
+            function formatRecordDate(value) {
+                if (!value) return "Date not set";
+                const iso = String(value).substring(0, 10);
+                const parts = iso.split("-");
+                if (parts.length !== 3) return "Date not set";
+                const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                const monthIdx = parseInt(parts[1], 10) - 1;
+                const day = parseInt(parts[2], 10);
+                if (!months[monthIdx] || !Number.isFinite(day)) return "Date not set";
+                return `${day} ${months[monthIdx]} ${parts[0]}`;
+            }
+
+            function renderMyUploads() {
+                const list = document.getElementById("myUploadsList");
+                const empty = document.getElementById("myUploadsEmpty");
+                if (!list || !empty) return;
+                list.innerHTML = "";
+                if (!state.myUploads.length) {
+                    list.style.display = "none";
+                    empty.style.display = "block";
+                    return;
+                }
+                empty.style.display = "none";
+                list.style.display = "grid";
+                state.myUploads.forEach((rec) => {
+                    const meta = RECORD_CATEGORY_META[rec.category] || RECORD_CATEGORY_META.other;
+                    const card = document.createElement("article");
+                    card.className = "upload-card";
+                    card.style.setProperty("--cat-color", meta.color);
+                    const recordDate = formatRecordDate(rec.record_date || rec.created_at);
+                    const description = safeText(rec.description, "");
+                    const fileIcon = recordFileIcon(rec.file_type);
+                    card.innerHTML = `
+                        <div class="upload-card-thumb">
+                            <i class="fa-solid ${fileIcon}"></i>
+                        </div>
+                        <div class="upload-card-body">
+                            <span class="upload-card-chip"><i class="fa-solid ${meta.icon}"></i> ${meta.label}</span>
+                            <h3>${escapeHtml(safeText(rec.title, "Untitled record"))}</h3>
+                            <p class="upload-card-date"><i class="fa-regular fa-calendar"></i> ${escapeHtml(recordDate)}</p>
+                            ${description ? `<p class="upload-card-desc">${escapeHtml(description)}</p>` : ""}
+                            <p class="upload-card-file"><i class="fa-solid ${fileIcon}"></i> ${escapeHtml(safeText(rec.file_name, "Attachment"))} • ${escapeHtml(formatFileSize(rec.file_size))}</p>
+                        </div>
+                        <div class="upload-card-actions">
+                            <button type="button" class="btn btn-primary btn-sm" data-upload-action="view" data-id="${escapeHtml(rec.id)}"><i class="fa-solid fa-eye"></i> View</button>
+                            <button type="button" class="btn btn-soft btn-sm" data-upload-action="download" data-id="${escapeHtml(rec.id)}"><i class="fa-solid fa-download"></i> Download</button>
+                            <button type="button" class="btn btn-danger-soft btn-sm" data-upload-action="delete" data-id="${escapeHtml(rec.id)}"><i class="fa-regular fa-trash-can"></i></button>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+            }
+
+            async function loadMyUploads() {
+                try {
+                    const data = await apiGet("/api/patient/records");
+                    state.myUploads = Array.isArray(data) ? data : [];
+                } catch (_err) {
+                    state.myUploads = [];
+                }
+                renderMyUploads();
+            }
+
+            async function fetchUploadFileBlob(recordId) {
+                const response = await fetch(buildApiUrl(`/api/patient/records/${recordId}/file`), {
+                    method: "GET",
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (response.status === 401) handleAuthFailure();
+                if (!response.ok) {
+                    const payload = await response.json().catch(() => ({}));
+                    throw new Error(safeText(payload.error, "Could not load file."));
+                }
+                const blob = await response.blob();
+                return blob;
+            }
+
+            async function viewUploadedRecord(recordId) {
+                try {
+                    const blob = await fetchUploadFileBlob(recordId);
+                    const url = URL.createObjectURL(blob);
+                    const win = window.open(url, "_blank", "noopener");
+                    if (!win) {
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.target = "_blank";
+                        a.rel = "noopener";
+                        a.click();
+                    }
+                    setTimeout(() => URL.revokeObjectURL(url), 60000);
+                } catch (err) {
+                    notify(safeText(err.message, "Could not open file."));
+                }
+            }
+
+            async function downloadUploadedRecord(recordId) {
+                const rec = state.myUploads.find((r) => Number(r.id) === Number(recordId));
+                try {
+                    const blob = await fetchUploadFileBlob(recordId);
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = (rec && rec.file_name) || `record-${recordId}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 30000);
+                } catch (err) {
+                    notify(safeText(err.message, "Could not download file."));
+                }
+            }
+
+            async function deleteUploadedRecord(recordId) {
+                const rec = state.myUploads.find((r) => Number(r.id) === Number(recordId));
+                const title = (rec && rec.title) || "this record";
+                if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
+                try {
+                    const response = await fetch(buildApiUrl(`/api/patient/records/${recordId}`), {
+                        method: "DELETE",
+                        headers: apiHeaders()
+                    });
+                    if (response.status === 401) handleAuthFailure();
+                    if (!response.ok) {
+                        const payload = await response.json().catch(() => ({}));
+                        throw new Error(safeText(payload.error, "Delete failed."));
+                    }
+                    notify("Record deleted.");
+                    await loadMyUploads();
+                } catch (err) {
+                    notify(safeText(err.message, "Could not delete record."));
+                }
+            }
+
+            function resetUploadForm() {
+                state.uploadFile = null;
+                const form = document.getElementById("uploadRecordForm");
+                if (form) form.reset();
+                const empty = document.querySelector("#uploadDropZone .upload-empty");
+                const preview = document.querySelector("#uploadDropZone .upload-preview");
+                if (empty) empty.hidden = false;
+                if (preview) preview.hidden = true;
+            }
+
+            function applyFileToUploadForm(file) {
+                if (!file) return;
+                if (file.size > 12 * 1024 * 1024) {
+                    notify("File is larger than 12 MB. Please choose a smaller one.");
+                    return;
+                }
+                const okType = file.type.startsWith("image/")
+                    || file.type === "application/pdf"
+                    || file.type === "text/plain"
+                    || file.type.includes("word")
+                    || file.type.includes("document");
+                if (file.type && !okType) {
+                    notify("Only images, PDFs, and document files are supported.");
+                    return;
+                }
+                state.uploadFile = file;
+                document.getElementById("uploadFileName").textContent = file.name;
+                document.getElementById("uploadFileSize").textContent = formatFileSize(file.size);
+                document.querySelector("#uploadDropZone .upload-empty").hidden = true;
+                document.querySelector("#uploadDropZone .upload-preview").hidden = false;
+                const icon = document.querySelector("#uploadDropZone .upload-preview-icon i");
+                if (icon) icon.className = `fa-solid ${recordFileIcon(file.type || "")}`;
+            }
+
+            function readFileAsDataUrl(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+                    reader.onerror = () => reject(new Error("Could not read file."));
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            function renderPrescriptions() {
+                const list = document.getElementById("prescriptionsList");
+                const empty = document.getElementById("prescriptionsEmpty");
+                list.innerHTML = "";
+                if (!state.prescriptions.length) {
+                    empty.style.display = "block";
+                    return;
+                }
+                empty.style.display = "none";
+                state.prescriptions.forEach((rx) => {
+                    const medicine = safeText(rx.medicine_name || rx.medicine, "Medicine");
+                    const dosage = safeText(rx.dosage, "Not available");
+                    const doctor = safeText(
+                        rx.doctor_name || rx.doctor,
+                        findDoctorNameById(rx.doctor_id)
+                    );
+                    const status = safeText(rx.status, "active");
+                    const row = document.createElement("div");
+                    row.className = "rx-item";
+                    row.innerHTML = `
+                        <div class="item-meta">
+                            <h3>${escapeHtml(medicine)}</h3>
+                            <p>Dosage: ${escapeHtml(dosage)} | ${escapeHtml(doctor)}</p>
+                        </div>
+                        <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                    `;
+                    list.appendChild(row);
+                });
+            }
+
+            function renderBilling() {
+                const section = document.getElementById("billing");
+                const panel = section.querySelector(".panel");
+                let list = document.getElementById("billingList");
+                let empty = document.getElementById("billingEmpty");
+                if (!list) {
+                    list = document.createElement("div");
+                    list.id = "billingList";
+                    list.className = "record-list";
+                    panel.appendChild(list);
+                }
+                if (!empty) {
+                    empty = document.createElement("div");
+                    empty.id = "billingEmpty";
+                    empty.className = "empty-state";
+                    empty.style.display = "none";
+                    empty.innerHTML = `<i class="fa-regular fa-file-lines"></i>No billing records yet`;
+                    panel.appendChild(empty);
+                }
+                list.innerHTML = "";
+                if (!state.billing.length) {
+                    list.style.display = "none";
+                    empty.style.display = "block";
+                    return;
+                }
+                list.style.display = "grid";
+                empty.style.display = "none";
+                state.billing.forEach((bill) => {
+                    const item = document.createElement("div");
+                    item.className = "record-item";
+                    const amount = Number(bill.amount);
+                    const amountText = Number.isFinite(amount) ? `PKR ${amount.toLocaleString()}` : "PKR 0";
+                    const description = safeText(bill.description || bill.title, "Billing item");
+                    const date = formatDate(bill.date || bill.created_at);
+                    const status = safeText(bill.status || bill.payment_status, "pending");
+                    item.innerHTML = `
+                        <div class="item-meta">
+                            <h3>${escapeHtml(description)}</h3>
+                            <p>${escapeHtml(date)}</p>
+                        </div>
+                        <div class="panel-actions">
+                            <strong>${escapeHtml(amountText)}</strong>
+                            <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            }
+
+            const PATIENT_DOB_SENTINEL = "2000-01-01";
+
+            function dobIsUserSet(dobValue) {
+                if (!dobValue) return false;
+                const iso = String(dobValue).substring(0, 10);
+                return iso !== PATIENT_DOB_SENTINEL;
+            }
+
+            function renderProfile() {
+                const p = normalizeProfile(state.profile);
+                let dobDisplay = 'Not set yet';
+                if (dobIsUserSet(p.dob)) {
+                    const isoPart = String(p.dob).substring(0, 10);
+                    const parts = isoPart.split('-');
+                    if (parts.length === 3) {
+                        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                        const monthIdx = parseInt(parts[1], 10) - 1;
+                        const day = parseInt(parts[2], 10);
+                        if (months[monthIdx] && Number.isFinite(day)) {
+                            dobDisplay = `${day} ${months[monthIdx]} ${parts[0]}`;
+                        }
+                    }
+                }
+
+                const setEl = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = (value !== null && value !== undefined && value !== '')
+                        ? value : 'Not available';
+                };
+
+                setEl("pfName",      p.name);
+                setEl("pfPhone",     p.phone);
+                setEl("pfBlood",     p.blood_group);
+                setEl("pfDob",       dobDisplay);
+                setEl("pfAddress",   p.address);
+                setEl("pfEmergency", p.emergency_contact_phone);
+                setEl("pfEmail",     p.email);
+            }
+
+            function renderMessages() {
+                const list = document.getElementById("messagesList");
+                const empty = document.getElementById("messagesEmpty");
+                list.innerHTML = "";
+                if (!state.messages.length) {
+                    list.style.display = "none";
+                    empty.style.display = "block";
+                    return;
+                }
+                empty.style.display = "none";
+                list.style.display = "grid";
+                const myId = Number(state.currentUserId || state.resolvedPatientId || 0);
+                state.messages
+                    .slice()
+                    .sort((a, b) => new Date(b.timestamp || b.created_at || 0) - new Date(a.timestamp || a.created_at || 0))
+                    .forEach((m) => {
+                        const isOutgoing = Number(m.from_user_id) === myId;
+                        const counterpart = isOutgoing
+                            ? safeText(m.to_name, "User")
+                            : safeText(m.from_name, "User");
+                        const direction = isOutgoing ? "Sent to" : "Received from";
+                        const directionBadge = isOutgoing
+                            ? '<span class="badge badge-blue">Sent</span>'
+                            : `<span class="badge ${m.read ? 'badge-green' : 'badge-yellow'}">${m.read ? 'read' : 'unread'}</span>`;
+                        const messageId = m.message_id || m.id || "";
+                        const item = document.createElement("div");
+                        item.className = "record-item message-row";
+                        item.setAttribute("role", "button");
+                        item.setAttribute("data-message-id", String(messageId));
+                        if (!isOutgoing && !m.read) item.classList.add("message-row-unread");
+                        const preview = safeText(m.message, "").replace(/\s+/g, " ").slice(0, 140);
+                        item.innerHTML = `
+                            <div class="item-meta">
+                                <h3>${escapeHtml(safeText(m.subject, "Message"))}</h3>
+                                <p>${direction}: <strong>${escapeHtml(counterpart)}</strong> • ${escapeHtml(formatDate(m.timestamp || m.created_at))}</p>
+                                <p class="message-row-preview">${escapeHtml(preview)}${preview.length === 140 ? "…" : ""}</p>
+                            </div>
+                            ${directionBadge}
+                        `;
+                        list.appendChild(item);
+                    });
+            }
+
+            async function openMessageThread(messageId) {
+                const target = state.messages.find((m) => String(m.message_id || m.id) === String(messageId));
+                if (!target) {
+                    notify("Message not found.");
+                    return;
+                }
+                state.activeMessage = target;
+                const myId = Number(state.currentUserId || state.resolvedPatientId || 0);
+                const isOutgoing = Number(target.from_user_id) === myId;
+                const counterpart = isOutgoing
+                    ? safeText(target.to_name, "User")
+                    : safeText(target.from_name, "User");
+                document.getElementById("messageThreadSubject").textContent = safeText(target.subject, "Message");
+                const meta = document.getElementById("messageThreadMeta");
+                meta.innerHTML = `
+                    <div class="thread-avatar">${escapeHtml((counterpart.charAt(0) || "U").toUpperCase())}</div>
+                    <div class="thread-meta-text">
+                        <strong>${isOutgoing ? "To: " : "From: "}${escapeHtml(counterpart)}</strong>
+                        <span>${escapeHtml(formatDate(target.timestamp || target.created_at))} ${escapeHtml(formatTime(target.timestamp || target.created_at))}</span>
+                    </div>
+                    ${isOutgoing
+                        ? '<span class="badge badge-blue">Sent</span>'
+                        : `<span class="badge ${target.read ? 'badge-green' : 'badge-yellow'}">${target.read ? 'read' : 'unread'}</span>`}
+                `;
+                document.getElementById("messageThreadBody").textContent = safeText(target.message, "");
+                const replyBtn = document.getElementById("messageThreadReplyBtn");
+                replyBtn.style.display = isOutgoing ? "none" : "inline-flex";
+                openModal("messageThreadModalBackdrop");
+
+                if (!isOutgoing && !target.read) {
+                    try {
+                        await apiPut(`/api/messages/${messageId}/read`, {});
+                        target.read = true;
+                        renderMessages();
+                    } catch (_err) { /* non-fatal */ }
+                }
+            }
+
+            function openReplyToActiveMessage() {
+                const m = state.activeMessage;
+                if (!m) return;
+                closeModal("messageThreadModalBackdrop");
+                seedMessageRecipients();
+                const select = document.getElementById("messageToSelect");
+                if (select) {
+                    const senderId = String(m.from_user_id || "");
+                    const hasOption = Array.from(select.options).some((o) => o.value === senderId);
+                    if (hasOption) {
+                        select.value = senderId;
+                    }
+                }
+                const subjectField = document.getElementById("messageSubject");
+                const subj = safeText(m.subject, "");
+                subjectField.value = /^re:\s/i.test(subj) ? subj : `Re: ${subj}`;
+                document.getElementById("messageBody").value = "";
+                openModal("composeMessageModalBackdrop");
+                setTimeout(() => document.getElementById("messageBody").focus(), 100);
+            }
+
+            function seedMessageRecipients() {
+                const select = document.getElementById("messageToSelect");
+                if (!select) return;
+                select.innerHTML = `<option value="">Select doctor</option>`;
+                // Restrict to doctors the patient has booked appointments with
+                // (cancelled appointments still count — once you've seen them, you can talk to them).
+                const apptDoctorIds = new Set(
+                    state.appointments
+                        .map((a) => a.doctor_id)
+                        .filter((id) => id !== undefined && id !== null && String(id).trim() !== "")
+                        .map((id) => String(id))
+                );
+                const doctors = Array.isArray(state.doctors) ? state.doctors : [];
+                const eligible = doctors.filter((d) => apptDoctorIds.has(String(d.doctor_id || d.id)));
+                if (!eligible.length) {
+                    const opt = document.createElement("option");
+                    opt.value = "";
+                    opt.textContent = "Book an appointment first to message a doctor";
+                    opt.disabled = true;
+                    select.appendChild(opt);
+                    return;
+                }
+                eligible.forEach((d) => {
+                    const id = d.doctor_id || d.id;
+                    if (!id) return;
+                    const opt = document.createElement("option");
+                    opt.value = String(id);
+                    const name = safeText(d.name || d.full_name, `Doctor ${id}`);
+                    const display = /^dr\.?\s/i.test(name) ? name : `Dr. ${name}`;
+                    const specialty = safeText(d.specialization || d.specialty, "");
+                    opt.textContent = specialty ? `${display} — ${specialty}` : display;
+                    select.appendChild(opt);
+                });
+            }
+
+            function renderNotifications() {
+                notifList.innerHTML = "";
+                const list = Array.isArray(state.notifications) ? state.notifications : [];
+                const hasNotifs = list.length > 0;
+                if (bellBtn) bellBtn.classList.toggle("has-notif", hasNotifs);
+                if (!hasNotifs) {
+                    const empty = document.createElement("div");
+                    empty.className = "notif-item empty";
+                    empty.textContent = "No new notifications";
+                    notifList.appendChild(empty);
+                    return;
+                }
+                list.forEach((item) => {
+                    const row = document.createElement("div");
+                    row.className = "notif-item";
+                    row.textContent = safeText(item, "Notification");
+                    notifList.appendChild(row);
+                });
+            }
+
+            function openRecordDetails(recordId) {
+                const target = state.records.find((record, index) => String(record.record_id || record.id || index) === String(recordId));
+                if (!target) {
+                    notify("Medical record not found.");
+                    return;
+                }
+                const doctor = safeText(target.doctor_name || target.doctor, findDoctorNameById(target.doctor_id));
+                const date = formatDate(target.record_date || target.date_created || target.created_at || target.date);
+                const diagnosis = safeText(target.diagnosis || target.summary || target.notes, "Not available");
+                const symptoms = safeText(target.symptoms, "Not available");
+                const treatment = safeText(target.treatment_plan || target.treatment || target.plan, "Not available");
+                const content = document.getElementById("recordDetailContent");
+                content.innerHTML = `
+                    <div class="record-detail-item"><small>Diagnosis</small><p>${escapeHtml(diagnosis)}</p></div>
+                    <div class="record-detail-item"><small>Doctor</small><p>${escapeHtml(doctor)}</p></div>
+                    <div class="record-detail-item"><small>Date</small><p>${escapeHtml(date)}</p></div>
+                    <div class="record-detail-item"><small>Symptoms</small><p>${escapeHtml(symptoms)}</p></div>
+                    <div class="record-detail-item"><small>Treatment Plan</small><p>${escapeHtml(treatment)}</p></div>
+                `;
+                openModal("recordModalBackdrop");
+            }
+
+            function openModal(backdropId) {
+                const modal = document.getElementById(backdropId);
+                modal.classList.add("open");
+                modal.setAttribute("aria-hidden", "false");
+            }
+
+            function closeModal(backdropId) {
+                const modal = document.getElementById(backdropId);
+                modal.classList.remove("open");
+                modal.setAttribute("aria-hidden", "true");
+            }
+
+            function seedDoctors() {
+                const doctorSelect = document.getElementById("doctorSelect");
+                doctorSelect.innerHTML = `<option value="">Select doctor</option>`;
+                const doctors = state.doctors || [];
+                doctors.forEach((doctor) => {
+                    const opt = document.createElement("option");
+                    opt.value = String(doctor.doctor_id || doctor.id);
+                    const doctorName = safeText(doctor.name || doctor.full_name, "Doctor");
+                    const specialty = safeText(doctor.specialization || doctor.specialty, "General");
+                    opt.textContent = `${doctorName} — ${specialty}`;
+                    doctorSelect.appendChild(opt);
+                });
+            }
+
+            async function ensureDoctorsLoaded() {
+                if (state.doctors && state.doctors.length) return;
+                try {
+                    const doctorsPayload = await apiGet("/api/doctors");
+                    state.doctors = toArray(doctorsPayload);
+                } catch (_err) {
+                    notify("Unable to load doctors list.");
+                }
+            }
+
+            function fillProfileEditForm() {
+                const p = normalizeProfile(state.profile);
+                const userSetDob = dobIsUserSet(p.dob);
+                const dobValue = userSetDob ? String(p.dob).substring(0, 10) : "";
+
+                const fillEl = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = (value !== null && value !== undefined) ? value : '';
+                };
+
+                fillEl("editName",      p.name);
+                fillEl("editPhone",     p.phone);
+                fillEl("editBlood",     p.blood_group);
+                fillEl("editDob",       dobValue);
+                fillEl("editAddress",   p.address);
+                fillEl("editEmergency", p.emergency_contact_phone);
+                fillEl("editEmail",     p.email);
+
+                const dobInput = document.getElementById("editDob");
+                const dobNote = document.getElementById("editDobNote");
+                if (dobInput) {
+                    dobInput.readOnly = userSetDob;
+                    dobInput.classList.toggle("locked-field", userSetDob);
+                    dobInput.title = userSetDob
+                        ? "Date of birth can only be set once and cannot be changed."
+                        : "You can only set this once — choose carefully.";
+                    dobInput.onclick = userSetDob
+                        ? () => alert("Date of birth has already been set and cannot be changed.")
+                        : null;
+                }
+                if (dobNote) {
+                    dobNote.textContent = userSetDob
+                        ? "Locked — date of birth cannot be changed once saved."
+                        : "You can only set your date of birth once. Please choose carefully.";
+                    dobNote.classList.toggle("locked-note", userSetDob);
+                    dobNote.classList.toggle("hint-note", !userSetDob);
+                }
+            }
+
+            function applyLocalProfileOverrides() {
+                const local = parseJsonSafe(localStorage.getItem("patientProfileLocal"));
+                const extras = parseJsonSafe(localStorage.getItem("patientProfileExtras"));
+                const merged = Object.assign({}, state.profile);
+                ["name", "phone", "blood_type", "dob", "address", "emergency_contact"].forEach((key) => {
+                    if (safeText(local[key], "") !== "") merged[key] = local[key];
+                });
+                ["address", "emergency_contact"].forEach((key) => {
+                    if (safeText(extras[key], "") !== "") merged[key] = extras[key];
+                });
+                state.profile = merged;
+            }
+
+            async function loadData() {
+                try {
+                    // Validate JWT and get joined user+patient profile from backend.
+                    const meResponse = await apiGet("/api/auth/me");
+                    const role = String(meResponse.user_type || "").toLowerCase();
+                    if (role && role !== "patient") {
+                        clearSession();
+                        const target = role === "doctor"
+                            ? "doctor-dashboard.html"
+                            : (role === "admin" ? "dashboard.html" : "login.html");
+                        alert("This session belongs to a " + role + " account. Redirecting to the correct dashboard.");
+                        window.location.href = target;
+                        throw new Error("Role mismatch");
+                    }
+                    document.body.classList.remove("session-pending");
+                    state.currentUserId = String(meResponse.user_id || "");
+                    state.profile = normalizeProfile(meResponse.profile || {});
+                    state.resolvedPatientId = String(state.profile.patient_id || meResponse.user_id || "");
+                    state.currentUserName = safeText(meResponse.name || state.profile.name, "");
+                    if (state.currentUserName) {
+                        localStorage.setItem("userName", state.currentUserName);
+                    }
+                    if (state.profile.email) {
+                        localStorage.setItem("userEmail", state.profile.email);
+                    }
+                    if (!state.currentUserId) {
+                        throw new Error("Missing user id in authenticated profile.");
+                    }
+
+                    const patientIdForQuery = state.resolvedPatientId || state.currentUserId;
+                    const [appointmentsRes, recordsRes, prescriptionsRes, doctorsRes, billingRes] = await Promise.allSettled([
+                        apiGet(`/api/patient/appointments?patient_id=${encodeURIComponent(patientIdForQuery)}`),
+                        apiGet(`/api/medical-records?patient_id=${encodeURIComponent(patientIdForQuery)}`),
+                        apiGet(`/api/prescriptions?patient_id=${encodeURIComponent(patientIdForQuery)}`),
+                        apiGet("/api/doctors"),
+                        apiGet(`/api/billing?patient_id=${encodeURIComponent(patientIdForQuery)}`)
+                    ]);
+
+                    if (appointmentsRes.status === "fulfilled") state.appointments = toArray(appointmentsRes.value);
+                    if (recordsRes.status === "fulfilled") state.records = toArray(recordsRes.value);
+                    if (prescriptionsRes.status === "fulfilled") state.prescriptions = toArray(prescriptionsRes.value);
+                    if (doctorsRes.status === "fulfilled") state.doctors = toArray(doctorsRes.value);
+                    if (billingRes.status === "fulfilled") state.billing = toArray(billingRes.value);
+
+                    try {
+                        const messagesRes = await apiGet("/api/messages");
+                        state.messages = Array.isArray(messagesRes) ? messagesRes : [];
+                    } catch (_err) {
+                        state.messages = [];
+                    }
+
+                    state.stats.upcoming = state.appointments.filter((a) => safeText(a.status, "").toLowerCase() === "scheduled").length;
+                    state.stats.records = state.records.length;
+                    state.stats.prescriptions = state.prescriptions.length;
+                    state.stats.bills = state.billing.length;
+
+                    state.notifications = state.appointments.slice(0, 3).map((a) => {
+                        const doctor = safeText(a.doctor_name || a.doctor, findDoctorNameById(a.doctor_id));
+                        const when = formatDate(a.date_time || a.datetime || a.appointment_date || a.date);
+                        return `Upcoming appointment with ${doctor} on ${when}`;
+                    });
+                } catch (_err) {
+                    clearSession();
+                    window.location.href = "login.html";
+                    return;
+                }
+            }
+
+            document.addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                if (!target.closest(".topbar-actions")) {
+                    notifDropdown.classList.remove("open");
+                }
+                if (target.matches(".modal-backdrop")) {
+                    target.classList.remove("open");
+                    target.setAttribute("aria-hidden", "true");
+                }
+            });
+
+            sideLinks.forEach((link) => {
+                link.addEventListener("click", () => switchSection(link.dataset.section));
+            });
+
+            menuBtn.addEventListener("click", () => sidebar.classList.toggle("open"));
+
+            bellBtn.addEventListener("click", () => {
+                notifDropdown.classList.toggle("open");
+            });
+
+            document.querySelectorAll(".stat-card[data-jump-section]").forEach((card) => {
+                card.addEventListener("click", () => {
+                    const target = card.getAttribute("data-jump-section");
+                    if (target) switchSection(target);
+                });
+            });
+
+            document.getElementById("logoutBtn").addEventListener("click", () => {
+                clearSession();
+                window.location.href = "login.html";
+            });
+
+            document.getElementById("openAppointmentModalBtn").addEventListener("click", async () => {
+                await ensureDoctorsLoaded();
+                seedDoctors();
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById("appointmentDate").min = today;
+                openModal("appointmentModalBackdrop");
+            });
+
+            document.getElementById("openProfileEditBtn").addEventListener("click", async () => {
+                if (!state.profile || Object.keys(state.profile).length === 0) {
+                    try { await loadData(); } catch (_err) {}
+                }
+                fillProfileEditForm();
+                openModal("profileModalBackdrop");
+            });
+
+            document.getElementById("openUploadRecordBtn").addEventListener("click", () => {
+                resetUploadForm();
+                openModal("uploadRecordModalBackdrop");
+            });
+
+            const uploadDropZone = document.getElementById("uploadDropZone");
+            const uploadFileInput = document.getElementById("uploadRecordFile");
+            uploadDropZone.addEventListener("click", (event) => {
+                if (event.target.closest(".upload-clear-btn")) return;
+                uploadFileInput.click();
+            });
+            uploadDropZone.addEventListener("dragover", (event) => {
+                event.preventDefault();
+                uploadDropZone.classList.add("drag-over");
+            });
+            uploadDropZone.addEventListener("dragleave", () => {
+                uploadDropZone.classList.remove("drag-over");
+            });
+            uploadDropZone.addEventListener("drop", (event) => {
+                event.preventDefault();
+                uploadDropZone.classList.remove("drag-over");
+                const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+                if (file) applyFileToUploadForm(file);
+            });
+            uploadFileInput.addEventListener("change", (event) => {
+                const file = event.target && event.target.files && event.target.files[0];
+                if (file) applyFileToUploadForm(file);
+            });
+            document.getElementById("uploadClearFile").addEventListener("click", (event) => {
+                event.stopPropagation();
+                state.uploadFile = null;
+                uploadFileInput.value = "";
+                document.querySelector("#uploadDropZone .upload-empty").hidden = false;
+                document.querySelector("#uploadDropZone .upload-preview").hidden = true;
+            });
+
+            document.getElementById("uploadRecordForm").addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const title = document.getElementById("uploadRecordTitle").value.trim();
+                const description = document.getElementById("uploadRecordDescription").value.trim();
+                const recordDate = document.getElementById("uploadRecordDate").value || null;
+                const category = document.getElementById("uploadRecordCategory").value;
+                if (!title) {
+                    notify("Please add a title for this record.");
+                    return;
+                }
+                if (!state.uploadFile) {
+                    notify("Please attach a file (image or PDF).");
+                    return;
+                }
+                const submitBtn = document.getElementById("uploadRecordSubmit");
+                submitBtn.disabled = true;
+                submitBtn.querySelector(".label").hidden = true;
+                submitBtn.querySelector(".spinner").hidden = false;
+                try {
+                    const dataUrl = await readFileAsDataUrl(state.uploadFile);
+                    await apiPost("/api/patient/records", {
+                        title,
+                        description,
+                        record_date: recordDate,
+                        category,
+                        file_name: state.uploadFile.name,
+                        file_type: state.uploadFile.type || "",
+                        file_data: dataUrl
+                    });
+                    notify("Record saved.");
+                    closeModal("uploadRecordModalBackdrop");
+                    resetUploadForm();
+                    await loadMyUploads();
+                } catch (err) {
+                    notify(safeText(err.message, "Could not save record."));
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.querySelector(".label").hidden = false;
+                    submitBtn.querySelector(".spinner").hidden = true;
+                }
+            });
+
+            document.getElementById("myUploadsList").addEventListener("click", (event) => {
+                const target = event.target.closest("[data-upload-action]");
+                if (!target) return;
+                const action = target.getAttribute("data-upload-action");
+                const id = target.getAttribute("data-id");
+                if (!id) return;
+                if (action === "view") viewUploadedRecord(id);
+                else if (action === "download") downloadUploadedRecord(id);
+                else if (action === "delete") deleteUploadedRecord(id);
+            });
+
+            document.getElementById("openComposeMessageBtn").addEventListener("click", async () => {
+                await ensureDoctorsLoaded();
+                const apptDoctorIds = new Set(
+                    state.appointments
+                        .map((a) => a.doctor_id)
+                        .filter((id) => id !== undefined && id !== null && String(id).trim() !== "")
+                        .map((id) => String(id))
+                );
+                if (!apptDoctorIds.size) {
+                    notify("Book an appointment first — you can only message doctors you have appointments with.");
+                    return;
+                }
+                seedMessageRecipients();
+                document.getElementById("messageSubject").value = "";
+                document.getElementById("messageBody").value = "";
+                openModal("composeMessageModalBackdrop");
+            });
+
+            document.getElementById("composeMessageForm").addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const toUserId = document.getElementById("messageToSelect").value;
+                const subject = document.getElementById("messageSubject").value.trim();
+                const message = document.getElementById("messageBody").value.trim();
+                if (!toUserId || !subject || !message) {
+                    notify("Please complete all message fields.");
+                    return;
+                }
+                try {
+                    await apiPost("/api/messages", {
+                        to_user_id: Number(toUserId),
+                        to_user_type: "doctor",
+                        subject,
+                        message
+                    });
+                    closeModal("composeMessageModalBackdrop");
+                    document.getElementById("composeMessageForm").reset();
+                    notify("Message sent.");
+                    try {
+                        const messagesPayload = await apiGet("/api/messages");
+                        state.messages = Array.isArray(messagesPayload) ? messagesPayload : [];
+                    } catch (_err) { /* keep current */ }
+                    renderMessages();
+                } catch (err) {
+                    notify(safeText(err.message, "Unable to send message."));
+                }
+            });
+
+            document.getElementById("uploadPhotoBtn").addEventListener("click", () => {
+                document.getElementById("profilePhotoInput").click();
+            });
+
+            document.getElementById("profilePhotoInput").addEventListener("change", (event) => {
+                const input = event.target;
+                if (!(input instanceof HTMLInputElement) || !input.files || !input.files[0]) return;
+                const file = input.files[0];
+                if (!file.type.startsWith("image/")) {
+                    notify("Please select an image file.");
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function () {
+                    const result = typeof reader.result === "string" ? reader.result : "";
+                    if (!result) {
+                        notify("Unable to load selected image.");
+                        return;
+                    }
+                    const key = avatarStorageKey();
+                    if (!key) {
+                        notify("Profile not loaded yet. Please refresh and try again.");
+                        return;
+                    }
+                    localStorage.removeItem("patientAvatarDataUrl");
+                    localStorage.setItem(key, result);
+                    renderTopInfo();
+                    notify("Profile photo updated.");
+                };
+                reader.readAsDataURL(file);
+            });
+
+            document.getElementById("recordsList").addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                const viewBtn = target.closest("[data-record-id]");
+                if (!viewBtn) return;
+                const recordId = viewBtn.getAttribute("data-record-id");
+                if (recordId) openRecordDetails(recordId);
+            });
+
+            document.getElementById("messagesList").addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                const row = target.closest("[data-message-id]");
+                if (!row) return;
+                const messageId = row.getAttribute("data-message-id");
+                if (messageId) openMessageThread(messageId);
+            });
+
+            document.getElementById("messageThreadReplyBtn").addEventListener("click", () => {
+                openReplyToActiveMessage();
+            });
+
+            document.getElementById("appointmentsBody").addEventListener("click", async (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                const cancelBtn = target.closest(".cancel-appointment-btn");
+                if (!cancelBtn) return;
+                const appointmentId = cancelBtn.getAttribute("data-appointment-id");
+                if (!appointmentId) {
+                    notify("Invalid appointment id.");
+                    return;
+                }
+                const confirmed = window.confirm("Are you sure you want to cancel this appointment?");
+                if (!confirmed) return;
+                try {
+                    await apiPut(`/api/appointments/${appointmentId}`, { status: "cancelled" });
+                    notify("Appointment cancelled successfully.");
+                    await loadData();
+                    renderStats();
+                    renderAppointments();
+                    renderNotifications();
+                } catch (err) {
+                    notify(safeText(err.message, "Unable to cancel appointment."));
+                }
+            });
+
+            document.querySelectorAll("[data-close-modal]").forEach((btn) => {
+                btn.addEventListener("click", () => closeModal(btn.getAttribute("data-close-modal")));
+            });
+
+            document.getElementById("appointmentForm").addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const doctorId = document.getElementById("doctorSelect").value;
+                const date = document.getElementById("appointmentDate").value;
+                const time = document.getElementById("appointmentTime").value;
+                const reason = document.getElementById("appointmentReason").value.trim();
+
+                if (!doctorId || !date || !time || !reason) {
+                    notify("Please complete all appointment fields.");
+                    return;
+                }
+
+                // Try every possible source for patient id
+                const patientId = Number(
+                    state.resolvedPatientId ||
+                    state.currentUserId ||
+                    localStorage.getItem("patientId") ||
+                    localStorage.getItem("userId") ||
+                    ""
+                );
+
+                if (!patientId || !Number.isFinite(patientId) || patientId <= 0) {
+                    notify("Session error: patient id not found. Please logout and login again.");
+                    return;
+                }
+
+                const payload = {
+                    patient_id: patientId,
+                    doctor_id: Number(doctorId),
+                    appointment_date: `${date} ${time}:00`,
+                    reason: reason
+                };
+
+                try {
+                    await apiPost("/api/appointments", payload);
+                    closeModal("appointmentModalBackdrop");
+                    document.getElementById("appointmentForm").reset();
+                    notify("Appointment booked successfully.");
+                    await loadData();
+                    switchSection("appointments");
+                    renderAppointments();
+                    renderStats();
+                    renderNotifications();
+                } catch (err) {
+                    notify(safeText(err.message, "Unable to book appointment right now."));
+                }
+            });
+
+            document.getElementById("profileForm").addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const patientId = state.profile.patient_id || state.currentUserId ||
+                                  state.resolvedPatientId;
+                if (!patientId) {
+                    notify("Session error. Please logout and login again.");
+                    return;
+                }
+                const newDob = document.getElementById("editDob")?.value || "";
+                const existingProfile = normalizeProfile(state.profile);
+                const wasDobUserSet = dobIsUserSet(existingProfile.dob);
+                if (newDob && !wasDobUserSet) {
+                    const ok = window.confirm(
+                        "You can only set your date of birth once.\n\n" +
+                        "After saving, it cannot be changed. Continue?"
+                    );
+                    if (!ok) return;
+                }
+                const payload = {
+                    name:                    document.getElementById("editName")?.value.trim() || null,
+                    phone:                   document.getElementById("editPhone")?.value.trim() || null,
+                    blood_group:             document.getElementById("editBlood")?.value.trim() || null,
+                    address:                 document.getElementById("editAddress")?.value.trim() || null,
+                    emergency_contact_phone: document.getElementById("editEmergency")?.value.trim() || null,
+                    gender:                  document.getElementById("editGender")?.value || null
+                };
+                if (!wasDobUserSet && newDob) {
+                    payload.dob = newDob;
+                }
+                try {
+                    await apiPut(`/api/patients/${patientId}`, payload);
+                    closeModal("profileModalBackdrop");
+                    await loadData();
+                    renderProfile();
+                    notify("Profile updated successfully.");
+                } catch (err) {
+                    const msg = (err && err.message) ? String(err.message) : "";
+                    if (msg.toLowerCase().includes("date of birth")) {
+                        notify(msg);
+                    } else {
+                        notify("Failed to save profile. Please try again.");
+                    }
+                }
+            });
+
+            const demoMessage = localStorage.getItem("demoBannerMessage");
+            if (demoMessage) {
+                const demoBanner = document.getElementById("demoBanner");
+                demoBanner.textContent = demoMessage;
+                demoBanner.style.display = "block";
+            }
+            loadData()
+                .then(() => {
+                    renderTopInfo();
+                    renderStats();
+                    renderAppointments();
+                    renderRecords();
+                    renderPrescriptions();
+                    renderBilling();
+                    renderMessages();
+                    renderNotifications();
+                    renderProfile();
+                    loadMyUploads();
+                })
+                .catch((err) => {
+                    if (String(err && err.message || "") === "Session expired" || String(err && err.message || "") === "Role mismatch") return;
+                    notify("Unable to load dashboard data. Please refresh.");
+                });
+        })();
+    </script>
+    <script src="js/chatbot.js"></script>
+</body>
+</html>

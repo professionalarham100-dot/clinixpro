@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClinixPro | Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/design-tokens.css">
+    <link rel="stylesheet" href="css/accessibility.css">
+    <link rel="stylesheet" href="css/components-base.css">
+    <link rel="stylesheet" href="css/responsive-polish.css">
+    <link rel="stylesheet" href="css/chatbot.css">
+    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/auth-modern.css">
+</head>
+<body>
+    <div class="page">
+        <a href="index.html" class="back-home">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Back to Home</span>
+        </a>
+
+        <section class="left-panel">
+            <div class="brand">
+                <i class="fa-solid fa-hospital-user"></i>
+                <span>ClinixPro</span>
+            </div>
+
+            <div class="tagline">
+                <h1>Smart Clinical Operations. Better Patient Outcomes.</h1>
+                <p>ClinixPro helps modern healthcare teams orchestrate appointments, records, and communication from one secure, intelligent platform.</p>
+            </div>
+
+            <div class="features">
+                <div class="feature">
+                    <i class="fa-solid fa-shield-heart"></i>
+                    <div>
+                        <strong>Enterprise-Grade Security</strong>
+                        <span>Role-based access, token authentication, and protected patient data workflows.</span>
+                    </div>
+                </div>
+                <div class="feature">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <div>
+                        <strong>Unified Clinical Scheduling</strong>
+                        <span>Streamline bookings, follow-ups, and provider availability in real time.</span>
+                    </div>
+                </div>
+                <div class="feature">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <div>
+                        <strong>Operational Clarity</strong>
+                        <span>Live dashboards for tasks, billing, records, and communication efficiency.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="right-panel">
+            <div class="auth-card">
+                <div class="auth-head">
+                    <h2>Welcome Back</h2>
+                    <p>Sign in to continue to your ClinixPro workspace.</p>
+                </div>
+
+                <form id="loginForm" novalidate autocomplete="off">
+                    <div class="field">
+                        <label for="email">Email Address</label>
+                        <div class="input-wrap">
+                            <i class="fa-regular fa-envelope"></i>
+                            <input type="email" id="email" name="email" autocomplete="off" placeholder="you@hospital.com" required>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="password">Password</label>
+                        <div class="input-wrap">
+                            <i class="fa-solid fa-lock"></i>
+                            <input type="password" id="password" name="password" autocomplete="new-password" placeholder="Enter your password" required>
+                            <button type="button" class="toggle-password" id="togglePassword" aria-label="Show password">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="meta">
+                        <label class="remember" for="remember">
+                            <input type="checkbox" id="remember" name="remember">
+                            <span>Remember me</span>
+                        </label>
+                        <a href="#" class="forgot" id="forgotPassword">Forgot password?</a>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="loginButton">
+                        <span class="label"><i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In</span>
+                        <span class="spinner"><i class="fa-solid fa-spinner fa-spin"></i> Signing in...</span>
+                    </button>
+
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="success-box" id="successBox"></div>
+                </form>
+
+                <p class="auth-footer">
+                    Don’t have an account?
+                    <a href="register.html">Create one</a>
+                </p>
+
+            </div>
+        </section>
+    </div>
+
+    <div id="forgotPasswordModal" class="fp-modal" aria-hidden="true">
+        <div class="fp-backdrop" data-fp-close></div>
+        <div class="fp-card" role="dialog" aria-modal="true" aria-labelledby="fpTitle">
+            <button type="button" class="fp-close" data-fp-close aria-label="Close">&times;</button>
+
+            <div class="fp-step" data-step="1">
+                <div class="fp-icon"><i class="fa-solid fa-envelope-open-text"></i></div>
+                <h3 id="fpTitle">Reset your password</h3>
+                <p class="fp-sub">Enter your account email and we'll send you a 6-digit verification code.</p>
+                <form id="fpEmailForm" novalidate>
+                    <label for="fpEmail">Email Address</label>
+                    <input type="email" id="fpEmail" placeholder="you@hospital.com" required autocomplete="email">
+                    <div class="fp-msg" id="fpEmailMsg"></div>
+                    <button type="submit" class="fp-btn" id="fpEmailBtn">
+                        <span class="label"><i class="fa-solid fa-paper-plane"></i> Send Code</span>
+                        <span class="spinner"><i class="fa-solid fa-spinner fa-spin"></i> Sending...</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="fp-step" data-step="2" hidden>
+                <div class="fp-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <h3>Enter verification code</h3>
+                <p class="fp-sub">We sent a 6-digit code to <strong id="fpEmailDisplay">your email</strong>. The code expires in 15 minutes.</p>
+                <form id="fpResetForm" novalidate>
+                    <label for="fpCode">Verification Code</label>
+                    <input type="text" id="fpCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="123456" required autocomplete="one-time-code">
+
+                    <label for="fpNewPassword">New Password</label>
+                    <input type="password" id="fpNewPassword" minlength="6" placeholder="At least 6 characters" required autocomplete="new-password">
+
+                    <label for="fpConfirmPassword">Confirm New Password</label>
+                    <input type="password" id="fpConfirmPassword" minlength="6" placeholder="Re-enter your new password" required autocomplete="new-password">
+
+                    <div class="fp-msg" id="fpResetMsg"></div>
+                    <button type="submit" class="fp-btn" id="fpResetBtn">
+                        <span class="label"><i class="fa-solid fa-rotate-right"></i> Reset Password</span>
+                        <span class="spinner"><i class="fa-solid fa-spinner fa-spin"></i> Resetting...</span>
+                    </button>
+                    <button type="button" class="fp-link-btn" id="fpResendBtn">Didn't get a code? Resend</button>
+                </form>
+            </div>
+
+            <div class="fp-step" data-step="3" hidden>
+                <div class="fp-icon fp-icon-success"><i class="fa-solid fa-circle-check"></i></div>
+                <h3>Password reset successful</h3>
+                <p class="fp-sub">You can now log in with your new password.</p>
+                <button type="button" class="fp-btn" data-fp-close>
+                    <span class="label"><i class="fa-solid fa-arrow-right-to-bracket"></i> Back to login</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const API_BASE = (window.location.port === "5000" ? "" : "http://127.0.0.1:5000") + "/api";
+            const API_URL = `${API_BASE}/auth/login`;
+            const FORGOT_URL = `${API_BASE}/auth/forgot-password`;
+            const RESET_URL = `${API_BASE}/auth/reset-password`;
+
+            const form = document.getElementById("loginForm");
+            const emailInput = document.getElementById("email");
+            const passwordInput = document.getElementById("password");
+            const rememberCheckbox = document.getElementById("remember");
+            const loginButton = document.getElementById("loginButton");
+            const errorBox = document.getElementById("errorBox");
+            const successBox = document.getElementById("successBox");
+            const forgotPasswordLink = document.getElementById("forgotPassword");
+            const togglePasswordBtn = document.getElementById("togglePassword");
+
+            function showError(message) {
+                errorBox.textContent = message;
+                errorBox.classList.add("show");
+            }
+
+            function clearError() {
+                errorBox.textContent = "";
+                errorBox.classList.remove("show");
+            }
+
+            function showSuccess(message) {
+                successBox.textContent = message;
+                successBox.classList.add("show");
+            }
+
+            function setLoading(isLoading) {
+                loginButton.disabled = isLoading;
+                loginButton.classList.toggle("loading", isLoading);
+            }
+
+            function normalizeRole(payload) {
+                return (payload.user_type || payload.role || "").toLowerCase();
+            }
+
+            function persistSession(payload) {
+                localStorage.setItem("token", payload.token || "");
+                localStorage.setItem("userRole", normalizeRole(payload));
+
+                // Always clear any stale name data before setting fresh values
+                localStorage.removeItem('userName');
+                localStorage.removeItem('userData');
+                localStorage.removeItem('doctorName');
+                localStorage.removeItem('patientName');
+
+                const userData = {
+                    id: payload.user_id || null,
+                    name: payload.name || "",
+                    email: emailInput.value.trim(),
+                    role: normalizeRole(payload)
+                };
+                localStorage.setItem("userData", JSON.stringify(userData));
+
+                localStorage.setItem("userId", String(payload.user_id || ""));
+                localStorage.setItem("userName", payload.name || "");
+                localStorage.setItem("userEmail", emailInput.value.trim());
+                localStorage.setItem("userType", normalizeRole(payload));
+                if (normalizeRole(payload) === "doctor") {
+                    localStorage.setItem("doctorName", payload.name || "");
+                } else if (normalizeRole(payload) === "patient") {
+                    localStorage.setItem("patientName", payload.name || "");
+                }
+
+                // Intentionally do not persist email locally to avoid stale autofill behavior.
+            }
+
+            function redirectByRole(role, payload) {
+                if (role === "doctor") {
+                    if (payload && payload.doctor_profile_complete === false) {
+                        window.location.href = "doctor-profile-complete.html";
+                        return;
+                    }
+                    window.location.href = "doctor-dashboard.html";
+                    return;
+                }
+                if (role === "patient") {
+                    window.location.href = "patient-dashboard.html";
+                    return;
+                }
+                if (role === "admin") {
+                    window.location.href = "dashboard.html";
+                    return;
+                }
+                window.location.href = "dashboard.html";
+            }
+
+            togglePasswordBtn.addEventListener("click", function () {
+                const isPassword = passwordInput.type === "password";
+                passwordInput.type = isPassword ? "text" : "password";
+                togglePasswordBtn.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+                togglePasswordBtn.innerHTML = isPassword
+                    ? '<i class="fa-regular fa-eye-slash"></i>'
+                    : '<i class="fa-regular fa-eye"></i>';
+            });
+
+            const fpModal = document.getElementById("forgotPasswordModal");
+            const fpEmailForm = document.getElementById("fpEmailForm");
+            const fpResetForm = document.getElementById("fpResetForm");
+            const fpEmailInput = document.getElementById("fpEmail");
+            const fpEmailDisplay = document.getElementById("fpEmailDisplay");
+            const fpEmailBtn = document.getElementById("fpEmailBtn");
+            const fpResetBtn = document.getElementById("fpResetBtn");
+            const fpResendBtn = document.getElementById("fpResendBtn");
+            const fpCodeInput = document.getElementById("fpCode");
+            const fpNewPassword = document.getElementById("fpNewPassword");
+            const fpConfirmPassword = document.getElementById("fpConfirmPassword");
+            const fpEmailMsg = document.getElementById("fpEmailMsg");
+            const fpResetMsg = document.getElementById("fpResetMsg");
+            let fpCurrentEmail = "";
+
+            function fpShowStep(step) {
+                fpModal.querySelectorAll(".fp-step").forEach((el) => {
+                    el.hidden = String(el.dataset.step) !== String(step);
+                });
+            }
+
+            function fpOpen() {
+                fpEmailMsg.textContent = "";
+                fpEmailMsg.className = "fp-msg";
+                fpResetMsg.textContent = "";
+                fpResetMsg.className = "fp-msg";
+                fpResetForm.reset();
+                fpEmailInput.value = (emailInput.value || "").trim();
+                fpShowStep(1);
+                fpModal.classList.add("show");
+                fpModal.setAttribute("aria-hidden", "false");
+                setTimeout(() => fpEmailInput.focus(), 80);
+            }
+
+            function fpClose() {
+                fpModal.classList.remove("show");
+                fpModal.setAttribute("aria-hidden", "true");
+            }
+
+            function fpSetMsg(el, text, type) {
+                el.textContent = text || "";
+                el.className = "fp-msg" + (type ? " " + type : "");
+            }
+
+            function fpSetLoading(btn, isLoading) {
+                btn.disabled = !!isLoading;
+                btn.classList.toggle("loading", !!isLoading);
+            }
+
+            forgotPasswordLink.addEventListener("click", function (event) {
+                event.preventDefault();
+                fpOpen();
+            });
+
+            fpModal.querySelectorAll("[data-fp-close]").forEach((el) => {
+                el.addEventListener("click", fpClose);
+            });
+
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Escape" && fpModal.classList.contains("show")) {
+                    fpClose();
+                }
+            });
+
+            async function fpSendCode(emailValue) {
+                const response = await fetch(FORGOT_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: emailValue })
+                });
+                let payload = {};
+                try { payload = await response.json(); } catch (_e) { payload = {}; }
+                if (!response.ok) {
+                    throw new Error(payload.error || "Could not send reset code.");
+                }
+                return payload;
+            }
+
+            fpEmailForm.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                fpSetMsg(fpEmailMsg, "", "");
+                const value = (fpEmailInput.value || "").trim();
+                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailPattern.test(value)) {
+                    fpSetMsg(fpEmailMsg, "Please enter a valid email address.", "error");
+                    return;
+                }
+                fpSetLoading(fpEmailBtn, true);
+                try {
+                    const payload = await fpSendCode(value);
+                    fpCurrentEmail = value;
+                    fpEmailDisplay.textContent = value;
+                    fpShowStep(2);
+                    if (payload && payload.debug_code) {
+                        fpSetMsg(fpResetMsg, `Dev mode: code is ${payload.debug_code}`, "info");
+                    } else {
+                        fpSetMsg(fpResetMsg, "Code sent. Check your inbox (and spam folder).", "success");
+                    }
+                    setTimeout(() => fpCodeInput.focus(), 80);
+                } catch (err) {
+                    fpSetMsg(fpEmailMsg, err.message || "Unable to send code. Please try again.", "error");
+                } finally {
+                    fpSetLoading(fpEmailBtn, false);
+                }
+            });
+
+            fpResendBtn.addEventListener("click", async function () {
+                if (!fpCurrentEmail) return;
+                fpSetMsg(fpResetMsg, "", "");
+                fpSetLoading(fpResendBtn, true);
+                try {
+                    const payload = await fpSendCode(fpCurrentEmail);
+                    if (payload && payload.debug_code) {
+                        fpSetMsg(fpResetMsg, `Dev mode: code is ${payload.debug_code}`, "info");
+                    } else {
+                        fpSetMsg(fpResetMsg, "A new code has been sent to your email.", "success");
+                    }
+                } catch (err) {
+                    fpSetMsg(fpResetMsg, err.message || "Could not resend code.", "error");
+                } finally {
+                    fpSetLoading(fpResendBtn, false);
+                }
+            });
+
+            fpResetForm.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                fpSetMsg(fpResetMsg, "", "");
+                const code = (fpCodeInput.value || "").trim();
+                const newPwd = fpNewPassword.value || "";
+                const confirmPwd = fpConfirmPassword.value || "";
+
+                if (!/^\d{6}$/.test(code)) {
+                    fpSetMsg(fpResetMsg, "Enter the 6-digit code from your email.", "error");
+                    return;
+                }
+                if (newPwd.length < 6) {
+                    fpSetMsg(fpResetMsg, "Password must be at least 6 characters.", "error");
+                    return;
+                }
+                if (newPwd !== confirmPwd) {
+                    fpSetMsg(fpResetMsg, "Passwords do not match.", "error");
+                    return;
+                }
+
+                fpSetLoading(fpResetBtn, true);
+                try {
+                    const response = await fetch(RESET_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            email: fpCurrentEmail,
+                            code: code,
+                            new_password: newPwd
+                        })
+                    });
+                    let payload = {};
+                    try { payload = await response.json(); } catch (_e) { payload = {}; }
+                    if (!response.ok) {
+                        throw new Error(payload.error || "Could not reset password.");
+                    }
+                    fpShowStep(3);
+                    emailInput.value = fpCurrentEmail;
+                    showSuccess("Password reset. Please sign in with your new password.");
+                } catch (err) {
+                    fpSetMsg(fpResetMsg, err.message || "Reset failed. Please try again.", "error");
+                } finally {
+                    fpSetLoading(fpResetBtn, false);
+                }
+            });
+
+            form.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                clearError();
+
+                const email = emailInput.value.trim();
+                const password = passwordInput.value;
+
+                if (!email || !password) {
+                    showError("Please enter both email and password.");
+                    return;
+                }
+
+                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailPattern.test(email)) {
+                    showError("Please enter a valid email address.");
+                    return;
+                }
+
+                setLoading(true);
+                let redirecting = false;
+                try {
+                    const response = await fetch(API_URL, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ email: email, password: password })
+                    });
+
+                    let payload = {};
+                    try {
+                        payload = await response.json();
+                    } catch (e) {
+                        payload = {};
+                    }
+
+                    if (!response.ok || !payload.token) {
+                        const message = payload.error || payload.message || "Login failed. Please verify your credentials.";
+                        showError(message);
+                        return;
+                    }
+
+                    if (rememberCheckbox && rememberCheckbox.checked) {
+                        localStorage.setItem("rememberedEmail", email);
+                    } else {
+                        localStorage.removeItem("rememberedEmail");
+                    }
+                    persistSession(payload);
+                    redirecting = true;
+                    const role = normalizeRole(payload);
+                    if (role === "admin") {
+                        window.location.href = "dashboard.html";
+                    } else if (role === "doctor") {
+                        window.location.href = payload.doctor_profile_complete === false
+                            ? "doctor-profile-complete.html"
+                            : "doctor-dashboard.html";
+                    } else if (role === "patient") {
+                        window.location.href = "patient-dashboard.html";
+                    } else {
+                        window.location.href = "dashboard.html";
+                    }
+                } catch (error) {
+                    redirecting = false;
+                    showError("Unable to connect to server. Please ensure backend is running on localhost:5000.");
+                } finally {
+                    if (!redirecting) setLoading(false);
+                }
+            });
+
+            const rememberedEmail = localStorage.getItem("rememberedEmail");
+            if (rememberedEmail) {
+                emailInput.value = rememberedEmail;
+            } else {
+                emailInput.value = "";
+            }
+            passwordInput.value = "";
+
+            const registerSuccessMessage = localStorage.getItem("registerSuccessMessage");
+            if (registerSuccessMessage) {
+                showSuccess(registerSuccessMessage);
+                localStorage.removeItem("registerSuccessMessage");
+            }
+        })();
+    </script>
+    <script src="js/chatbot.js"></script>
+</body>
+</html>

@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Center - ClinixPro</title>
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/design-tokens.css">
+    <link rel="stylesheet" href="css/accessibility.css">
+    <link rel="stylesheet" href="css/components-base.css">
+    <link rel="stylesheet" href="css/responsive-polish.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/support.css">
+    <link rel="stylesheet" href="css/support-modern.css">
+    <link rel="stylesheet" href="css/chatbot.css">
+    <style>
+        .option-card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid #667eea;
+        }
+
+        .option-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .option-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .option-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .option-card p {
+            color: #718096;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+
+        .option-link {
+            display: inline-block;
+            color: #667eea;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .option-link:hover {
+            color: #764ba2;
+            transform: translateX(5px);
+        }
+
+        /* Section Container */
+        .section-container {
+            padding: 80px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-title i {
+            color: #667eea;
+        }
+
+        .section-description {
+            color: #718096;
+            font-size: 1.1rem;
+            margin-bottom: 50px;
+        }
+
+        /* Guides Grid */
+        .guides-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .guide-card {
+            background: white;
+            padding: 35px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border-top: 4px solid #667eea;
+        }
+
+        .guide-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        }
+
+        .guide-card h3 {
+            font-size: 1.3rem;
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .guide-steps {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 25px 0;
+        }
+
+        .guide-steps li {
+            padding: 12px 0 12px 30px;
+            position: relative;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .guide-steps li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* FAQ Section */
+        .faq-container {
+            max-width: 900px;
+        }
+
+        .faq-item {
+            background: white;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .faq-item:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .faq-question {
+            padding: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+
+        .faq-question:hover {
+            background: #edf2f7;
+        }
+
+        .faq-question h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .faq-toggle {
+            color: #667eea;
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .faq-item.active .faq-toggle {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            padding: 0 25px 25px 25px;
+            color: #4a5568;
+            line-height: 1.8;
+            background: white;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+            padding: 20px 25px;
+        }
+
+        /* Troubleshooting Grid */
+        .troubleshooting-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .troubleshooting-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 35px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .troubleshooting-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        }
+
+        .troubleshooting-card h4 {
+            font-size: 1.2rem;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .troubleshooting-card i {
+            color: #667eea;
+            font-size: 1.5rem;
+        }
+
+        .solution-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .solution-list li {
+            padding: 10px 0 10px 30px;
+            position: relative;
+            color: #2d3748;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .solution-list li:before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        /* Contact Methods */
+        .contact-options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .contact-method {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border-top: 4px solid #667eea;
+        }
+
+        .contact-method:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        }
+
+        .contact-icon {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .contact-method h4 {
+            font-size: 1.2rem;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .contact-detail {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1rem;
+            margin: 10px 0;
+        }
+
+        .contact-hours {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 20px;
+        }
+
+        /* Support Form */
+        .support-form-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            border-radius: 15px;
+            max-width: 900px;
+            margin: 40px auto 0;
+        }
+
+        .support-form-container h3 {
+            font-size: 1.8rem;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            padding: 12px 15px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: rgba(255,255,255,0.95);
+            color: #2d3748;
+            transition: all 0.3s ease;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: white;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
+        }
+
+        /* Video Tutorials */
+        .tutorials-section {
+            background: #f8f9fa;
+        }
+
+        .tutorials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .tutorial-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .tutorial-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        }
+
+        .tutorial-thumbnail {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            color: white;
+            font-size: 3rem;
+        }
+
+        .duration {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.6);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .tutorial-card h4 {
+            padding: 20px;
+            color: #2d3748;
+            font-size: 1.1rem;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .tutorial-card p {
+            padding: 0 20px 20px;
+            color: #718096;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        /* Stats Section */
+        .stats-section {
+            background: #f8f9fa;
+            padding: 60px 40px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            color: #667eea;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* Footer */
+        .footer {
+            background: #2d3748;
+            color: white;
+            padding: 50px 40px 20px;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-section h4,
+        .footer-section h5 {
+            margin-bottom: 15px;
+            color: white;
+            font-weight: 700;
+        }
+
+        .footer-section p {
+            margin: 8px 0;
+            color: #cbd5e0;
+            font-size: 0.95rem;
+        }
+
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-section ul li {
+            margin: 10px 0;
+        }
+
+        .footer-section ul li a {
+            color: #cbd5e0;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-section ul li a:hover {
+            color: #667eea;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #4a5568;
+            color: #a0aec0;
+        }
+
+        .footer-bottom a {
+            color: #a0aec0;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-bottom a:hover {
+            color: #667eea;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        .btn-large {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            width: 100%;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .support-hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .support-hero > p {
+                font-size: 1.1rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .support-form-container {
+                padding: 40px 20px;
+            }
+
+            .section-container {
+                padding: 50px 20px;
+            }
+
+            .support-options {
+                padding: 40px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <i class="fas fa-clinic-medical logo-icon"></i>
+                <span>ClinixPro</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="index.html#features" class="nav-link">Features</a></li>
+                <li><a href="support.html" class="nav-link active">Support</a></li>
+                <li><a href="login.html" class="nav-link btn-login"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="support-container">
+        <!-- Hero Section -->
+        <section class="support-hero">
+            <h1>Support Center</h1>
+            <p>Find answers, get help, and connect with our support team</p>
+            
+            <!-- Quick Search -->
+            <div class="quick-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="supportSearch" placeholder="Search support articles, guides, and FAQs...">
+            </div>
+        </section>
+
+        <!-- Support Options Grid -->
+        <section class="support-options">
+            <div class="option-card" onclick="scrollToSection('#getting-started')">
+                <div class="option-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <h3>Getting Started</h3>
+                <p>Step-by-step guides to get up and running</p>
+                <span class="option-link">explore guides →</span>
+            </div>
+
+            <div class="option-card" onclick="scrollToSection('#faq')">
+                <div class="option-icon">
+                    <i class="fas fa-question-circle"></i>
+                </div>
+                <h3>FAQ</h3>
+                <p>Answers to frequently asked questions</p>
+                <span class="option-link">browse FAQ →</span>
+            </div>
+
+            <div class="option-card" onclick="scrollToSection('#troubleshooting')">
+                <div class="option-icon">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <h3>Troubleshooting</h3>
+                <p>Fix common issues and problems</p>
+                <span class="option-link">find solutions →</span>
+            </div>
+
+            <div class="option-card" onclick="scrollToSection('#contact')">
+                <div class="option-icon">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <h3>Contact Support</h3>
+                <p>Reach out to our support team</p>
+                <span class="option-link">get in touch →</span>
+            </div>
+        </section>
+
+        <!-- Getting Started Section -->
+        <section class="section-container" id="getting-started">
+            <h2 class="section-title">
+                <i class="fas fa-book"></i> Getting Started Guides
+            </h2>
+            <p class="section-description">Learn the basics and get started in minutes</p>
+            
+            <div class="guides-grid">
+                <div class="guide-card">
+                    <h3><i class="fas fa-users"></i> Patient Account Setup</h3>
+                    <ol class="guide-steps">
+                        <li>Click "Sign Up" on the home page</li>
+                        <li>Enter your email and create a secure password</li>
+                        <li>Fill in your personal information</li>
+                        <li>Verify your email address</li>
+                        <li>Complete your medical profile</li>
+                    </ol>
+                    <button class="btn btn-secondary btn-small"><i class="fas fa-arrow-right"></i> Read Full Guide</button>
+                </div>
+
+                <div class="guide-card">
+                    <h3><i class="fas fa-stethoscope"></i> Doctor Account Setup</h3>
+                    <ol class="guide-steps">
+                        <li>Register as a healthcare provider</li>
+                        <li>Submit your medical credentials</li>
+                        <li>Verify professional license</li>
+                        <li>Set your availability schedule</li>
+                        <li>Configure appointment settings</li>
+                    </ol>
+                    <button class="btn btn-secondary btn-small"><i class="fas fa-arrow-right"></i> Read Full Guide</button>
+                </div>
+
+                <div class="guide-card">
+                    <h3><i class="fas fa-calendar-check"></i> Booking Appointments</h3>
+                    <ol class="guide-steps">
+                        <li>Log in to your account</li>
+                        <li>Navigate to "Appointments" tab</li>
+                        <li>Click "Book New Appointment"</li>
+                        <li>Select your preferred doctor and time</li>
+                        <li>Confirm your booking</li>
+                    </ol>
+                    <button class="btn btn-secondary btn-small"><i class="fas fa-arrow-right"></i> Read Full Guide</button>
+                </div>
+
+                <div class="guide-card">
+                    <h3><i class="fas fa-file-medical"></i> Managing Medical Records</h3>
+                    <ol class="guide-steps">
+                        <li>Go to your patient dashboard</li>
+                        <li>Click on "Medical Records" tab</li>
+                        <li>View your complete history</li>
+                        <li>Download or print records</li>
+                        <li>Share with healthcare providers</li>
+                    </ol>
+                    <button class="btn btn-secondary btn-small"><i class="fas fa-arrow-right"></i> Read Full Guide</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="section-container" id="faq">
+            <h2 class="section-title">
+                <i class="fas fa-question-circle"></i> Frequently Asked Questions
+            </h2>
+            <p class="section-description">Quick answers to common questions</p>
+            
+            <div class="faq-container">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>How do I reset my password?</h4>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Click "Forgot Password" on the login page, enter your email address, and check your inbox for a reset link. Follow the instructions to create a new password. The link expires after 24 hours for security.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>Is my personal information secure?</h4>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes, absolutely. ClinixPro uses enterprise-grade encryption (SSL/TLS 1.2), HIPAA-compliant security measures, and regular security audits. Your data is never shared with third parties without explicit consent.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>Can I cancel or reschedule an appointment?</h4>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes! You can cancel or reschedule appointments up to 24 hours before the scheduled time. Go to "My Appointments" and click the "Reschedule" or "Cancel" button. Check your plan details for any applicable cancellation fees.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>How do I contact my doctor directly?</h4>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Use the "Messages" section in your dashboard to send messages to your doctor. Healthcare providers typically respond within 24 hours during business days. For urgent medical emergencies, use the emergency hotline.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>What payment methods do you accept?</h4>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>We accept credit/debit cards (Visa, MasterCard, American Express), bank transfers, mobile wallets (JazzCash, Easypaisa), and installment plans through our payment partners.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>How do I download my prescription?</h4>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Navigate to "Prescriptions" in your dashboard, find the prescription you need, and click the download icon. You can also print directly or share with a pharmacy electronically.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>Is there a mobile app available?</h4>
+                        <span class="faq-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>ClinixPro works flawlessly on mobile browsers with full functionality. Native iOS and Android apps will be available soon. All features are accessible through your smartphone.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Troubleshooting Section -->
+        <section class="section-container" id="troubleshooting">
+            <h2 class="section-title">
+                <i class="fas fa-tools"></i> Troubleshooting
+            </h2>
+            <p class="section-description">Solutions for common issues</p>
+            
+            <div class="troubleshooting-grid">
+                <div class="troubleshooting-card">
+                    <h4>
+                        <i class="fas fa-lock"></i> Login Issues
+                    </h4>
+                    <ul class="solution-list">
+                        <li>Check if Caps Lock is on</li>
+                        <li>Verify your email address is correct</li>
+                        <li>Use the password reset option</li>
+                        <li>Clear browser cookies and cache</li>
+                        <li>Try a different browser</li>
+                    </ul>
+                </div>
+
+                <div class="troubleshooting-card">
+                    <h4>
+                        <i class="fas fa-clock"></i> Appointment Issues
+                    </h4>
+                    <ul class="solution-list">
+                        <li>Refresh the page and try again</li>
+                        <li>Check your internet connection</li>
+                        <li>Verify appointment slot availability</li>
+                        <li>Ensure system time is correct</li>
+                        <li>Contact support if issue persists</li>
+                    </ul>
+                </div>
+
+                <div class="troubleshooting-card">
+                    <h4>
+                        <i class="fas fa-paperclip"></i> File Upload Issues
+                    </h4>
+                    <ul class="solution-list">
+                        <li>Check file size (maximum 5MB)</li>
+                        <li>Use supported formats (PDF, JPG, PNG)</li>
+                        <li>Ensure stable internet connection</li>
+                        <li>Try reloading the page</li>
+                        <li>Contact support for assistance</li>
+                    </ul>
+                </div>
+
+                <div class="troubleshooting-card">
+                    <h4>
+                        <i class="fas fa-credit-card"></i> Payment Issues
+                    </h4>
+                    <ul class="solution-list">
+                        <li>Verify all card details are correct</li>
+                        <li>Check if card is active and not expired</li>
+                        <li>Try a different payment method</li>
+                        <li>Contact your bank for assistance</li>
+                        <li>Reach out to our support team</li>
+                    </ul>
+                </div>
+
+                <div class="troubleshooting-card">
+                    <h4>
+                        <i class="fas fa-envelope"></i> Message Issues
+                    </h4>
+                    <ul class="solution-list">
+                        <li>Check your internet connection</li>
+                        <li>Verify message content and format</li>
+                        <li>Refresh the browser page</li>
+                        <li>Try sending again after a moment</li>
+                        <li>Contact support if still failing</li>
+                    </ul>
+                </div>
+
+                <div class="troubleshooting-card">
+                    <h4>
+                        <i class="fas fa-exclamation-triangle"></i> Other Issues
+                    </h4>
+                    <ul class="solution-list">
+                        <li>Check system status page</li>
+                        <li>Clear cache and cookies</li>
+                        <li>Update to latest browser version</li>
+                        <li>Disable browser extensions</li>
+                        <li>Contact our support team</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Video Tutorials Section -->
+        <section class="section-container tutorials-section" id="tutorials">
+            <h2 class="section-title">
+                <i class="fas fa-video"></i> Video Tutorials Library
+            </h2>
+            <p class="section-description">Learn by watching our comprehensive video guides</p>
+            
+            <div class="tutorials-grid">
+                <div class="tutorial-card" onclick="window.location.href='tutorials.html'">
+                    <div class="tutorial-thumbnail">
+                        <i class="fas fa-play-circle"></i>
+                        <span class="duration">5:23</span>
+                    </div>
+                    <h4>Getting Started with ClinixPro</h4>
+                    <p>A quick tour of the platform and main features</p>
+                </div>
+
+                <div class="tutorial-card" onclick="window.location.href='tutorials.html'">
+                    <div class="tutorial-thumbnail">
+                        <i class="fas fa-play-circle"></i>
+                        <span class="duration">4:15</span>
+                    </div>
+                    <h4>Booking Your First Appointment</h4>
+                    <p>Step-by-step guide to schedule your appointment</p>
+                </div>
+
+                <div class="tutorial-card" onclick="window.location.href='tutorials.html'">
+                    <div class="tutorial-thumbnail">
+                        <i class="fas fa-play-circle"></i>
+                        <span class="duration">3:47</span>
+                    </div>
+                    <h4>Managing Your Medical Records</h4>
+                    <p>How to view, download, and share your records</p>
+                </div>
+
+                <div class="tutorial-card" onclick="window.location.href='tutorials.html'">
+                    <div class="tutorial-thumbnail">
+                        <i class="fas fa-play-circle"></i>
+                        <span class="duration">6:12</span>
+                    </div>
+                    <h4>Prescription Management Guide</h4>
+                    <p>Access and manage your prescriptions</p>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 40px;">
+                <a href="tutorials.html" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Explore All Video Tutorials
+                </a>
+            </div>
+        </section>
+
+        <!-- Statistics Section -->
+        <section class="stats-section">
+            <div style="max-width:1400px;margin:0 auto 20px;text-align:center;color:#4a5568;font-weight:700;font-size:1.15rem;">
+                Trusted by clinics across Pakistan
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">120+</div>
+                    <div class="stat-label">Clinics Onboarded</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">8K+</div>
+                    <div class="stat-label">Appointments Managed Monthly</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">95%</div>
+                    <div class="stat-label">Support Resolution Satisfaction</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">6 Days</div>
+                    <div class="stat-label">Weekly Support Window</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Support Section -->
+        <section class="section-container" id="contact">
+            <h2 class="section-title">
+                <i class="fas fa-headset"></i> Contact Our Support Team
+            </h2>
+            <p class="section-description">Get in touch with us through your preferred channel</p>
+            
+            <div class="contact-options-grid">
+                <div class="contact-method">
+                    <div class="contact-icon">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <h4>Phone Support</h4>
+                    <p class="contact-detail">03486277022</p>
+                    <p class="contact-hours">Mon-Fri, 9 AM - 6 PM (PKT)</p>
+                    <button class="btn btn-primary btn-small" data-action="call">Call Now</button>
+                </div>
+
+                <div class="contact-method">
+                    <div class="contact-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h4>Email Support</h4>
+                    <p class="contact-detail">support@clinixpro.com</p>
+                    <p class="contact-hours">Response within 24 hours</p>
+                    <button class="btn btn-primary btn-small" data-action="email">Send Email</button>
+                </div>
+
+                <div class="contact-method">
+                    <div class="contact-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h4>Live Chat</h4>
+                    <p class="contact-detail">Chat with our team</p>
+                    <p class="contact-hours">Mon-Fri, 10 AM - 8 PM</p>
+                    <button class="btn btn-primary btn-small" data-action="chat">Start Chat</button>
+                </div>
+
+                <div class="contact-method">
+                    <div class="contact-icon">
+                        <i class="fas fa-ticket-alt"></i>
+                    </div>
+                    <h4>Support Ticket</h4>
+                    <p class="contact-detail">Create a support ticket</p>
+                    <p class="contact-hours">Track ticket progress</p>
+                    <button class="btn btn-primary btn-small" data-action="ticket">Create Ticket</button>
+                </div>
+            </div>
+
+            <!-- Support Form -->
+            <div class="support-form-container" id="form">
+                <h3><i class="fas fa-envelope"></i> Send us a Message</h3>
+                <form id="supportForm" class="support-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supportName">
+                                <i class="fas fa-user"></i> Full Name
+                            </label>
+                            <input type="text" id="supportName" required placeholder="John Doe">
+                        </div>
+                        <div class="form-group">
+                            <label for="supportEmail">
+                                <i class="fas fa-envelope"></i> Email Address
+                            </label>
+                            <input type="email" id="supportEmail" required placeholder="your@email.com">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supportPhone">
+                                <i class="fas fa-phone"></i> Phone Number
+                            </label>
+                            <input type="tel" id="supportPhone" placeholder="+92 300 123-4567">
+                        </div>
+                        <div class="form-group">
+                            <label for="supportCategory">
+                                <i class="fas fa-list"></i> Issue Category
+                            </label>
+                            <select id="supportCategory" required>
+                                <option value="">Select a category...</option>
+                                <option value="technical">Technical Issue</option>
+                                <option value="billing">Billing/Payment</option>
+                                <option value="account">Account Issue</option>
+                                <option value="feature">Feature Request</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="supportSubject">
+                            <i class="fas fa-heading"></i> Subject
+                        </label>
+                        <input type="text" id="supportSubject" required placeholder="Brief description of your issue">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="supportMessage">
+                            <i class="fas fa-pencil-alt"></i> Message
+                        </label>
+                        <textarea id="supportMessage" rows="6" required placeholder="Describe your issue in detail..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large">
+                        <i class="fas fa-paper-plane"></i> Submit Support Ticket
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>ClinixPro</h4>
+                <p>Healthcare management made simple, secure, and accessible for everyone.</p>
+            </div>
+            <div class="footer-section">
+                <h5>Quick Links</h5>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="support.html">Support</a></li>
+                    <li><a href="tickets.html">Tickets</a></li>
+                    <li><a href="tutorials.html">Tutorials</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h5>Contact</h5>
+                <p>Email: support@clinixpro.com</p>
+                <p>Phone: 03486277022</p>
+                <p>Location: Karachi, Pakistan</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 ClinixPro. All rights reserved. | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+        </div>
+    </footer>
+
+    <script src="js/support.js"></script>
+    <script src="js/chatbot.js"></script>
+    
+</body>
+</html>

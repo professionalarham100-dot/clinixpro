@@ -1,0 +1,182 @@
+================================================================
+CLINIXPRO - SMART CLINICAL MANAGEMENT SYSTEM
+COMPLETE PROJECT ROADMAP
+================================================================
+Student: Arham
+Project: ClinixPro
+Stack: HTML/CSS/JS + Python Flask + MySQL + Groq AI
+================================================================
+
+COMPLETED ✅
+================================================================
+
+PHASE 1 - UI REBUILD
+- All pages designed from scratch
+- index.html (landing page)
+- login.html
+- register.html
+- patient-dashboard.html
+- doctor-dashboard.html
+- dashboard.html (admin)
+- support.html
+- tickets.html
+
+PHASE 2 - ROUTING & NAVIGATION
+- All navbar links working
+- All buttons clickable
+- Page transitions working
+- Back to home button on all pages
+- Contact Us → support.html
+- Watch Demo → auto login as patient
+
+PHASE 3 - FRONTEND TO BACKEND
+- Flask API connected
+- All pages talk to backend
+- CORS configured
+- Health endpoint working
+
+PHASE 4 - MYSQL DATABASE
+- Fresh MySQL install
+- smart_clinic database created
+- All tables created from schema.sql
+- Sample data imported
+- Backend connected to MySQL
+- Fallback mode removed
+
+PHASE 5 - AI CHATBOT
+- Groq API integrated (Llama3 model)
+- Chatbot on landing page (navigation help)
+- Chatbot on login page (navigation help)
+- Chatbot on patient dashboard (medical help)
+- Chatbot on doctor dashboard (clinical help)
+- Chatbot on admin dashboard (admin help)
+- Role based system prompts
+- Quick reply buttons
+- Typing indicator
+- Message history
+- Error handling
+
+PHASE 6 - AUTHENTICATION (IN PROGRESS 🔨)
+- Patient registration saves to MySQL ✅
+- Duplicate email check ✅
+- Duplicate phone check ✅
+- Password hashing ✅
+- Login with new credentials ✅
+- Doctor two step registration ✅
+- Doctor verification form (PMDC etc) ✅
+- Admin approval system (pending)
+- Email notifications via Gmail SMTP (pending)
+- First login profile completion for doctors (pending)
+
+CONTENT & UI FIXES ✅
+- Footer phone → 03190615822
+- Footer city → Gujrat
+- Support page contact → 03486277022
+- Fake stats removed from support page
+- NayaPay payment added (03096015198)
+- WhatsApp screenshot instruction added
+- Pricing section updated
+
+================================================================
+IN PROGRESS 🔨
+================================================================
+
+PHASE 6 - AUTHENTICATION (REMAINING)
+- Admin sees pending doctor registrations
+- Approve / Reject buttons work
+- Email sent to doctor on approval
+- Email sent to doctor on rejection
+- Email sent to patient on registration
+- Email sent to admin when doctor applies
+- Gmail SMTP setup with App Password
+- Doctor first login → profile completion screen
+
+================================================================
+UPCOMING ⏳
+================================================================
+
+PHASE 7 - CORE FEATURES POLISH
+- Appointment booking end to end working
+- Patient can book appointment with specific doctor
+- Doctor can see their appointments
+- Appointment status updates (confirmed/cancelled)
+- Patient medical records showing real data
+- Prescription management working
+- Billing system working
+- Doctor profile page (photo, bio, fee, hours)
+
+PHASE 8 - ADMIN DASHBOARD
+- Real stats (actual numbers from database)
+- Pending doctor approvals section
+- Support tickets management
+- View all users
+- Activate / deactivate accounts
+- System overview (total patients, doctors, appointments)
+
+PHASE 9 - FINAL POLISH
+- Mobile responsive all pages
+- Loading spinners on all actions
+- Success/error messages everywhere
+- Empty states (no data messages)
+- Demo data looks realistic
+- No broken links anywhere
+- Console errors fixed
+
+PHASE 10 - DEPLOYMENT
+- Host on Railway or Render (free)
+- MySQL database on cloud
+- Live URL anyone can access
+- Panel can test from their phone
+- Environment variables secured
+- README updated with live link
+
+================================================================
+FEATURE SUMMARY FOR FYP PANEL
+================================================================
+1. AI Medical Chatbot (Groq/Llama3)
+2. Role based dashboards (Patient/Doctor/Admin)
+3. Doctor verification system
+4. Real MySQL database
+5. Email notifications
+6. Appointment management
+7. Medical records
+8. Prescription system
+9. Billing management
+10. Support ticket system
+11. NayaPay payment instructions
+12. Admin approval workflow
+
+================================================================
+TECH STACK
+================================================================
+Frontend  : HTML5, CSS3, JavaScript
+Backend   : Python Flask
+Database  : MySQL 8.0
+AI        : Groq API (Llama3-8b-8192)
+Email     : Flask-Mail + Gmail SMTP
+Auth      : JWT + Werkzeug password hashing
+Version   : Git + GitHub
+Deploy    : Railway/Render (Phase 10)
+
+================================================================
+CURRENT STATUS: Phase 6 in progress
+HONEST RATING: 6/10
+TARGET: 10/10 before presentation
+================================================================
+
+CONTEXT FOR AI ASSISTANT
+================================================================
+When continuing this project, know that:
+- Project folder: C:\FYP\Fyp\Fyp
+- Backend folder: C:\FYP\Fyp\Fyp\backend
+- Frontend folder: C:\FYP\Fyp\Fyp\frontend
+- Database: smart_clinic
+- MySQL password: root123
+- Demo patient: ahmed.hassan@email.com / password123
+- Demo doctor: dr.amir@hospital.com / password123
+- Demo admin: admin@hospital.com / admin123
+- Backend runs on: http://127.0.0.1:5000
+- Frontend opens via: http://127.0.0.1:5000
+- AI Model: Groq llama3-8b-8192
+- GitHub: https://github.com/professionalarham100-dot/clinixpro
+================================================================

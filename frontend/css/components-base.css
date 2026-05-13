@@ -1,0 +1,91 @@
+:root {
+    --cp-focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Headings and text rhythm */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--cp-text);
+    margin-top: 0;
+}
+
+h1 {
+    margin-bottom: var(--cp-space-4);
+}
+
+h2, h3 {
+    margin-bottom: var(--cp-space-3);
+}
+
+p {
+    color: var(--cp-text-muted);
+}
+
+/* Buttons: safe baseline */
+.btn,
+button {
+    transition: all var(--cp-dur-md) var(--cp-ease-standard);
+}
+
+.btn {
+    border-radius: var(--cp-radius-md);
+    font-weight: 600;
+}
+
+.btn:focus-visible,
+button:focus-visible {
+    outline: none;
+    box-shadow: var(--cp-focus-ring);
+}
+
+.btn-primary {
+    background: var(--cp-brand-600);
+    border-color: var(--cp-brand-600);
+}
+
+.btn-primary:hover {
+    background: var(--cp-brand-700);
+    border-color: var(--cp-brand-700);
+}
+
+.btn-secondary,
+.btn-ghost {
+    border-radius: var(--cp-radius-md);
+}
+
+/* Form controls: keep conservative selectors */
+input:not(.cp-chat-input),
+select,
+textarea {
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius-md);
+    color: var(--cp-text);
+    transition: border-color var(--cp-dur-fast) var(--cp-ease-standard), box-shadow var(--cp-dur-fast) var(--cp-ease-standard);
+}
+
+input:not(.cp-chat-input)::placeholder,
+textarea::placeholder {
+    color: var(--cp-text-muted);
+}
+
+input:not(.cp-chat-input):focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--cp-brand-500);
+    box-shadow: var(--cp-focus-ring);
+}
+
+/* Generic card/surface baseline for repeated patterns */
+.card,
+.stat-card,
+.feature,
+.plan,
+.ticket-item,
+.guide-card,
+.tutorial-card,
+.contact-method,
+.option-card,
+.troubleshooting-card {
+    border-radius: var(--cp-radius-lg);
+    box-shadow: var(--cp-shadow-sm);
+}
