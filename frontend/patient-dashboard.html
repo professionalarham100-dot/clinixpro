@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="css/responsive-polish.css">
     <link rel="stylesheet" href="css/chatbot.css">
     <link rel="stylesheet" href="css/patient-dashboard.css">
+    <link rel="stylesheet" href="css/dashboard-polish.css">
     <style>body.session-pending{visibility:hidden}</style>
 </head>
 <body class="session-pending">
@@ -55,7 +56,10 @@
                 </div>
                 <div class="topbar-actions">
                     <button id="menuBtn" class="menu-btn" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
-                    <button id="bellBtn" class="bell-btn" aria-label="Notifications"><i class="fa-regular fa-bell"></i></button>
+                    <button id="bellBtn" class="bell-btn" aria-label="Notifications" data-unread="0">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="notif-badge" id="bellBadge" aria-hidden="true">0</span>
+                    </button>
                     <div id="notifDropdown" class="notif-dropdown">
                         <div class="notif-head">Notifications</div>
                         <div id="notifList"></div>
@@ -94,6 +98,19 @@
                         <i class="fa-solid fa-file-invoice-dollar"></i>
                     </article>
                 </div>
+
+                <article class="qb-card" id="quickBookCard">
+                    <div class="qb-head">
+                        <div>
+                            <h3>Quick Book</h3>
+                            <p>One-click booking with available providers.</p>
+                        </div>
+                        <div class="qb-head-actions">
+                            <a href="#" id="quickBookSeeAll">See all doctors &rarr;</a>
+                        </div>
+                    </div>
+                    <div class="qb-grid" id="quickBookGrid"></div>
+                </article>
             </section>
 
             <section id="appointments" class="section">
@@ -425,6 +442,7 @@
 
     <div id="toastWrap" class="toast-wrap"></div>
 
+    <script src="js/dashboard-polish.js"></script>
     <script>
         (function () {
             function clearSession() {
@@ -1260,25 +1278,111 @@
                 });
             }
 
+            // Bell badge / dropdown now driven by /api/messages/inbox.
+            // state.messages already comes from loadData(); we count unread on
+            // every render. The legacy upcoming-appointment notices are kept
+            // as a fallback when there are no messages yet.
+            const polish = window.CPDashboardPolish || null;
+            const bellBadge = document.getElementById("bellBadge");
+
             function renderNotifications() {
+                const messages = Array.isArray(state.messages) ? state.messages : [];
+                const inboxOnly = messages.filter((m) => !m.outgoing && !(m.is_outgoing));
+                const unreadCount = inboxOnly.filter((m) => !m.read && !(m.is_read)).length;
+
+                if (polish) {
+                    polish.setUnreadCount(bellBtn, bellBadge, unreadCount);
+                    if (inboxOnly.length) {
+                        polish.renderNotificationDropdown(notifList, inboxOnly, {
+                            onItemClick: (msg) => {
+                                notifDropdown.classList.remove("open");
+                                switchSection("messages");
+                                renderMessages();
+                            }
+                        });
+                        return;
+                    }
+                } else if (bellBtn) {
+                    bellBtn.classList.toggle("has-notif", unreadCount > 0);
+                }
+
+                // Fallback — no inbox messages yet. Show the upcoming
+                // appointment notices (legacy behavior) as a soft notice.
                 notifList.innerHTML = "";
-                const list = Array.isArray(state.notifications) ? state.notifications : [];
-                const hasNotifs = list.length > 0;
-                if (bellBtn) bellBtn.classList.toggle("has-notif", hasNotifs);
-                if (!hasNotifs) {
+                const fallback = Array.isArray(state.notifications) ? state.notifications : [];
+                if (!fallback.length) {
                     const empty = document.createElement("div");
                     empty.className = "notif-item empty";
                     empty.textContent = "No new notifications";
                     notifList.appendChild(empty);
                     return;
                 }
-                list.forEach((item) => {
+                fallback.forEach((item) => {
                     const row = document.createElement("div");
                     row.className = "notif-item";
                     row.textContent = safeText(item, "Notification");
                     notifList.appendChild(row);
                 });
             }
+
+            // Quick Book card on the overview — one-click handoff to the
+            // existing booking form/section.
+            function renderQuickBook() {
+                const grid = document.getElementById("quickBookGrid");
+                if (!grid || !polish) return;
+                const doctors = Array.isArray(state.doctors) ? state.doctors : [];
+                polish.renderQuickBook(grid, doctors, {
+                    max: 6,
+                    onBook: (doc) => {
+                        switchSection("appointments");
+                        const select = document.getElementById("doctorSelect");
+                        const id = doc.doctor_id || doc.id;
+                        if (select && id) select.value = String(id);
+                        const openBtn = document.getElementById("openAppointmentModalBtn");
+                        if (openBtn) openBtn.click();
+                        else {
+                            const dateInput = document.querySelector("#appointmentForm input[type='date'], #appointmentForm input[name='date']");
+                            if (dateInput) dateInput.focus();
+                        }
+                    }
+                });
+            }
+            const seeAllBtn = document.getElementById("quickBookSeeAll");
+            if (seeAllBtn) {
+                seeAllBtn.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    switchSection("appointments");
+                });
+            }
+
+            // Upgrade the legacy plain "No data" empty-state placeholders
+            // with the illustrated component once at load time. The existing
+            // render functions keep toggling display:block/none which now
+            // reveal a richer surface.
+            (function upgradeLegacyEmptyStates() {
+                if (!polish) return;
+                const upgrades = [
+                    { id: "appointmentsEmpty", kind: "appointments", cta: "Book an appointment", section: "appointments" },
+                    { id: "recordsEmpty",      kind: "records" },
+                    { id: "myUploadsEmpty",    kind: "records",       title: "No personal records yet", hint: "Upload past lab reports, prescriptions, x-rays or vaccination cards so any doctor you book can see them.", cta: "Add Record", action: () => { const b = document.getElementById("openUploadRecordBtn"); if (b) b.click(); } },
+                    { id: "prescriptionsEmpty",kind: "prescriptions" },
+                    { id: "billingEmpty",      kind: "billing" },
+                    { id: "messagesEmpty",     kind: "messages",      cta: "New message", action: () => { const b = document.getElementById("openComposeMessageBtn"); if (b) b.click(); } }
+                ];
+                upgrades.forEach((cfg) => {
+                    const el = document.getElementById(cfg.id);
+                    if (!el) return;
+                    el.classList.add("cp-empty-state");
+                    polish.buildEmptyState(
+                        el,
+                        cfg.kind,
+                        cfg.title,
+                        cfg.hint,
+                        cfg.cta,
+                        cfg.action || (cfg.section ? () => switchSection(cfg.section) : null)
+                    );
+                });
+            })();
 
             function openRecordDetails(recordId) {
                 const target = state.records.find((record, index) => String(record.record_id || record.id || index) === String(recordId));
@@ -1835,8 +1939,22 @@
                     renderBilling();
                     renderMessages();
                     renderNotifications();
+                    renderQuickBook();
                     renderProfile();
                     loadMyUploads();
+                    // Refresh inbox every 60s so the bell badge stays accurate
+                    // without forcing a full data reload.
+                    if (polish) {
+                        polish.startNotificationPolling(API_BASE.replace(/\/api\/?$/, ""), {
+                            intervalMs: 60000,
+                            onMessages: (msgs) => {
+                                if (Array.isArray(msgs) && msgs.length) {
+                                    state.messages = msgs;
+                                    renderNotifications();
+                                }
+                            }
+                        });
+                    }
                 })
                 .catch((err) => {
                     if (String(err && err.message || "") === "Session expired" || String(err && err.message || "") === "Role mismatch") return;

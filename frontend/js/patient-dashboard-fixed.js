@@ -202,19 +202,56 @@ async function loadDoctorsForBooking() {
     }
 }
 
+function ensureBookingErrorEl(form) {
+    if (!form) return null;
+    let errEl = document.getElementById('bookAppointmentError');
+    if (!errEl) {
+        errEl = document.createElement('div');
+        errEl.id = 'bookAppointmentError';
+        errEl.setAttribute('role', 'alert');
+        errEl.style.cssText = 'display:none;margin:10px 0;padding:10px 14px;border-radius:8px;border-left:4px solid #dc2626;background:#fef2f2;color:#991b1b;font-size:.9rem;line-height:1.4;';
+        form.prepend(errEl);
+    }
+    return errEl;
+}
+
+function showBookingError(message, { conflict = false } = {}) {
+    const form = document.getElementById('bookAppointmentForm');
+    const errEl = ensureBookingErrorEl(form);
+    if (!errEl) return;
+    const icon = conflict ? 'fa-calendar-xmark' : 'fa-triangle-exclamation';
+    errEl.style.borderLeftColor = conflict ? '#d97706' : '#dc2626';
+    errEl.style.background = conflict ? '#fffbeb' : '#fef2f2';
+    errEl.style.color = conflict ? '#92400e' : '#991b1b';
+    errEl.innerHTML = `<i class="fa-solid ${icon}" aria-hidden="true" style="margin-right:6px;"></i>${escapeHtml(message)}`;
+    errEl.style.display = 'block';
+    errEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function clearBookingError() {
+    const errEl = document.getElementById('bookAppointmentError');
+    if (errEl) {
+        errEl.style.display = 'none';
+        errEl.textContent = '';
+    }
+}
+
 async function bookAppointment(e) {
     e.preventDefault();
-    
+
     const doctorId = document.getElementById('doctorSelect').value;
     const appointmentDate = document.getElementById('appointmentDate').value;
     const reason = document.getElementById('appointmentReason').value;
     const patientId = localStorage.getItem('userId');
-    
+
+    clearBookingError();
+
     if (!doctorId || !appointmentDate || !reason) {
+        showBookingError('Please fill all fields.');
         showNotification('Please fill all fields', 'error');
         return;
     }
-    
+
     try {
         const response = await fetch(`${API_BASE_URL}/appointments`, {
             method: 'POST',
@@ -227,23 +264,29 @@ async function bookAppointment(e) {
                 status: 'scheduled'
             })
         });
-        
+
         if (response.ok) {
             showNotification('Appointment booked successfully!', 'success');
+            clearBookingError();
             document.getElementById('bookAppointmentForm').reset();
-            
+
             // Close modal
             const modal = document.getElementById('bookAppointmentModal');
             if (modal) modal.style.display = 'none';
-            
+
             // Reload appointments
             await loadAppointments();
         } else {
-            const error = await response.json();
-            showNotification(error.error || 'Failed to book appointment', 'error');
+            let payload = {};
+            try { payload = await response.json(); } catch (_e) { payload = {}; }
+            const message = payload.error || payload.message || 'Failed to book appointment.';
+            const isConflict = response.status === 409;
+            showBookingError(message, { conflict: isConflict });
+            showNotification(message, isConflict ? 'warning' : 'error');
         }
     } catch (error) {
         console.error('Error booking appointment:', error);
+        showBookingError('Network error — unable to reach the server. Please try again.');
         showNotification('Error booking appointment', 'error');
     }
 }

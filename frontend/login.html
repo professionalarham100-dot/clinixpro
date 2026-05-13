@@ -6,7 +6,7 @@
     <title>ClinixPro | Login</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="css/design-tokens.css">
     <link rel="stylesheet" href="css/accessibility.css">
@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/chatbot.css">
     <link rel="stylesheet" href="css/login.css">
     <link rel="stylesheet" href="css/auth-modern.css">
+    <link rel="stylesheet" href="css/login-redesign.css">
 </head>
 <body>
     <div class="page">
@@ -24,13 +25,14 @@
         </a>
 
         <section class="left-panel">
+            <div class="left-panel-mesh" aria-hidden="true"></div>
             <div class="brand">
                 <i class="fa-solid fa-hospital-user"></i>
                 <span>ClinixPro</span>
             </div>
 
             <div class="tagline">
-                <h1>Smart Clinical Operations. Better Patient Outcomes.</h1>
+                <h1>Smart clinical operations. <span class="accent">Better patient outcomes.</span></h1>
                 <p>ClinixPro helps modern healthcare teams orchestrate appointments, records, and communication from one secure, intelligent platform.</p>
             </div>
 
@@ -50,10 +52,10 @@
                     </div>
                 </div>
                 <div class="feature">
-                    <i class="fa-solid fa-chart-line"></i>
+                    <i class="fa-solid fa-robot"></i>
                     <div>
-                        <strong>Operational Clarity</strong>
-                        <span>Live dashboards for tasks, billing, records, and communication efficiency.</span>
+                        <strong>AI-Powered Assistant</strong>
+                        <span>Smart chatbot helps patients navigate workflows and find answers instantly.</span>
                     </div>
                 </div>
             </div>
@@ -102,6 +104,81 @@
                     <div class="error-box" id="errorBox"></div>
                     <div class="success-box" id="successBox"></div>
                 </form>
+
+                <details class="demo-accounts" id="demoAccounts">
+                    <summary class="demo-head">
+                        <i class="fa-solid fa-flask"></i>
+                        <strong>Demo accounts</strong>
+                        <small>For evaluators</small>
+                        <span class="demo-toggle" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
+                    </summary>
+                    <div class="demo-list" id="demoAccountsList">
+                        <div class="demo-row admin"
+                             data-email="admin@clinixpro.com"
+                             data-password="Admin@123">
+                            <span class="role"><i class="fa-solid fa-user-shield"></i> Admin</span>
+                            <div class="creds">
+                                <span class="cred-line"><em>email</em>admin@clinixpro.com</span>
+                                <span class="cred-line"><em>pass</em>Admin@123</span>
+                            </div>
+                            <div class="demo-actions">
+                                <button type="button" class="demo-btn" data-copy="email" title="Copy email">
+                                    <i class="fa-regular fa-envelope"></i> Email
+                                </button>
+                                <button type="button" class="demo-btn" data-copy="password" title="Copy password">
+                                    <i class="fa-solid fa-key"></i> Password
+                                </button>
+                                <button type="button" class="demo-btn" data-copy="fill" title="Fill the form">
+                                    <i class="fa-solid fa-bolt"></i> Fill
+                                </button>
+                            </div>
+                        </div>
+                        <div class="demo-row doctor"
+                             data-email="doctor@clinixpro.com"
+                             data-password="Doctor@123">
+                            <span class="role"><i class="fa-solid fa-user-doctor"></i> Doctor</span>
+                            <div class="creds">
+                                <span class="cred-line"><em>email</em>doctor@clinixpro.com</span>
+                                <span class="cred-line"><em>pass</em>Doctor@123</span>
+                            </div>
+                            <div class="demo-actions">
+                                <button type="button" class="demo-btn" data-copy="email" title="Copy email">
+                                    <i class="fa-regular fa-envelope"></i> Email
+                                </button>
+                                <button type="button" class="demo-btn" data-copy="password" title="Copy password">
+                                    <i class="fa-solid fa-key"></i> Password
+                                </button>
+                                <button type="button" class="demo-btn" data-copy="fill" title="Fill the form">
+                                    <i class="fa-solid fa-bolt"></i> Fill
+                                </button>
+                            </div>
+                        </div>
+                        <div class="demo-row patient"
+                             data-email="patient@clinixpro.com"
+                             data-password="Patient@123">
+                            <span class="role"><i class="fa-solid fa-user"></i> Patient</span>
+                            <div class="creds">
+                                <span class="cred-line"><em>email</em>patient@clinixpro.com</span>
+                                <span class="cred-line"><em>pass</em>Patient@123</span>
+                            </div>
+                            <div class="demo-actions">
+                                <button type="button" class="demo-btn" data-copy="email" title="Copy email">
+                                    <i class="fa-regular fa-envelope"></i> Email
+                                </button>
+                                <button type="button" class="demo-btn" data-copy="password" title="Copy password">
+                                    <i class="fa-solid fa-key"></i> Password
+                                </button>
+                                <button type="button" class="demo-btn" data-copy="fill" title="Fill the form">
+                                    <i class="fa-solid fa-bolt"></i> Fill
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="demo-foot">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Click <strong>Fill</strong> to auto-populate the form, or copy individual values.
+                    </p>
+                </details>
 
                 <p class="auth-footer">
                     Don’t have an account?
@@ -518,6 +595,63 @@
             if (registerSuccessMessage) {
                 showSuccess(registerSuccessMessage);
                 localStorage.removeItem("registerSuccessMessage");
+            }
+
+            // ===== Demo accounts: copy + fill =====
+            const demoList = document.getElementById("demoAccountsList");
+            // Guarantee the <details> chip starts collapsed — defensive against
+            // browser session-restore that can sometimes preserve the `open`
+            // attribute across reloads.
+            const demoAccountsEl = document.getElementById("demoAccounts");
+            if (demoAccountsEl) demoAccountsEl.removeAttribute("open");
+            async function copyToClipboard(text) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    try { await navigator.clipboard.writeText(text); return true; }
+                    catch (_e) { /* fall through */ }
+                }
+                // Fallback for non-secure / older browsers
+                try {
+                    const ta = document.createElement("textarea");
+                    ta.value = text;
+                    ta.style.position = "fixed";
+                    ta.style.opacity = "0";
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(ta);
+                    return true;
+                } catch (_e) { return false; }
+            }
+            function flashCopied(btn, label) {
+                const originalHtml = btn.innerHTML;
+                btn.classList.add("copied");
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> ' + label;
+                setTimeout(() => {
+                    btn.classList.remove("copied");
+                    btn.innerHTML = originalHtml;
+                }, 1400);
+            }
+            if (demoList) {
+                demoList.addEventListener("click", async function (event) {
+                    const btn = event.target.closest("[data-copy]");
+                    if (!btn) return;
+                    const row = btn.closest(".demo-row");
+                    if (!row) return;
+                    const email = row.getAttribute("data-email") || "";
+                    const password = row.getAttribute("data-password") || "";
+                    const action = btn.getAttribute("data-copy");
+                    if (action === "fill") {
+                        emailInput.value = email;
+                        passwordInput.value = password;
+                        clearError();
+                        flashCopied(btn, "Filled");
+                        passwordInput.focus();
+                        return;
+                    }
+                    const value = action === "password" ? password : email;
+                    const ok = await copyToClipboard(value);
+                    flashCopied(btn, ok ? "Copied" : "Failed");
+                });
             }
         })();
     </script>

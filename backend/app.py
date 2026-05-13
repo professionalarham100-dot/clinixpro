@@ -544,28 +544,44 @@ def ensure_demo_users_in_db():
 
 def get_chat_system_prompt(user_type):
     role = str(user_type or "").strip().lower()
+    # IMPORTANT: Every prompt MUST state the assistant's name is "Clio".
+    # Avoid the word "navigation" in the persona line — earlier prompts used
+    # "navigation assistant" and the LLM hallucinated the name "Nav" from it.
+    identity = (
+        "Your name is Clio. You are the official AI health assistant for "
+        "ClinixPro, a smart clinical management system. If anyone asks who "
+        "you are, what your name is, or to introduce yourself, ALWAYS reply "
+        "that you are Clio, the ClinixPro AI assistant. Never call yourself "
+        "Nav, Navi, or any other name."
+    )
     if role == "visitor":
         return (
-            "You are a helpful navigation assistant for ClinixPro, a Smart "
-            "Clinical Management System. Help visitors understand what the "
-            "system does, how to login, how to register, and what features "
-            "are available for patients and doctors. Keep responses short "
-            "and friendly."
+            identity + " "
+            "Help visitors understand what ClinixPro does, how to log in, how "
+            "to register, and what features are available for patients and "
+            "doctors. Keep responses short, warm, and action-oriented."
         )
     if role == "doctor":
         return (
-            "You are a medical AI assistant for ClinixPro. Help doctors with clinical "
-            "information, drug interactions, treatment guidelines, and medical references."
+            identity + " "
+            "You are supporting a doctor. Help with clinical information, "
+            "drug interactions, treatment guidelines, and medical references. "
+            "Always remind the user to verify with current guidelines and "
+            "their professional judgment for clinical decisions."
         )
     if role == "admin":
         return (
-            "You are an admin assistant for ClinixPro clinic management system. Help with "
-            "administrative tasks, scheduling, and clinic operations."
+            identity + " "
+            "You are supporting a clinic administrator. Help with user "
+            "management, scheduling, billing flow, support tickets, and "
+            "clinic operations. Be concise and operationally focused."
         )
     return (
-        "You are a helpful medical assistant for ClinixPro clinic. Help patients understand "
-        "symptoms, medications, and when to see a doctor. Always recommend consulting a doctor "
-        "for serious concerns."
+        identity + " "
+        "You are supporting a patient. Help them understand symptoms, "
+        "medications, and when to see a doctor. Always recommend consulting "
+        "a doctor for serious or persistent concerns; you are informational "
+        "only and not a diagnostic tool."
     )
 
 def enrich_appointment(appointment):
@@ -578,6 +594,14 @@ def enrich_appointment(appointment):
     return output
 
 # ==================== AUTHENTICATION DECORATOR ====================
+# Endpoints a doctor with profile_onboarding_complete=0 is still allowed to hit.
+# Everything else returns 403 until the profile is completed.
+DOCTOR_ONBOARDING_ALLOWED_PATHS = {
+    '/api/auth/me',
+    '/api/doctor/profile-onboarding',
+    '/api/doctors/profile/complete',
+}
+
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -596,7 +620,20 @@ def token_required(f):
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, KeyError) as e:
             print(f"[AUTH] token_required rejected token: {type(e).__name__}: {e}")
             return jsonify({'error': 'Invalid token'}), 401
-        
+
+        # Doctors must finish onboarding before they can use the rest of the API.
+        if current_user_type == 'doctor' and request.path not in DOCTOR_ONBOARDING_ALLOWED_PATHS:
+            if mysql_ready():
+                try:
+                    row = db_select_one(
+                        "SELECT COALESCE(profile_onboarding_complete, 1) AS complete FROM doctors WHERE doctor_id=%s",
+                        (current_user_id,)
+                    )
+                    if row is not None and int(row.get('complete') or 0) == 0:
+                        return jsonify({'error': 'Please complete your profile first.'}), 403
+                except Exception as onboarding_err:
+                    print(f"[AUTH] onboarding check failed: {onboarding_err}")
+
         return f(current_user_id, current_user_type, *args, **kwargs)
     
     return decorated
@@ -665,6 +702,7 @@ def ai_chat():
         message = str(data.get('message', '')).strip()
         user_type = str(data.get('user_type', 'patient')).strip().lower()
         user_id = data.get('user_id')
+        history = data.get('history') or []
 
         if not message:
             return jsonify({'error': 'Message is required'}), 400
@@ -677,13 +715,24 @@ def ai_chat():
             return jsonify({'error': f'Groq package is not available: {detail}'}), 503
 
         system_prompt = get_chat_system_prompt(user_type)
+
+        # Build the prompt with the most recent conversation context.
+        messages = [{"role": "system", "content": system_prompt}]
+        if isinstance(history, list):
+            for msg in history[-10:]:  # Last 10 messages max to stay within token limits
+                if not isinstance(msg, dict):
+                    continue
+                role = str(msg.get('role') or '').strip().lower()
+                content = str(msg.get('content') or '').strip()
+                if role not in ('user', 'assistant') or not content:
+                    continue
+                messages.append({"role": role, "content": content})
+        messages.append({"role": "user", "content": message})
+
         client = Groq(api_key=GROQ_API_KEY)
         completion = client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": message}
-            ],
+            messages=messages,
             max_tokens=500
         )
         response_text = str(getattr(completion.choices[0].message, "content", "") or "").strip()
@@ -1051,14 +1100,16 @@ def register_doctor_verification():
         if existing_app:
             existing_status = existing_app.get('status')
             if existing_status == 'pending':
-                return jsonify({'error': 'Your verification application is already under review.'}), 400
+                return jsonify({'error': 'Your application is already under review.'}), 400
             if existing_status == 'rejected':
-                # Allow exactly one retry after a rejection: clear the old rejected record
-                # so the INSERT below can proceed. Approved records still block re-application.
+                # Allow re-application after rejection: clear the old record so
+                # the INSERT below can proceed.
                 db_execute(
-                    "DELETE FROM doctor_applications WHERE application_id=%s AND status='rejected'",
+                    "DELETE FROM doctor_applications WHERE application_id=%s",
                     (existing_app.get('application_id'),)
                 )
+            elif existing_status == 'approved':
+                return jsonify({'error': 'This doctor is already registered. Please login.'}), 400
             else:
                 return jsonify({'error': 'A verification record already exists for this doctor.'}), 400
 
@@ -1387,9 +1438,10 @@ def forgot_password():
                 (email,)
             )
         else:
-            for u in mock_users:
-                if str(u.get('email', '')).strip().lower() == email:
-                    user = u
+            # mock_users is a dict keyed by email, not a list.
+            for email_key, user_info in mock_users.items():
+                if str(email_key).strip().lower() == email:
+                    user = {'user_id': user_info.get('user_id'), 'email': email_key}
                     break
 
         if not user:
@@ -1987,14 +2039,47 @@ def create_appointment(current_user_id, current_user_type):
     """Create a new appointment"""
     try:
         global next_appointment_id
-        data = request.get_json()
-        
+        data = request.get_json() or {}
+
         required_fields = ['patient_id', 'doctor_id', 'appointment_date', 'reason']
         if not all(field in data for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
 
+        # Normalise the appointment_date into a datetime object for validation.
+        raw_date = str(data['appointment_date']).strip().replace('T', ' ')
+        try:
+            appointment_dt = datetime.fromisoformat(raw_date)
+        except ValueError:
+            return jsonify({'error': 'Invalid appointment date format.'}), 400
+
+        # 1) Block past appointments (allow a 1-minute grace for clock drift).
+        if appointment_dt < datetime.now() - timedelta(minutes=1):
+            return jsonify({'error': 'Cannot book appointments in the past.'}), 400
+
+        appointment_date = appointment_dt.strftime('%Y-%m-%d %H:%M:%S')
+
         if mysql_ready():
-            appointment_date = str(data['appointment_date']).replace('T', ' ')
+            # 2) Verify the doctor exists, is active and is currently available.
+            doctor = db_select_one(
+                "SELECT doctor_id, status, is_available FROM doctors WHERE doctor_id=%s",
+                (data['doctor_id'],)
+            )
+            if not doctor or str(doctor.get('status') or '').lower() != 'active' or not doctor.get('is_available'):
+                return jsonify({'error': 'This doctor is not currently available.'}), 400
+
+            # 3) Reject if the doctor has another scheduled appointment within 30 minutes.
+            conflict = db_select_one(
+                """
+                SELECT appointment_id FROM appointments
+                WHERE doctor_id=%s AND status='scheduled'
+                  AND appointment_date BETWEEN DATE_SUB(%s, INTERVAL 30 MINUTE) AND DATE_ADD(%s, INTERVAL 30 MINUTE)
+                LIMIT 1
+                """,
+                (data['doctor_id'], appointment_date, appointment_date)
+            )
+            if conflict:
+                return jsonify({'error': 'This time slot is already booked. Please choose another time.'}), 409
+
             new_id, _ = db_execute(
                 """
                 INSERT INTO appointments (patient_id, doctor_id, appointment_date, reason, status)
@@ -2013,22 +2098,64 @@ def create_appointment(current_user_id, current_user_type):
                 """,
                 (new_id,)
             )
+
+            # Notify the patient by email (best-effort; never block the response).
+            try:
+                patient = db_select_one(
+                    "SELECT name, email FROM patients WHERE patient_id=%s",
+                    (data['patient_id'],)
+                )
+                doctor = db_select_one(
+                    "SELECT name FROM doctors WHERE doctor_id=%s",
+                    (data['doctor_id'],)
+                )
+                if patient and patient.get('email'):
+                    send_clinixpro_email(
+                        patient['email'],
+                        "Appointment Confirmed — ClinixPro",
+                        (
+                            f"Hello {patient.get('name') or 'there'},\n\n"
+                            f"Your appointment with {(doctor or {}).get('name') or 'your doctor'} "
+                            f"is confirmed for {appointment_date}.\n"
+                            f"Reason: {data['reason']}\n\n"
+                            f"— ClinixPro Team"
+                        )
+                    )
+            except Exception as notify_err:
+                print(f"[appointment] confirmation email failed: {notify_err}")
+
             return jsonify({'message': 'Appointment created successfully', 'appointment': appointment}), 201
-        
+
+        # ----- Fallback (no MySQL): mirror the same validation against in-memory state.
+        mock_doctor = next((d for d in mock_doctors if d.get('doctor_id') == data['doctor_id']), None)
+        if not mock_doctor or str(mock_doctor.get('status') or '').lower() != 'active' or not mock_doctor.get('is_available', True):
+            return jsonify({'error': 'This doctor is not currently available.'}), 400
+
+        window = timedelta(minutes=30)
+        for existing in mock_appointments:
+            if existing.get('doctor_id') != data['doctor_id'] or existing.get('status') != 'scheduled':
+                continue
+            try:
+                existing_dt = datetime.fromisoformat(str(existing.get('appointment_date')).replace('T', ' '))
+            except (TypeError, ValueError):
+                continue
+            if abs(existing_dt - appointment_dt) <= window:
+                return jsonify({'error': 'This time slot is already booked. Please choose another time.'}), 409
+
         new_appointment = {
             'appointment_id': next_appointment_id,
             'patient_id': data['patient_id'],
             'doctor_id': data['doctor_id'],
-            'appointment_date': data['appointment_date'],
+            'appointment_date': appointment_date,
             'reason': data['reason'],
             'status': 'scheduled'
         }
-        
+
         mock_appointments.append(new_appointment)
         next_appointment_id += 1
-        
+
         return jsonify({'message': 'Appointment created successfully', 'appointment': new_appointment}), 201
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -2068,6 +2195,32 @@ def update_appointment(current_user_id, current_user_type, appointment_id):
                 """,
                 (appointment_id,)
             )
+
+            # Notify the patient if the appointment was just cancelled.
+            new_status = str(data.get('status') or '').strip().lower()
+            if new_status == 'cancelled' and appointment:
+                try:
+                    patient = db_select_one(
+                        "SELECT name, email FROM patients WHERE patient_id=%s",
+                        (appointment.get('patient_id'),)
+                    )
+                    if patient and patient.get('email'):
+                        send_clinixpro_email(
+                            patient['email'],
+                            "Appointment Cancelled — ClinixPro",
+                            (
+                                f"Hello {patient.get('name') or 'there'},\n\n"
+                                f"Your appointment with "
+                                f"{appointment.get('doctor_name') or 'your doctor'} on "
+                                f"{appointment.get('appointment_date')} has been cancelled.\n"
+                                f"If this was unexpected, please book a new appointment or "
+                                f"contact our support team.\n\n"
+                                f"— ClinixPro Team"
+                            )
+                        )
+                except Exception as notify_err:
+                    print(f"[appointment] cancellation email failed: {notify_err}")
+
             return jsonify({'message': 'Appointment updated successfully', 'appointment': appointment}), 200
         
         appointment = next((a for a in mock_appointments if a['appointment_id'] == appointment_id), None)
@@ -2651,13 +2804,9 @@ def create_prescription(current_user_id, current_user_type):
                 )
                 appointment_id = (latest or {}).get('appointment_id')
             if not appointment_id:
-                appointment_id, _ = db_execute(
-                    """
-                    INSERT INTO appointments (patient_id, doctor_id, appointment_date, reason, status)
-                    VALUES (%s, %s, NOW(), %s, 'completed')
-                    """,
-                    (data['patient_id'], data['doctor_id'], 'Prescription consultation')
-                )
+                return jsonify({
+                    'error': 'A valid appointment is required to create a prescription. Book an appointment first.'
+                }), 400
             details = {
                 'medicine1': data.get('medication'),
                 'quantity1': data.get('dosage'),
@@ -3420,10 +3569,30 @@ def create_support_ticket():
         }), 500
 
 
+def _resolve_user_email(current_user_id, current_user_type):
+    """Return the authenticated user's email (or None) from MySQL or mock data."""
+    if mysql_ready():
+        row = db_select_one(
+            "SELECT email FROM users WHERE user_id=%s",
+            (current_user_id,)
+        )
+        if row and row.get('email'):
+            return str(row.get('email')).strip().lower()
+        return None
+    for email_key, user_info in mock_users.items():
+        if int(user_info.get('user_id') or 0) == int(current_user_id or 0):
+            return str(email_key).strip().lower()
+    return None
+
+
 @app.route('/api/support/tickets/<ticket_id>', methods=['GET'])
-def get_support_ticket(ticket_id):
-    """Get a specific support ticket"""
+@token_required
+def get_support_ticket(current_user_id, current_user_type, ticket_id):
+    """Get a specific support ticket. Only the creator (by email) or an admin may view."""
     try:
+        user_email = _resolve_user_email(current_user_id, current_user_type)
+        is_admin = current_user_type == 'admin'
+
         if mysql_ready():
             ensure_support_tickets_table()
             row = db_select_one(
@@ -3437,6 +3606,9 @@ def get_support_ticket(ticket_id):
             )
             if not row:
                 return jsonify({'success': False, 'message': 'Ticket not found'}), 404
+            ticket_email = str(row.get('email') or '').strip().lower()
+            if not is_admin and (not user_email or ticket_email != user_email):
+                return jsonify({'success': False, 'message': 'You are not authorized to view this ticket.'}), 403
             ticket = {
                 'id': row.get('ticket_code'),
                 'name': row.get('name'),
@@ -3458,7 +3630,11 @@ def get_support_ticket(ticket_id):
                 'success': False,
                 'message': 'Ticket not found'
             }), 404
-        
+
+        ticket_email = str(ticket.get('email') or '').strip().lower()
+        if not is_admin and (not user_email or ticket_email != user_email):
+            return jsonify({'success': False, 'message': 'You are not authorized to view this ticket.'}), 403
+
         return jsonify({
             'success': True,
             'ticket': ticket
@@ -3472,10 +3648,20 @@ def get_support_ticket(ticket_id):
 
 
 @app.route('/api/support/tickets', methods=['GET'])
-def list_support_tickets():
-    """List all support tickets for a user"""
+@token_required
+def list_support_tickets(current_user_id, current_user_type):
+    """List support tickets. Non-admin callers can only see their own tickets;
+    the ``email`` query parameter is ignored for them and forced to the
+    authenticated user's email."""
     try:
-        email = request.args.get('email')
+        is_admin = current_user_type == 'admin'
+        user_email = _resolve_user_email(current_user_id, current_user_type)
+        if not is_admin:
+            if not user_email:
+                return jsonify({'success': False, 'message': 'Unable to resolve account email.'}), 403
+            email = user_email
+        else:
+            email = request.args.get('email')
         status = request.args.get('status')
         category = request.args.get('category')
 
@@ -4092,30 +4278,43 @@ def admin_refresh_demo_data(current_user_id, current_user_type):
 
 
 @app.route('/api/support/tickets/<ticket_id>/reply', methods=['POST'])
-def add_ticket_reply(ticket_id):
-    """Add a reply to a support ticket"""
+@token_required
+def add_ticket_reply(current_user_id, current_user_type, ticket_id):
+    """Add a reply to a support ticket. Only the ticket creator or an admin
+    may reply; the ``author`` field is overridden by the server based on the
+    authenticated user so it can't be spoofed."""
     try:
-        data = request.get_json()
-        
+        data = request.get_json() or {}
+
         if not data.get('message'):
             return jsonify({
                 'success': False,
                 'message': 'Message required'
             }), 400
-        
+
         ticket = load_ticket_from_file(ticket_id)
-        
+
         if not ticket:
             return jsonify({
                 'success': False,
                 'message': 'Ticket not found'
             }), 404
-        
+
+        is_admin = current_user_type == 'admin'
+        user_email = _resolve_user_email(current_user_id, current_user_type)
+        ticket_email = str(ticket.get('email') or '').strip().lower()
+        if not is_admin and (not user_email or ticket_email != user_email):
+            return jsonify({
+                'success': False,
+                'message': 'You are not authorized to reply to this ticket.'
+            }), 403
+
+        author = 'Support' if is_admin else (ticket.get('name') or 'Customer')
         new_message = {
-            'author': data.get('author', 'Customer'),
+            'author': author,
             'content': data.get('message'),
             'timestamp': datetime.now().isoformat(),
-            'isSupport': data.get('author') == 'Support'
+            'isSupport': is_admin
         }
         
         if 'messages' not in ticket:

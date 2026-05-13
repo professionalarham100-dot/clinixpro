@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="css/responsive-polish.css">
     <link rel="stylesheet" href="css/chatbot.css">
     <link rel="stylesheet" href="css/doctor-dashboard.css">
+    <link rel="stylesheet" href="css/dashboard-polish.css">
     <style>body.session-pending{visibility:hidden}</style>
 </head>
 <body class="session-pending">
@@ -51,7 +52,10 @@
             </div>
             <div class="topbar-actions">
                 <button id="menuBtn" class="menu-btn" aria-label="Open menu"><i class="fa-solid fa-bars"></i></button>
-                <button id="bellBtn" class="bell-btn" aria-label="Notifications"><i class="fa-regular fa-bell"></i></button>
+                <button id="bellBtn" class="bell-btn" aria-label="Notifications" data-unread="0">
+                    <i class="fa-regular fa-bell"></i>
+                    <span class="notif-badge" id="bellBadge" aria-hidden="true">0</span>
+                </button>
                 <div id="notifDropdown" class="notif-dropdown">
                     <div class="notif-head">Notifications</div>
                     <div id="notifList"></div>
@@ -90,6 +94,17 @@
                     <i class="fa-solid fa-circle-check"></i>
                 </article>
             </div>
+
+            <article class="ts-card" id="todayScheduleCard">
+                <div class="ts-head">
+                    <div>
+                        <h3>Today's Schedule</h3>
+                        <p style="color:var(--cp-ink-soft,#4a5d63);font-size:.88rem;margin:2px 0 0;">Your appointments for today as a timeline.</p>
+                    </div>
+                    <span class="ts-date" id="todayScheduleDate">&mdash;</span>
+                </div>
+                <div class="ts-timeline" id="todayScheduleTimeline"></div>
+            </article>
         </section>
 
         <section id="appointments" class="section">
@@ -442,6 +457,7 @@
 
     <div id="toastWrap" class="toast-wrap"></div>
 
+    <script src="js/dashboard-polish.js"></script>
     <script>
         (function () {
             function clearSession() {
@@ -742,24 +758,78 @@
                 modal.setAttribute("aria-hidden", "true");
             }
 
+            // Bell badge / dropdown now driven by /api/messages/inbox.
+            const polish = window.CPDashboardPolish || null;
+            const bellBadge = document.getElementById("bellBadge");
+
             function renderNotifications() {
+                const messages = Array.isArray(state.messages) ? state.messages : [];
+                const inboxOnly = messages.filter((m) => !m.outgoing && !(m.is_outgoing));
+                const unreadCount = inboxOnly.filter((m) => !m.read && !(m.is_read)).length;
+
+                if (polish) {
+                    polish.setUnreadCount(bellBtn, bellBadge, unreadCount);
+                    if (inboxOnly.length) {
+                        polish.renderNotificationDropdown(notifList, inboxOnly, {
+                            onItemClick: () => {
+                                notifDropdown.classList.remove("open");
+                                switchSection("messages");
+                                if (typeof renderMessages === "function") renderMessages();
+                            }
+                        });
+                        return;
+                    }
+                } else if (bellBtn) {
+                    bellBtn.classList.toggle("has-notif", unreadCount > 0);
+                }
+
+                // Fallback — legacy in-memory notifications when no real
+                // messages exist yet.
                 notifList.innerHTML = "";
-                const hasNotifs = Array.isArray(state.notifications) && state.notifications.length > 0;
-                if (bellBtn) bellBtn.classList.toggle("has-notif", hasNotifs);
-                if (!hasNotifs) {
+                const fallback = Array.isArray(state.notifications) ? state.notifications : [];
+                if (!fallback.length) {
                     const empty = document.createElement("div");
                     empty.className = "notif-item empty";
                     empty.textContent = "No new notifications";
                     notifList.appendChild(empty);
                     return;
                 }
-                state.notifications.forEach((note) => {
+                fallback.forEach((note) => {
                     const row = document.createElement("div");
                     row.className = "notif-item";
                     row.textContent = safeText(note, "Notification");
                     notifList.appendChild(row);
                 });
             }
+
+            // Today's Schedule timeline on the overview.
+            function renderTodaySchedule() {
+                const timeline = document.getElementById("todayScheduleTimeline");
+                const dateEl   = document.getElementById("todayScheduleDate");
+                if (!timeline || !polish) return;
+                polish.renderTodaySchedule(timeline, dateEl, state.appointments || []);
+            }
+
+            // Upgrade legacy plain empty-state placeholders to illustrated
+            // components once at load time. Existing display:block/none
+            // toggles continue to work; the contents are richer.
+            (function upgradeLegacyEmptyStates() {
+                if (!polish) return;
+                const upgrades = [
+                    { id: "appointmentsEmpty",  kind: "schedule" },
+                    { id: "patientsEmpty",      kind: "patients" },
+                    { id: "recordsEmpty",       kind: "records",       cta: "Create record",       action: () => { const b = document.getElementById("openRecordModalBtn"); if (b) b.click(); } },
+                    { id: "prescriptionsEmpty", kind: "prescriptions", cta: "Create prescription", action: () => { const b = document.getElementById("openPrescriptionModalBtn"); if (b) b.click(); } },
+                    { id: "tasksEmpty",         kind: "tasks" },
+                    { id: "messagesEmpty",      kind: "messages" }
+                ];
+                upgrades.forEach((cfg) => {
+                    const el = document.getElementById(cfg.id);
+                    if (!el) return;
+                    el.classList.add("cp-empty-state");
+                    polish.buildEmptyState(el, cfg.kind, cfg.title, cfg.hint, cfg.cta, cfg.action || null);
+                });
+            })();
 
             function renderStats() {
                 document.getElementById("statTodayAppointments").textContent = String(Number(state.stats.todayAppointments || 0));
@@ -1532,6 +1602,7 @@
                         renderStats();
                         renderAppointments();
                         renderNotifications();
+                        renderTodaySchedule();
                     } catch (err) {
                         notify(safeText(err.message, "Unable to update appointment."));
                     }
@@ -1548,6 +1619,7 @@
                         renderStats();
                         renderAppointments();
                         renderNotifications();
+                        renderTodaySchedule();
                     } catch (err) {
                         notify(safeText(err.message, "Unable to cancel appointment."));
                     }
@@ -1845,11 +1917,25 @@
                         renderTasks();
                         renderProfile();
                         renderNotifications();
+                        renderTodaySchedule();
                         document.body.classList.remove("session-pending");
                         apiGet("/api/messages").then((payload) => {
                             state.messages = toArray(payload);
                             renderMessages();
+                            renderNotifications();
                         }).catch(() => {});
+                        // Poll inbox every 60s so the bell badge stays live.
+                        if (polish) {
+                            polish.startNotificationPolling(API_BASE || "", {
+                                intervalMs: 60000,
+                                onMessages: (msgs) => {
+                                    if (Array.isArray(msgs)) {
+                                        state.messages = msgs;
+                                        renderNotifications();
+                                    }
+                                }
+                            });
+                        }
                     })
                     .catch(() => {
                         clearSession();

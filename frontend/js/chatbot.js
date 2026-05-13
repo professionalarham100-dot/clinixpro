@@ -58,25 +58,11 @@
         return 0;
     }
 
-    function getLocalFallback(normalizedText) {
-        if (!normalizedText) return "";
-
-        if (/\b(hi|hello|hey|salam|assalam)\b/.test(normalizedText)) {
-            return "Hi, I am Clio. I can help with login, registration, appointments, prescriptions, billing, and support tickets. Tell me what you want to do.";
-        }
-
-        const asksForHelp = /\b(help|guide|confused|stuck|samajh|masla|issue|problem)\b/.test(normalizedText);
-        if (asksForHelp) {
-            return (
-                "I can help right away. Please choose one area:\n" +
-                "1) Login or account issue\n" +
-                "2) Appointment booking\n" +
-                "3) Prescription or medical records\n" +
-                "4) Billing or payment\n" +
-                "5) Support ticket"
-            );
-        }
-
+    function getLocalFallback(_normalizedText) {
+        // Intentionally empty: greetings, generic help, and free-form
+        // conversation must fall through to the Groq API so it can answer
+        // with conversation history context. The knowledge base still
+        // handles ClinixPro-specific intents above.
         return "";
     }
 
@@ -92,7 +78,18 @@
     }
 
     function isFollowUpMessage(text) {
-        return /\b(and|then|next|more|what else|what next|also|ok now|now what)\b/.test(text) || text.length < 14;
+        // A follow-up must explicitly chain to a prior turn. The previous
+        // `text.length < 14` heuristic mis-classified greetings like "hello"
+        // and "hi" as follow-ups, causing them to replay a stale
+        // getContextualFollowUp(lastIntentContext) response.
+        return /\b(and then|then what|next step|what else|what next|after that|now what|ok now|continue|go on|tell me more)\b/.test(text);
+    }
+
+    function isGreeting(text) {
+        // Pure greetings should fall through to Groq so the LLM can reply
+        // contextually — and they reset the local intent state so the bot
+        // doesn't keep re-firing the last troubleshooting flow.
+        return /^(hi|hii+|hello+|hey+|hiya|hola|yo|sup|good\s+(morning|afternoon|evening|day|night)|greetings|howdy|salam|assalam)\b/.test(text);
     }
 
     function getContextualFollowUp(intent) {
@@ -121,11 +118,13 @@
     function buildKnowledgeBase(currentUserType) {
         const common = [
             {
-                keywords: ["name", "who are you", "whats your name", "what is your name"],
+                // Only fire when the user is asking ABOUT THE BOT — never on
+                // statements like "my name is Arham" or "what's my name".
+                keywords: ["who are you", "whats your name", "what is your name", "what's your name", "introduce yourself", "tell me about yourself"],
                 reply: "I'm Clio, your AI Health Assistant for ClinixPro. I help you navigate workflows faster and solve common platform questions."
             },
             {
-                keywords: ["help", "what can you do", "capabilities", "commands", "features"],
+                keywords: ["what can you do", "your capabilities", "list your features", "available commands"],
                 reply:
                     "I can help with:\n" +
                     "1) Account setup: register, login, and password guidance.\n" +
@@ -279,12 +278,43 @@
         return common.concat(visitor);
     }
 
+    // Patterns that are clearly personal/general conversation and must NEVER
+    // be handled locally. Anything matching here goes straight to Groq so the
+    // conversation history is used to give a contextual answer.
+    // NOTE: `text` is already normalized (lowercased, punctuation replaced
+    // with spaces, whitespace collapsed). So "What's my name?" arrives as
+    // "what s my name".
+    function isPersonalConversation(text) {
+        if (!text) return false;
+        // Anything mentioning "my name" — handles "my name is X",
+        // "what's my name", "do you know/remember my name", etc.
+        if (/\bmy\s+name\b/.test(text)) return true;
+        // Asking the bot to remember something about the user.
+        if (/\bremember\s+me\b/.test(text)) return true;
+        if (/\bcall\s+me\b/.test(text)) return true;
+        return false;
+    }
+
     function getLocalReply(message) {
         const guidedReply = getGuidedFlowReply(message);
         if (guidedReply) return guidedReply;
 
         const text = normalizeText(message);
         if (!text) return "";
+
+        // Greetings: clear any leftover intent context from a previous chat
+        // turn and let Groq generate a contextual welcome. Without this,
+        // typing "hello" after a login-troubleshooting flow replays the
+        // stale "Next best step: verify credentials..." message.
+        if (isGreeting(text)) {
+            lastIntentContext = "";
+            return "";
+        }
+
+        // Hard short-circuit for personal/general talk — these must reach Groq
+        // with conversation history so the model can remember the user's name.
+        if (isPersonalConversation(text)) return "";
+
         const textTokens = getTextTokens(text);
         const detectedIntent = detectGeneralIntent(text);
 
@@ -296,6 +326,7 @@
         const knowledgeBase = buildKnowledgeBase(userType);
         let bestMatch = "";
         let bestScore = 0;
+        let bestStrongMatches = 0;
 
         for (let i = 0; i < knowledgeBase.length; i += 1) {
             const item = knowledgeBase[i];
@@ -312,10 +343,16 @@
             if (score > bestScore) {
                 bestScore = score;
                 bestMatch = item.reply;
+                bestStrongMatches = strongMatches;
             }
         }
 
-        if (bestScore >= 1.5) {
+        // Only fire a canned reply when the user's text actually contains one of
+        // the keyword phrases (a "strong" substring match). This prevents the
+        // knowledge base from intercepting general conversation like
+        // "what's my name" where multiple weak partial-token matches would
+        // otherwise sum above the threshold and block Groq from answering.
+        if (bestScore >= 1.5 && bestStrongMatches >= 1) {
             if (detectedIntent) lastIntentContext = detectedIntent;
             return bestMatch;
         }
@@ -329,6 +366,28 @@
     const storageKey = `clinixpro_chat_history_${userType}_${userId || "guest"}`;
     const escalationDraftKey = `clinixpro_support_draft_${userType}_${userId || "guest"}`;
     const API_BASE = getApiBase();
+
+    // ---------- One-shot history migration ----------
+    // Before May-2026 the server-side system prompt described Clio as a
+    // "navigation assistant", which made the Groq LLM hallucinate the name
+    // "Nav" for itself. Persisted history still contains those replies. On
+    // first load after the fix, wipe any conversation that mentions the old
+    // name so users see the clean "I'm Clio..." greeting again.
+    const CHAT_MIGRATION_KEY = "clinixpro_chat_migration";
+    const CHAT_MIGRATION_VERSION = "2026-05-clio-rename";
+    try {
+        if (localStorage.getItem(CHAT_MIGRATION_KEY) !== CHAT_MIGRATION_VERSION) {
+            const stalePattern = /\b(name is nav|i'?m nav|i am nav|call me nav)\b/i;
+            Object.keys(localStorage).forEach((key) => {
+                if (!key.startsWith("clinixpro_chat_history_")) return;
+                const raw = localStorage.getItem(key) || "";
+                if (stalePattern.test(raw)) localStorage.removeItem(key);
+            });
+            localStorage.setItem(CHAT_MIGRATION_KEY, CHAT_MIGRATION_VERSION);
+        }
+    } catch (_migrationErr) {
+        /* localStorage unavailable — skip migration silently. */
+    }
 
     const isVisitorMode = userType === "visitor";
     const pagePath = window.location.pathname.toLowerCase();
@@ -424,10 +483,36 @@
     let lastIntentContext = "";
     let lastEscalationMeta = { topic: "", timestamp: 0 };
 
+    // Conversation context sent to the backend on every /api/chat call.
+    // Items follow the OpenAI/Groq format: { role: "user"|"assistant", content: string }.
+    const conversationHistory = [];
+    function pushHistory(role, content) {
+        const text = safeText(content, "");
+        if (!text) return;
+        const apiRole = role === "bot" || role === "assistant" ? "assistant" : "user";
+        conversationHistory.push({ role: apiRole, content: text });
+        // Keep an upper bound client-side too so the payload stays small.
+        if (conversationHistory.length > 40) {
+            conversationHistory.splice(0, conversationHistory.length - 40);
+        }
+    }
+    function seedConversationHistoryFromStorage() {
+        conversationHistory.length = 0;
+        const stored = readHistory();
+        stored.forEach((m) => {
+            if (m && (m.role === "user" || m.role === "bot")) {
+                pushHistory(m.role, m.text);
+            }
+        });
+    }
+
     function readHistory() {
         try {
             const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
-            return Array.isArray(data) ? data : [];
+            if (!Array.isArray(data)) return [];
+            // Drop any blank or whitespace-only entries — they would render
+            // as empty bubbles.
+            return data.filter((m) => m && typeof m.text === "string" && m.text.trim().length > 0);
         } catch (_err) {
             return [];
         }
@@ -719,10 +804,13 @@
     }
 
     function appendMessage(role, text, timestamp) {
+        // Skip blank/whitespace messages so we never render an empty bubble.
+        const safe = safeText(text, "");
+        if (!safe || !safe.trim()) return;
         const row = document.createElement("div");
         row.className = `cp-chat-row ${role === "user" ? "user" : "bot"}`;
         row.innerHTML = `
-            <div class="cp-chat-bubble">${safeText(text, "")}</div>
+            <div class="cp-chat-bubble">${safe}</div>
             <span class="cp-chat-time">${safeText(timestamp, formatTime(new Date()))}</span>
         `;
         chatBody.appendChild(row);
@@ -750,6 +838,7 @@
     }
 
     async function sendMessageFromText(message) {
+        message = (message || "").trim();
         if (!message) return;
         if (!suggestionsHidden && suggestionsWrap) {
             suggestionsWrap.style.display = "none";
@@ -763,10 +852,18 @@
         appendMessage("user", message, now);
         chatInput.value = "";
 
+        // Snapshot prior turns BEFORE adding the current user message so the
+        // server can append it itself (matches the documented contract).
+        const priorHistory = conversationHistory.slice();
+        pushHistory("user", message);
+
         typing.classList.add("show");
         sendBtn.disabled = true;
         try {
             const localReply = getLocalReply(message);
+            // Debug aid: log whether the local handler matched. An empty string
+            // means the message will be sent to Groq with conversation history.
+            console.log("[chatbot] Local reply:", localReply ? localReply.slice(0, 80) + (localReply.length > 80 ? "…" : "") : "(none — sending to Groq)");
             if (localReply) {
                 const lastBotText = getLastBotMessage();
                 const finalLocalReply = lastBotText === localReply
@@ -777,13 +874,19 @@
                 updatedLocal.push({ role: "bot", text: finalLocalReply, timestamp: botNowLocal });
                 writeHistory(updatedLocal);
                 appendMessage("bot", finalLocalReply, botNowLocal);
+                pushHistory("assistant", finalLocalReply);
                 return;
             }
 
             const res = await fetch(`${API_BASE}/api/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message, user_type: userType, user_id: userId })
+                body: JSON.stringify({
+                    message,
+                    user_type: userType,
+                    user_id: userId,
+                    history: priorHistory
+                })
             });
             const payload = await res.json().catch(() => ({}));
             if (!res.ok) {
@@ -795,6 +898,7 @@
             updated.push({ role: "bot", text: botText, timestamp: botNow });
             writeHistory(updated);
             appendMessage("bot", botText, botNow);
+            pushHistory("assistant", botText);
         } catch (err) {
             const errorText = `Unable to reach AI assistant: ${safeText(err.message, "Unknown error")}`;
             const botNow = formatTime(new Date());
@@ -802,6 +906,8 @@
             updated.push({ role: "bot", text: errorText, timestamp: botNow });
             writeHistory(updated);
             appendMessage("bot", errorText, botNow);
+            // Intentionally NOT pushing the network-error notice into the LLM
+            // context so it doesn't leak into the next prompt.
         } finally {
             typing.classList.remove("show");
             sendBtn.disabled = false;
@@ -838,6 +944,8 @@
     });
     clearBtn.addEventListener("click", function () {
         localStorage.removeItem(storageKey);
+        conversationHistory.length = 0;
+        lastIntentContext = "";
         renderHistory();
         suggestionsHidden = false;
         activeFlow = "";
@@ -860,6 +968,7 @@
     });
 
     renderHistory();
+    seedConversationHistoryFromStorage();
     renderQuickActions();
     renderSuggestions();
 })();

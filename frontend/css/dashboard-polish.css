@@ -1,0 +1,628 @@
+/* =====================================================================
+   ClinixPro — Dashboard polish (shared by patient + doctor dashboards)
+   Loaded AFTER patient-dashboard.css / doctor-dashboard.css so it wins.
+
+   What this file owns:
+     1. Smooth section fade transitions on .section / .section.active
+     2. Unread-count badge on .bell-btn (.notif-badge)
+     3. Card hover lift + consistent token-based spacing
+     4. Table polish: zebra striping, row hover, mobile responsive
+     5. Empty-state illustration component (.empty-state)
+     6. Quick-Book card grid (patient overview)
+     7. Today's-Schedule timeline (doctor overview)
+   ===================================================================== */
+
+:root {
+    --cp-brand: var(--brand-from, #0f766e);
+    --cp-brand-strong: var(--brand-to, #0a4f49);
+    --cp-ink: #0a1f24;
+    --cp-ink-soft: #4a5d63;
+    --cp-cream: #fef9f4;
+    --cp-cream-soft: #faf2e8;
+    --cp-cream-stroke: #f1e4d2;
+    --cp-coral: #f43f5e;
+    --cp-amber: #fbbf24;
+    --cp-success: #10b981;
+    --cp-danger:  #ef4444;
+    --cp-radius:  16px;
+    --cp-shadow:  0 1px 2px rgba(10, 31, 36, 0.04), 0 12px 28px rgba(10, 31, 36, 0.08);
+    --cp-shadow-lift: 0 1px 2px rgba(10, 31, 36, 0.05), 0 24px 48px rgba(10, 31, 36, 0.14);
+}
+
+/* =====================================================================
+   1. Section fade transitions
+   The inline switchSection() toggles .section.active. The legacy dashboard
+   CSS used `display: none/block` which is abrupt. We switch to opacity
+   + transform + visibility so swaps feel like soft cross-fades.
+   ===================================================================== */
+.section {
+    /* Sit in the layout but invisible & inert when not active. */
+    display: block !important;
+    position: relative;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(8px);
+    height: 0;
+    overflow: hidden;
+    transition:
+        opacity 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.section.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    height: auto;
+    overflow: visible;
+    animation: cpSectionFadeIn 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes cpSectionFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =====================================================================
+   2. Notification bell — unread count badge
+   ===================================================================== */
+.bell-btn {
+    position: relative;
+}
+.bell-btn .notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--cp-coral);
+    color: #fff;
+    font-family: "Sora", "Inter", sans-serif;
+    font-size: 0.66rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 0 0 2px #fff, 0 4px 10px rgba(244, 63, 94, 0.4);
+    transform: scale(0);
+    transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+}
+.bell-btn[data-unread]:not([data-unread="0"]) .notif-badge {
+    transform: scale(1);
+}
+.bell-btn[data-unread]:not([data-unread="0"]) {
+    animation: cpBellShake 600ms ease 1;
+}
+@keyframes cpBellShake {
+    0%, 100% { transform: rotate(0); }
+    20%      { transform: rotate(-10deg); }
+    40%      { transform: rotate(8deg); }
+    60%      { transform: rotate(-6deg); }
+    80%      { transform: rotate(4deg); }
+}
+
+/* Notification dropdown rows — polish */
+.notif-dropdown .notif-item {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--cp-cream-stroke);
+    cursor: pointer;
+    transition: background-color 150ms ease;
+}
+.notif-dropdown .notif-item:last-child { border-bottom: none; }
+.notif-dropdown .notif-item:hover { background: var(--cp-cream); }
+.notif-dropdown .notif-item.empty {
+    grid-template-columns: 1fr;
+    text-align: center;
+    color: var(--cp-ink-soft);
+    padding: 18px 12px;
+    cursor: default;
+}
+.notif-dropdown .notif-item.empty:hover { background: transparent; }
+.notif-dropdown .notif-item .ni-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--cp-cream-soft), #fff);
+    color: var(--cp-brand);
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+.notif-dropdown .notif-item.unread .ni-icon {
+    background: linear-gradient(135deg, rgba(15, 118, 110, 0.16), rgba(15, 118, 110, 0.06));
+    color: var(--cp-brand-strong);
+}
+.notif-dropdown .notif-item .ni-body { min-width: 0; }
+.notif-dropdown .notif-item .ni-subject {
+    font-weight: 600;
+    color: var(--cp-ink);
+    font-size: 0.88rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.notif-dropdown .notif-item.unread .ni-subject::after {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-left: 6px;
+    border-radius: 999px;
+    background: var(--cp-coral);
+    vertical-align: middle;
+}
+.notif-dropdown .notif-item .ni-preview {
+    color: var(--cp-ink-soft);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    margin-top: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.notif-dropdown .notif-item .ni-meta {
+    color: var(--cp-ink-soft);
+    font-size: 0.7rem;
+    margin-top: 4px;
+}
+
+/* =====================================================================
+   3. Card hover + consistent spacing
+   ===================================================================== */
+.stat-card,
+.profile-card,
+.dashboard-card,
+.card,
+.record-item {
+    transition:
+        transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-color 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.stat-card:hover,
+.dashboard-card:hover,
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--cp-shadow-lift);
+}
+.record-item:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--cp-shadow-lift);
+    border-color: rgba(15, 118, 110, 0.30);
+}
+
+/* =====================================================================
+   4. Tables — zebra, row hover, mobile responsive
+   ===================================================================== */
+.table-wrap,
+.table-responsive {
+    overflow-x: auto;
+    border-radius: var(--cp-radius);
+    border: 1px solid var(--cp-cream-stroke);
+    background: #fff;
+    box-shadow: var(--cp-shadow);
+}
+table.cp-table,
+.section table:not(.bare) {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: inherit;
+}
+table.cp-table thead th,
+.section table:not(.bare) thead th {
+    background: var(--cp-cream-soft);
+    color: var(--cp-ink);
+    font-family: "Sora", "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 0.74rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--cp-cream-stroke);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+table.cp-table tbody td,
+.section table:not(.bare) tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--cp-cream-stroke);
+    color: var(--cp-ink-soft);
+    font-size: 0.9rem;
+}
+table.cp-table tbody tr:nth-child(even) td,
+.section table:not(.bare) tbody tr:nth-child(even) td {
+    background: rgba(254, 249, 244, 0.55);
+}
+table.cp-table tbody tr,
+.section table:not(.bare) tbody tr {
+    transition: background-color 160ms ease;
+}
+table.cp-table tbody tr:hover td,
+.section table:not(.bare) tbody tr:hover td {
+    background: rgba(15, 118, 110, 0.07);
+    color: var(--cp-ink);
+}
+table.cp-table tbody tr:last-child td,
+.section table:not(.bare) tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Mobile responsive — collapse table to card list */
+@media (max-width: 720px) {
+    table.cp-table thead,
+    .section table.cp-mobile-cards thead { display: none; }
+    table.cp-table tbody tr,
+    .section table.cp-mobile-cards tbody tr {
+        display: block;
+        background: #fff;
+        border: 1px solid var(--cp-cream-stroke);
+        border-radius: 12px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+    }
+    table.cp-table tbody td,
+    .section table.cp-mobile-cards tbody td {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 6px 0;
+        border: none;
+        font-size: 0.88rem;
+    }
+    table.cp-table tbody td::before,
+    .section table.cp-mobile-cards tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--cp-ink);
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+}
+
+/* =====================================================================
+   5. Empty-state illustrations (new richer component .cp-empty-state)
+   Leaves the legacy `.empty-state` simple markup alone. JS uses
+   buildEmptyState(parent, kind, title?, hint?) helper to produce the
+   illustrated version.
+   ===================================================================== */
+.cp-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--cp-ink-soft);
+}
+.cp-empty-state .es-illustration {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(circle at 30% 30%, rgba(15, 118, 110, 0.18), transparent 65%),
+        radial-gradient(circle at 70% 70%, rgba(244, 63, 94, 0.10), transparent 60%),
+        var(--cp-cream-soft);
+    color: var(--cp-brand);
+    font-size: 3.4rem;
+    box-shadow: inset 0 1px 0 #fff, 0 8px 24px rgba(10, 31, 36, 0.06);
+}
+.cp-empty-state .es-title {
+    font-family: "Fraunces", "Cormorant Garamond", serif;
+    font-variation-settings: "opsz" 96;
+    font-weight: 500;
+    font-size: 1.2rem;
+    color: var(--cp-ink);
+    margin: 4px 0 0;
+}
+.cp-empty-state .es-hint {
+    color: var(--cp-ink-soft);
+    font-size: 0.92rem;
+    line-height: 1.5;
+    max-width: 36ch;
+    margin: 0;
+}
+.cp-empty-state .es-cta {
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, var(--cp-ink) 0%, var(--cp-brand-strong) 100%);
+    color: var(--cp-cream);
+    font-family: "Sora", "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 0.86rem;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 8px 20px rgba(15, 118, 110, 0.28);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.cp-empty-state .es-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(15, 118, 110, 0.38);
+}
+
+/* =====================================================================
+   6. Quick Book card grid (patient overview)
+   ===================================================================== */
+.qb-card {
+    background: #fff;
+    border: 1px solid var(--cp-cream-stroke);
+    border-radius: var(--cp-radius);
+    padding: 22px;
+    margin-top: 18px;
+    box-shadow: var(--cp-shadow);
+}
+.qb-card .qb-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+.qb-card .qb-head h3 {
+    font-family: "Fraunces", "Cormorant Garamond", serif;
+    font-variation-settings: "opsz" 96;
+    font-weight: 500;
+    font-size: 1.3rem;
+    color: var(--cp-ink);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+.qb-card .qb-head p {
+    color: var(--cp-ink-soft);
+    font-size: 0.88rem;
+    margin: 2px 0 0;
+}
+.qb-card .qb-head-actions a {
+    color: var(--cp-brand);
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+.qb-card .qb-head-actions a:hover { text-decoration: underline; }
+
+.qb-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+.qb-doctor {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 8px;
+    padding: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, var(--cp-cream) 100%);
+    border: 1px solid var(--cp-cream-stroke);
+    border-radius: 14px;
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+.qb-doctor:hover {
+    transform: translateY(-3px);
+    border-color: rgba(15, 118, 110, 0.30);
+    box-shadow: var(--cp-shadow-lift);
+}
+.qb-doctor .qb-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--cp-brand) 0%, var(--cp-brand-strong) 100%);
+    color: var(--cp-cream);
+    font-family: "Sora", "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 0.96rem;
+    box-shadow: 0 4px 12px rgba(15, 118, 110, 0.30);
+}
+.qb-doctor .qb-name {
+    font-weight: 600;
+    color: var(--cp-ink);
+    font-size: 0.96rem;
+    margin: 0;
+}
+.qb-doctor .qb-spec {
+    color: var(--cp-ink-soft);
+    font-size: 0.8rem;
+    margin: 0;
+}
+.qb-doctor .qb-book {
+    margin-top: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, var(--cp-ink) 0%, var(--cp-brand-strong) 100%);
+    color: var(--cp-cream);
+    font-family: "Sora", "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 180ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.qb-doctor .qb-book:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(15, 118, 110, 0.34);
+}
+
+/* =====================================================================
+   7. Today's Schedule timeline (doctor overview)
+   ===================================================================== */
+.ts-card {
+    background: #fff;
+    border: 1px solid var(--cp-cream-stroke);
+    border-radius: var(--cp-radius);
+    padding: 22px;
+    margin-top: 18px;
+    box-shadow: var(--cp-shadow);
+}
+.ts-card .ts-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+.ts-card .ts-head h3 {
+    font-family: "Fraunces", "Cormorant Garamond", serif;
+    font-variation-settings: "opsz" 96;
+    font-weight: 500;
+    font-size: 1.3rem;
+    color: var(--cp-ink);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+.ts-card .ts-head .ts-date {
+    font-family: "Sora", "Inter", sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--cp-brand);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.ts-timeline {
+    position: relative;
+    padding-left: 22px;
+}
+.ts-timeline::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: linear-gradient(180deg, var(--cp-brand) 0%, var(--cp-cream-stroke) 100%);
+    border-radius: 2px;
+}
+.ts-event {
+    position: relative;
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px 10px 0;
+    background: var(--cp-cream);
+    border: 1px solid var(--cp-cream-stroke);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    transition: all 200ms ease;
+}
+.ts-event:hover {
+    transform: translateX(4px);
+    border-color: rgba(15, 118, 110, 0.30);
+    box-shadow: var(--cp-shadow-lift);
+}
+.ts-event::before {
+    content: "";
+    position: absolute;
+    left: -22px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--cp-brand);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px var(--cp-brand);
+    transform: translateY(-50%);
+}
+.ts-event.is-past::before  { background: var(--cp-ink-soft); box-shadow: 0 0 0 2px var(--cp-ink-soft); }
+.ts-event.is-now::before   {
+    background: var(--cp-coral);
+    box-shadow: 0 0 0 2px var(--cp-coral);
+    animation: cpTimelinePulse 1.4s ease-in-out infinite;
+}
+@keyframes cpTimelinePulse {
+    0%, 100% { box-shadow: 0 0 0 2px var(--cp-coral), 0 0 0 0 rgba(244, 63, 94, 0.5); }
+    50%      { box-shadow: 0 0 0 2px var(--cp-coral), 0 0 0 8px rgba(244, 63, 94, 0); }
+}
+.ts-event .ts-time {
+    text-align: center;
+    color: var(--cp-brand-strong);
+    font-family: "Sora", "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding-left: 12px;
+}
+.ts-event .ts-time small {
+    display: block;
+    font-size: 0.66rem;
+    color: var(--cp-ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+}
+.ts-event .ts-body { min-width: 0; }
+.ts-event .ts-patient {
+    color: var(--cp-ink);
+    font-weight: 600;
+    font-size: 0.94rem;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ts-event .ts-reason {
+    color: var(--cp-ink-soft);
+    font-size: 0.8rem;
+    margin: 2px 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ts-event .ts-status {
+    margin-right: 10px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-family: "Sora", "Inter", sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #fff;
+    background: var(--cp-brand);
+}
+.ts-event.is-past .ts-status      { background: var(--cp-ink-soft); }
+.ts-event.is-now .ts-status       { background: var(--cp-coral); }
+.ts-event.is-cancelled .ts-status { background: var(--cp-danger); }
+
+/* =====================================================================
+   8. Reduced motion
+   ===================================================================== */
+@media (prefers-reduced-motion: reduce) {
+    .section,
+    .section.active,
+    .stat-card,
+    .card,
+    .qb-doctor,
+    .ts-event,
+    .bell-btn,
+    .cp-empty-state .es-cta {
+        transition: none !important;
+        animation: none !important;
+    }
+}
