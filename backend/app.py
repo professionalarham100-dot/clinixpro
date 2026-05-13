@@ -4605,18 +4605,6 @@ if __name__ == '__main__':
     if mysql_ready():
         ensure_doctor_applications_table()
         ensure_doctors_profile_schema()
-        # Remove test accounts created during development
-        try:
-            db_execute("""
-                DELETE FROM patients WHERE name IN
-                ('Phone One','Dup Check','JAYKANT SHIKRE SZDERTY',
-                 'Dupe User','New Patient')
-            """)
-            db_execute("""
-                DELETE FROM users WHERE email LIKE '%_1777%@mail.com'
-            """)
-        except Exception:
-            pass
     print(f"[ClinixPro] Starting backend on port {port} (debug={debug})")
     print(f"[ClinixPro] Database mode: {db_mode} | host={DB_HOST} | db={DB_NAME}")
     app.run(host='0.0.0.0', port=port, debug=debug)
