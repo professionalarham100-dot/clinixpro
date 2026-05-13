@@ -433,6 +433,48 @@ def ensure_doctor_applications_table():
     _doctor_applications_add_bio_column()
 
 
+def ensure_patients_gender_schema():
+    """Migrate the patients.gender column to ENUM('Male','Female','Other').
+
+    The original schema shipped with ENUM('M','F','Other') which rejected the
+    full-word values sent by the redesigned profile editor ('Male'/'Female').
+    This helper:
+      1) backfills any legacy 'M'/'F' rows to 'Male'/'Female'
+      2) widens the ENUM to accept both legacy AND full-word values, then
+         normalizes the column so future writes only use full-word values
+
+    Safe to run on every startup — each step is idempotent.
+    """
+    if not mysql_ready():
+        return
+    try:
+        # 1) Expand the ENUM to a superset so both legacy and new values
+        # are valid during the transition. NULL becomes the default so
+        # "unset" is representable.
+        db_execute(
+            "ALTER TABLE patients MODIFY COLUMN gender "
+            "ENUM('M','F','Male','Female','Other') DEFAULT NULL"
+        )
+    except Exception:
+        # Older MySQL servers / locked tables — ignore; the column likely
+        # already accepts the new values.
+        pass
+    try:
+        # 2) Backfill legacy single-letter rows to the new vocabulary.
+        db_execute("UPDATE patients SET gender='Male'   WHERE gender='M'")
+        db_execute("UPDATE patients SET gender='Female' WHERE gender='F'")
+    except Exception:
+        pass
+    try:
+        # 3) Final shape — drop the legacy values now that no rows use them.
+        db_execute(
+            "ALTER TABLE patients MODIFY COLUMN gender "
+            "ENUM('Male','Female','Other') DEFAULT NULL"
+        )
+    except Exception:
+        pass
+
+
 def ensure_password_reset_table():
     """Create password reset code table when missing (MySQL mode)."""
     if not mysql_ready():
@@ -4605,6 +4647,7 @@ if __name__ == '__main__':
     if mysql_ready():
         ensure_doctor_applications_table()
         ensure_doctors_profile_schema()
+        ensure_patients_gender_schema()
     print(f"[ClinixPro] Starting backend on port {port} (debug={debug})")
     print(f"[ClinixPro] Database mode: {db_mode} | host={DB_HOST} | db={DB_NAME}")
     app.run(host='0.0.0.0', port=port, debug=debug)

@@ -1,0 +1,256 @@
+/* =====================================================================
+   ClinixPro — Admin Dashboard Theme Override
+   ---------------------------------------------------------------------
+   Pure CSS retheme that brings the admin console onto the same
+   teal / cream / Fraunces / Sora design system used by the landing
+   page and the patient + doctor dashboards.
+
+   Loaded AFTER css/admin-dashboard.css and the inline <style> block
+   in dashboard.html. !important is used selectively against the
+   inline rules (which would otherwise win on equal specificity).
+
+   Intentionally preserved (per spec):
+     - Chart.js palettes (rendered to canvas, untouched by CSS).
+     - Table layout, column widths, and row striping.
+     - Modal positioning and animations.
+     - Semantic action-button colors (approve = green, reject = red,
+       mark-paid = green, deactivate = red, etc.). These are not
+       "purple accents" and dropping them would lose meaning.
+   ===================================================================== */
+
+:root {
+    /* Teal / cream tokens — mirrors the patient & doctor themes. */
+    --t-ink-900:   #0a1f24;
+    --t-teal-800:  #0d3d38;
+    --t-teal-600:  #1a6b5a;
+    --t-teal-500:  #2d9b83;
+    --t-cream-100: #f5f0e8;
+    --t-cream-300: #e8e1d4;
+    --t-coral-500: #f43f5e;
+
+    /* Re-point the legacy purple custom properties so any rule still
+       reading var(--primary) / var(--primary-2) renders teal without
+       us having to find every callsite. This covers focus rings,
+       segment chips, and a handful of icon accents in the legacy CSS. */
+    --primary:   #1a6b5a;
+    --primary-2: #0d3d38;
+}
+
+/* =====================================================================
+   1. Typography — Fraunces (display) + Sora (UI)
+   ===================================================================== */
+body,
+.sidebar,
+.content,
+.top,
+.panel,
+.card,
+.btn,
+input,
+select,
+textarea,
+button {
+    font-family: "Sora", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+h1, h2, h3, h4,
+.top h1,
+.panel h2,
+.card h3,
+.card .value {
+    font-family: "Fraunces", "Cormorant Garamond", Georgia, serif;
+    font-variation-settings: "opsz" 96;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+}
+
+/* =====================================================================
+   2. Sidebar — dark ink + teal active / hover
+   ===================================================================== */
+.sidebar {
+    background: var(--t-ink-900) !important;
+    color: rgba(254, 249, 244, 0.78);
+}
+/* Brand wordmark — swap the violet/blue text gradient for solid cream. */
+.sidebar .logo {
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    color: #fef9f4 !important;
+    -webkit-text-fill-color: #fef9f4 !important;
+    font-family: "Fraunces", serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+.sidebar .logo i {
+    color: var(--t-teal-500) !important;
+    -webkit-text-fill-color: var(--t-teal-500) !important;
+}
+
+/* Side nav links */
+.menu a { color: rgba(254, 249, 244, 0.72); }
+.menu a:hover {
+    color: #fff;
+    background: rgba(45, 155, 131, 0.15) !important;   /* teal @ 15% */
+    transform: translateX(2px);
+}
+.menu a.active {
+    color: #fff !important;
+    background: var(--t-teal-600) !important;          /* solid medium teal */
+    box-shadow: 0 4px 14px rgba(13, 61, 56, 0.45) !important;
+    border: none !important;
+}
+.menu a.active i { color: #fef9f4; }
+
+/* =====================================================================
+   3. Top banner — purple → teal gradient
+   ===================================================================== */
+.top {
+    background: linear-gradient(135deg, var(--t-ink-900) 0%, var(--t-teal-600) 100%) !important;
+    background-blend-mode: normal !important;
+    border: none !important;
+    color: #fef9f4 !important;
+}
+.top h1 { color: #fef9f4 !important; }
+.top p  { color: rgba(254, 249, 244, 0.82) !important; }
+
+/* Hamburger + any header chrome buttons */
+.hamburger {
+    background: rgba(254, 249, 244, 0.14) !important;
+    border: 1px solid rgba(254, 249, 244, 0.24) !important;
+    color: #fef9f4 !important;
+}
+.hamburger:hover {
+    background: rgba(254, 249, 244, 0.22) !important;
+}
+
+/* Breadcrumb chips inside the banner */
+.breadcrumb .crumb-current { color: #fef9f4 !important; }
+.breadcrumb i { color: rgba(254, 249, 244, 0.72) !important; }
+
+/* =====================================================================
+   4. Stat cards — four teal variants
+   ---------------------------------------------------------------------
+   Admin's stat-card classes are NOT prefixed (`.blue`, `.green`,
+   `.purple`, `.orange` — not `.c-blue` etc.). All four are gradient
+   backgrounds in the legacy CSS; we collapse each onto a solid teal
+   stop with cream text. Card 4 (`.orange`) becomes the cream variant
+   with a teal border + dark text, matching patient/doctor dashboards.
+   ===================================================================== */
+.card.blue {
+    background: var(--t-teal-800) !important;
+    color: #fef9f4 !important;
+}
+.card.green {
+    background: var(--t-teal-600) !important;
+    color: #fef9f4 !important;
+}
+.card.purple {
+    background: var(--t-teal-500) !important;
+    color: #fef9f4 !important;
+}
+.card.orange {
+    background: var(--t-cream-100) !important;
+    border: 2px solid var(--t-teal-500) !important;
+    color: var(--t-ink-900) !important;
+}
+.card.orange h3,
+.card.orange .value,
+.card.orange small,
+.card.orange i {
+    color: var(--t-ink-900) !important;
+}
+/* Soften the built-in highlight overlay on the cream card so the
+   border doesn't get washed out. */
+.card.orange::before { opacity: 0.35; }
+
+/* =====================================================================
+   5. Tab buttons (Overview / Pending Doctors / etc.)
+   ===================================================================== */
+.admin-tab.active {
+    background: var(--t-teal-600) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 14px rgba(26, 107, 90, 0.40) !important;
+}
+.admin-tab:hover {
+    box-shadow: 0 6px 16px rgba(13, 61, 56, 0.14);
+}
+
+/* Summary "revenue / pending" hero cards near the top of some sections
+   — re-tint the purple-ish blends to fit. Revenue stays in the teal
+   family; pending shifts to a warm amber so it still reads as a
+   different category from "all good". */
+.summary-card.revenue {
+    background: linear-gradient(135deg, var(--t-teal-600), var(--t-teal-800)) !important;
+}
+.summary-card.pending {
+    background: linear-gradient(135deg, #f5b56b, #c97f35) !important;
+}
+
+/* =====================================================================
+   6. Buttons that previously used the purple brand gradient
+   ===================================================================== */
+
+/* Generic confirm button inside the global confirm modal. */
+.btn-confirm {
+    background: var(--t-teal-600) !important;
+    color: #fef9f4 !important;
+    box-shadow: 0 4px 12px rgba(26, 107, 90, 0.30) !important;
+}
+.btn-confirm:hover {
+    background: var(--t-teal-800) !important;
+    filter: none !important;
+}
+/* `.btn-confirm.danger` stays red — destructive action keeps its
+   semantic color. No override needed (or wanted). */
+
+/* Tiny "Copy" button inside the temp-password chip — was purple. */
+.temp-pw button {
+    background: var(--t-teal-600) !important;
+    color: #fef9f4 !important;
+}
+.temp-pw button:hover {
+    background: var(--t-teal-800) !important;
+}
+
+/* Refresh + search-input focus rings inherit from var(--primary), which
+   we've already re-pointed to teal, so .search-input:focus + similar
+   automatically get the new teal glow. We just re-assert the box-shadow
+   color to match the new hue. */
+.search-input:focus {
+    border-color: var(--t-teal-600) !important;
+    box-shadow: 0 0 0 3px rgba(26, 107, 90, 0.18) !important;
+}
+
+/* =====================================================================
+   7. Section / panel headings — bring Fraunces in once more for h2/h3
+   nodes rendered by JS inside panels.
+   ===================================================================== */
+.panel h2,
+.panel h3,
+.admin-section h2,
+.admin-section h3 {
+    font-family: "Fraunces", serif;
+    color: var(--t-ink-900);
+}
+
+/* =====================================================================
+   8. Notification / toast — keep the existing dark-slate style. The
+   teal palette would clash with the red `.toast.error` variant, so we
+   leave that subsystem alone. Same goes for badge-inline pills, which
+   carry their own semantic colors (active/inactive/paid/pending).
+   ===================================================================== */
+
+/* =====================================================================
+   9. Intentionally NOT overridden (documented so future maintainers
+      don't undo these on purpose):
+      - .action-view (cyan), .action-deactivate / .action-cancel /
+        .action-reject (red), .action-markpaid / .action-approve
+        (green), .action-reset (orange), .action-toggle (cyan).
+        These are status-bearing actions; recoloring them as teal
+        would erase the visual differentiation users rely on.
+      - .btn-confirm.danger gradient — destructive intent must stay
+        red.
+      - Chart.js dataset palettes — those live in JS, not CSS.
+      - Table zebra striping and row hover (kept neutral).
+   ===================================================================== */

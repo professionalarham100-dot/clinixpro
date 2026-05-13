@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS patients (
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(20) NOT NULL,
     dob DATE NOT NULL,
-    gender ENUM('M', 'F', 'Other') DEFAULT 'Other',
+    gender ENUM('Male', 'Female', 'Other') DEFAULT NULL,
     address TEXT,
     city VARCHAR(50),
     state VARCHAR(50),

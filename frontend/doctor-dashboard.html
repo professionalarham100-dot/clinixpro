@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/chatbot.css">
     <link rel="stylesheet" href="css/doctor-dashboard.css">
     <link rel="stylesheet" href="css/dashboard-polish.css">
+    <link rel="stylesheet" href="css/doctor-dashboard-theme.css">
     <style>body.session-pending{visibility:hidden}</style>
 </head>
 <body class="session-pending">
@@ -715,22 +716,61 @@
                 return email ? `doctorAvatarDataUrl:${email}` : "";
             }
 
+            // Build two-letter initials from a full name. Strips the "Dr."
+            // honorific so the avatar shows the doctor's actual initials,
+            // not the title. Falls back to "D" if the name is unusable.
+            function getInitials(name) {
+                const raw = String(name || "").trim();
+                if (!raw) return "D";
+                const cleaned = raw
+                    .replace(/^(?:dr|mr|mrs|ms|miss|prof|sir|madam)\.?\s+/i, "")
+                    .trim();
+                const parts = (cleaned || raw).split(/\s+/).filter(Boolean);
+                if (parts.length === 0) return "D";
+                if (parts.length === 1) {
+                    const w = parts[0];
+                    return (w.length >= 2 ? w.slice(0, 2) : w.charAt(0)).toUpperCase();
+                }
+                return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+            }
+
+            // Only accept stored values that look like a real image URL.
+            // Prevents stale / corrupt entries from rendering an empty
+            // background-image:url("") circle.
+            function isValidPhotoSrc(value) {
+                if (!value || typeof value !== "string") return false;
+                const v = value.trim();
+                if (v.length < 20) return false;
+                return /^data:image\/[a-z0-9.+-]+;/i.test(v) || /^https?:\/\//i.test(v);
+            }
+
             function renderAvatar(name) {
                 const avatar = document.getElementById("avatar");
+                // One-shot cleanup of the legacy global key.
                 if (localStorage.getItem("doctorAvatarDataUrl")) {
                     localStorage.removeItem("doctorAvatarDataUrl");
                 }
                 const key = doctorAvatarKey();
                 const photo = key ? localStorage.getItem(key) : "";
-                if (photo) {
+
+                if (isValidPhotoSrc(photo)) {
+                    // Real photo — paint with !important so it wins over
+                    // the theme stylesheet's background-image gradient.
                     avatar.textContent = "";
-                    avatar.style.backgroundImage = `url("${photo}")`;
+                    avatar.style.setProperty("background-image", `url("${photo}")`, "important");
                     avatar.style.backgroundSize = "cover";
                     avatar.style.backgroundPosition = "center";
+                    avatar.setAttribute("aria-label", `${name || "Doctor"} profile photo`);
                     return;
                 }
-                avatar.style.backgroundImage = "";
-                avatar.textContent = (name || "D").charAt(0).toUpperCase();
+
+                // No photo (or corrupt value) — clean up + show initials.
+                if (photo && key) localStorage.removeItem(key);
+                avatar.style.removeProperty("background-image");
+                avatar.style.removeProperty("background-size");
+                avatar.style.removeProperty("background-position");
+                avatar.textContent = getInitials(name);
+                avatar.setAttribute("aria-label", `${name || "Doctor"} initials avatar`);
             }
 
             function renderTopInfo() {
@@ -1337,7 +1377,7 @@
                     <div class="patient-info-item"><small>Email</small><strong>${escapeHtml(email || "Not available")}</strong></div>
                     <div class="patient-info-item"><small>Phone</small><strong>${escapeHtml(phone || "Not available")}</strong></div>
                     <div class="patient-info-item"><small>Date of Birth</small><strong>${escapeHtml(dob)}</strong></div>
-                    <div class="patient-info-item"><small>Gender</small><strong>${escapeHtml(gender === "—" ? "Not available" : gender)}</strong></div>
+                    <div class="patient-info-item"><small>Gender</small><strong>${escapeHtml(gender === "—" ? "Not set" : gender)}</strong></div>
                     <div class="patient-info-item"><small>Blood Group</small><strong>${escapeHtml(blood === "—" ? "Not available" : blood)}</strong></div>
                     <div class="patient-info-item"><small>Address</small><strong>${escapeHtml(address)}</strong></div>
                     <div class="patient-info-item"><small>Emergency Contact</small><strong>${escapeHtml(emergency)}</strong></div>

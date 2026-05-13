@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/chatbot.css">
     <link rel="stylesheet" href="css/patient-dashboard.css">
     <link rel="stylesheet" href="css/dashboard-polish.css">
+    <link rel="stylesheet" href="css/patient-dashboard-theme.css">
     <style>body.session-pending{visibility:hidden}</style>
 </head>
 <body class="session-pending">
@@ -229,6 +230,7 @@
                         <div class="profile-field"><small>Phone</small><strong id="pfPhone">Not available</strong></div>
                         <div class="profile-field"><small>Blood Group</small><strong id="pfBlood">Not available</strong></div>
                         <div class="profile-field"><small>Date of Birth</small><strong id="pfDob">Not available</strong></div>
+                        <div class="profile-field"><small>Gender</small><strong id="pfGender">Not set</strong></div>
                         <div class="profile-field"><small>Address</small><strong id="pfAddress">Not available</strong></div>
                         <div class="profile-field"><small>Emergency Contact</small><strong id="pfEmergency">Not available</strong></div>
                     </div>
@@ -296,6 +298,15 @@
                         <label for="editDob">Date of Birth</label>
                         <input id="editDob" type="date">
                         <small id="editDobNote" class="hint-note">You can only set your date of birth once. Please choose carefully.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="editGender">Gender</label>
+                        <select id="editGender">
+                            <option value="">Select gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
                     </div>
                     <div class="form-group full">
                         <label for="editAddress">Address</label>
@@ -723,22 +734,66 @@
                 });
             }
 
+            // Build two-letter initials from a full name. Returns at least
+            // one character; falls back to "P" (Patient) when the name is
+            // unusable. Strips honorifics ("Dr.", "Mr.", "Mrs.", "Ms.")
+            // before picking letters so the avatar shows actual initials,
+            // not the title.
+            function getInitials(name) {
+                const raw = String(name || "").trim();
+                if (!raw) return "P";
+                const cleaned = raw
+                    .replace(/^(?:dr|mr|mrs|ms|miss|prof|sir|madam)\.?\s+/i, "")
+                    .trim();
+                const parts = (cleaned || raw).split(/\s+/).filter(Boolean);
+                if (parts.length === 0) return "P";
+                if (parts.length === 1) {
+                    const w = parts[0];
+                    return (w.length >= 2 ? w.slice(0, 2) : w.charAt(0)).toUpperCase();
+                }
+                return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+            }
+
+            // Only accept stored values that look like a real image URL.
+            // This prevents previously-saved corrupt / partial entries from
+            // breaking the avatar (which would otherwise render a blank
+            // circle because background-image:url("") hides the fallback).
+            function isValidPhotoSrc(value) {
+                if (!value || typeof value !== "string") return false;
+                const v = value.trim();
+                if (v.length < 20) return false;
+                return /^data:image\/[a-z0-9.+-]+;/i.test(v) || /^https?:\/\//i.test(v);
+            }
+
             function renderAvatar(name) {
                 const avatar = document.getElementById("avatar");
+                // One-shot cleanup of the legacy global key. The current
+                // implementation stores avatars per-email so this is dead.
                 if (localStorage.getItem("patientAvatarDataUrl")) {
                     localStorage.removeItem("patientAvatarDataUrl");
                 }
                 const key = avatarStorageKey();
                 const photo = key ? localStorage.getItem(key) : "";
-                if (photo) {
+
+                if (isValidPhotoSrc(photo)) {
+                    // Real photo — paint it with !important so it wins over
+                    // the theme stylesheet's background-image gradient.
                     avatar.textContent = "";
-                    avatar.style.backgroundImage = `url("${photo}")`;
+                    avatar.style.setProperty("background-image", `url("${photo}")`, "important");
                     avatar.style.backgroundSize = "cover";
                     avatar.style.backgroundPosition = "center";
+                    avatar.setAttribute("aria-label", `${name || "Patient"} profile photo`);
                     return;
                 }
-                avatar.style.backgroundImage = "";
-                avatar.textContent = (name || "P").charAt(0).toUpperCase();
+
+                // No photo (or corrupt value) — clean up + show initials on
+                // the teal background supplied by the theme stylesheet.
+                if (photo && key) localStorage.removeItem(key);
+                avatar.style.removeProperty("background-image");
+                avatar.style.removeProperty("background-size");
+                avatar.style.removeProperty("background-position");
+                avatar.textContent = getInitials(name);
+                avatar.setAttribute("aria-label", `${name || "Patient"} initials avatar`);
             }
 
             function renderStats() {
@@ -1126,16 +1181,28 @@
                     }
                 }
 
+                // Generic "Not available" setter for fields the patient
+                // can't always provide (e.g. address pre-onboarding).
                 const setEl = (id, value) => {
                     const el = document.getElementById(id);
                     if (el) el.textContent = (value !== null && value !== undefined && value !== '')
                         ? value : 'Not available';
+                };
+                // Gender uses a friendlier "Not set" placeholder per the
+                // profile UX spec — null/empty values mean the patient
+                // simply hasn't picked one yet, not that data is missing.
+                const setGenderEl = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.textContent = (value !== null && value !== undefined && String(value).trim() !== '')
+                        ? value : 'Not set';
                 };
 
                 setEl("pfName",      p.name);
                 setEl("pfPhone",     p.phone);
                 setEl("pfBlood",     p.blood_group);
                 setEl("pfDob",       dobDisplay);
+                setGenderEl("pfGender", p.gender);
                 setEl("pfAddress",   p.address);
                 setEl("pfEmergency", p.emergency_contact_phone);
                 setEl("pfEmail",     p.email);
@@ -1456,6 +1523,16 @@
                 fillEl("editPhone",     p.phone);
                 fillEl("editBlood",     p.blood_group);
                 fillEl("editDob",       dobValue);
+                // Normalize stored gender to the canonical option values
+                // ("Male" / "Female" / "Other") so the <select> picks the
+                // right entry regardless of case used in the database.
+                (function setGenderSelect() {
+                    const el = document.getElementById("editGender");
+                    if (!el) return;
+                    const raw = String(p.gender || "").trim().toLowerCase();
+                    const map = { male: "Male", female: "Female", other: "Other" };
+                    el.value = map[raw] || "";
+                })();
                 fillEl("editAddress",   p.address);
                 fillEl("editEmergency", p.emergency_contact_phone);
                 fillEl("editEmail",     p.email);
@@ -1914,9 +1991,14 @@
                     renderProfile();
                     notify("Profile updated successfully.");
                 } catch (err) {
-                    const msg = (err && err.message) ? String(err.message) : "";
-                    if (msg.toLowerCase().includes("date of birth")) {
-                        notify(msg);
+                    // Show the actual server-side error so problems like
+                    // schema mismatches surface immediately instead of
+                    // hiding behind a generic "try again" toast.
+                    const raw = (err && err.message) ? String(err.message).trim() : "";
+                    if (raw.toLowerCase().includes("date of birth")) {
+                        notify(raw);
+                    } else if (raw) {
+                        notify(`Couldn't save profile: ${raw}`);
                     } else {
                         notify("Failed to save profile. Please try again.");
                     }
