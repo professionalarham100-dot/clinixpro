@@ -26,6 +26,33 @@
     .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
     .detail-item strong{display:block;font-size:.71rem;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
     .detail-item span{font-size:.94rem;color:#1a1a2e;word-break:break-word}
+    .filter-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+    .filter-bar label{display:flex;flex-direction:column;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;gap:4px}
+    .filter-bar select,.filter-bar input[type="date"]{border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:.88rem;background:#fff;color:var(--text);font-family:inherit;min-width:150px}
+    .filter-bar select:focus,.filter-bar input[type="date"]:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(102,126,234,.15)}
+    .filter-bar .filter-reset{margin-top:18px;background:none;border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:.82rem;color:var(--muted);cursor:pointer}
+    .filter-bar .filter-reset:hover{color:var(--text);border-color:var(--primary)}
+    .summary-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:18px}
+    .summary-card{border-radius:14px;padding:20px;color:#fff;box-shadow:var(--shadow-card);position:relative;overflow:hidden}
+    .summary-card.revenue{background:linear-gradient(135deg,#43e97b,#38a169)}
+    .summary-card.pending{background:linear-gradient(135deg,#fbbf24,#d97706)}
+    .summary-card h3{font-size:.78rem;font-weight:600;opacity:.92;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+    .summary-card .value{font-size:1.8rem;font-weight:800;letter-spacing:-.02em}
+    .summary-card small{font-size:.78rem;opacity:.85;display:block;margin-top:4px}
+    @media(max-width:640px){.summary-cards{grid-template-columns:1fr}}
+    .quick-actions{display:flex;flex-wrap:wrap;gap:10px}
+    .quick-actions .action-btn{padding:10px 16px;font-size:.88rem;display:inline-flex;align-items:center;gap:8px}
+    .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+    .info-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+    .info-card strong{display:block;font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;font-weight:600}
+    .info-card span{font-size:1rem;color:var(--text);font-weight:600;word-break:break-word}
+    .info-card .badge-inline{display:inline-block;padding:2px 8px;border-radius:8px;font-size:.78rem;font-weight:600}
+    .temp-pw{display:flex;gap:8px;align-items:center;background:#f1f5f9;border:1px dashed #94a3b8;border-radius:10px;padding:10px 14px;margin:10px 0;font-family:'Fira Code',Consolas,monospace;font-size:1.05rem;font-weight:700;color:#0f172a;letter-spacing:.05em;justify-content:space-between}
+    .temp-pw button{background:var(--primary,#667eea);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;cursor:pointer}
+    .action-reset{background:linear-gradient(135deg,#fbbf24,#d97706);color:#fff;box-shadow:0 4px 10px rgba(251,191,36,.3)}
+    .action-reset:hover{filter:brightness(1.1)}
+    .action-toggle{background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;box-shadow:0 4px 10px rgba(14,165,233,.3)}
+    .action-toggle:hover{filter:brightness(1.1)}
     </style>
 </head>
 <body class="session-pending">
@@ -140,6 +167,24 @@
             <section id="section-appointments" class="admin-section">
                 <section class="panel">
                     <div class="section-header"><h2>All Appointments</h2></div>
+                    <div class="filter-bar">
+                        <label>Status
+                            <select id="apptStatusFilter">
+                                <option value="all">All</option>
+                                <option value="scheduled">Scheduled</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </label>
+                        <label>From
+                            <input type="date" id="apptDateFrom">
+                        </label>
+                        <label>To
+                            <input type="date" id="apptDateTo">
+                        </label>
+                        <button type="button" class="filter-reset" id="apptFilterReset">Reset</button>
+                        <span id="apptFilterCount" style="margin-left:auto;font-size:.82rem;color:var(--muted);"></span>
+                    </div>
                     <div class="table-wrap" style="margin-top:14px;">
                         <table>
                             <thead><tr><th>Patient</th><th>Doctor</th><th>Date</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
@@ -151,8 +196,32 @@
 
             <!-- ==================== BILLING SECTION ==================== -->
             <section id="section-billing" class="admin-section">
+                <div class="summary-cards">
+                    <article class="summary-card revenue">
+                        <h3>Total Revenue</h3>
+                        <div class="value" id="billingTotalRevenue">Rs 0</div>
+                        <small id="billingPaidCount">0 paid bills</small>
+                    </article>
+                    <article class="summary-card pending">
+                        <h3>Pending Amount</h3>
+                        <div class="value" id="billingPendingAmount">Rs 0</div>
+                        <small id="billingPendingCount">0 pending bills</small>
+                    </article>
+                </div>
                 <section class="panel">
                     <div class="section-header"><h2>All Bills</h2></div>
+                    <div class="filter-bar">
+                        <label>Status
+                            <select id="billingStatusFilter">
+                                <option value="all">All</option>
+                                <option value="pending">Pending</option>
+                                <option value="paid">Paid</option>
+                                <option value="partial">Partial</option>
+                            </select>
+                        </label>
+                        <button type="button" class="filter-reset" id="billingFilterReset">Reset</button>
+                        <span id="billingFilterCount" style="margin-left:auto;font-size:.82rem;color:var(--muted);"></span>
+                    </div>
                     <div class="table-wrap" style="margin-top:14px;">
                         <table>
                             <thead><tr><th>Patient</th><th>Amount</th><th>Status</th><th>Invoice</th><th>Date</th><th>Actions</th></tr></thead>
@@ -179,7 +248,37 @@
             <section id="section-settings" class="admin-section">
                 <section class="panel">
                     <div class="section-header"><h2>System Information</h2></div>
-                    <div id="settingsBody" style="margin-top:14px;">Loading...</div>
+                    <div id="systemInfoBody" style="margin-top:14px;">Loading...</div>
+                </section>
+
+                <section class="panel" style="margin-top:18px;">
+                    <div class="section-header">
+                        <h2>Quick Actions</h2>
+                    </div>
+                    <div class="quick-actions" style="margin-top:14px;">
+                        <button type="button" class="action-btn action-approve" id="qaRefreshDemo">
+                            <i class="fa-solid fa-rotate"></i> Refresh Demo Data
+                        </button>
+                        <button type="button" class="action-btn action-view" id="qaViewPending">
+                            <i class="fa-solid fa-user-doctor"></i> View Pending Applications
+                        </button>
+                    </div>
+                    <p style="color:var(--muted); font-size:.82rem; margin-top:10px;">
+                        <strong>Refresh Demo Data</strong> wipes every user account, clinical record, and billing entry, then reseeds the three demo accounts. You will be logged out and must sign in again with the demo admin credentials.
+                    </p>
+                </section>
+
+                <section class="panel" style="margin-top:18px;">
+                    <div class="section-header">
+                        <h2>User Accounts</h2>
+                        <input type="search" id="usersSearch" class="search-input" placeholder="Search by email or type">
+                    </div>
+                    <div class="table-wrap" style="margin-top:14px;">
+                        <table>
+                            <thead><tr><th>Email</th><th>Type</th><th>Status</th><th>Created At</th><th>Actions</th></tr></thead>
+                            <tbody id="usersBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
                 </section>
             </section>
         </main>
@@ -223,7 +322,8 @@
             const doctorsBody = document.getElementById("doctorsBody");
             const allAppointmentsBody = document.getElementById("allAppointmentsBody");
             const billingBody = document.getElementById("billingBody");
-            const settingsBody = document.getElementById("settingsBody");
+            const systemInfoBody = document.getElementById("systemInfoBody");
+            const usersBody = document.getElementById("usersBody");
             const sectionTitle = document.getElementById("sectionTitle");
             const sectionSubtitle = document.getElementById("sectionSubtitle");
             const tabOverview = document.getElementById("tabOverview");
@@ -240,6 +340,8 @@
                 appointments: [],
                 billing: [],
                 tickets: [],
+                users: [],
+                systemInfo: null,
                 stats: null,
                 loaded: new Set(["dashboard"])
             };
@@ -540,13 +642,43 @@
                 `).join("");
             }
 
+            function getApptFilters() {
+                return {
+                    status: (document.getElementById("apptStatusFilter")?.value || "all").toLowerCase(),
+                    from: document.getElementById("apptDateFrom")?.value || "",
+                    to: document.getElementById("apptDateTo")?.value || ""
+                };
+            }
+
             function renderAllAppointments() {
                 const patientMap = new Map((STATE.patients || []).map(p => [p.patient_id, p.name]));
                 const doctorMap = new Map((STATE.doctors || []).map(d => [d.doctor_id, d.name]));
+                const filters = getApptFilters();
+                const fromTs = filters.from ? new Date(filters.from + "T00:00:00").getTime() : null;
+                const toTs = filters.to ? new Date(filters.to + "T23:59:59").getTime() : null;
+
                 const rows = [...(STATE.appointments || [])]
+                    .filter(a => {
+                        const status = String(a.status || "").toLowerCase();
+                        if (filters.status !== "all" && status !== filters.status) return false;
+                        if (fromTs || toTs) {
+                            const ts = new Date(a.appointment_date).getTime();
+                            if (Number.isNaN(ts)) return false;
+                            if (fromTs && ts < fromTs) return false;
+                            if (toTs && ts > toTs) return false;
+                        }
+                        return true;
+                    })
                     .sort((a,b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+
+                const countEl = document.getElementById("apptFilterCount");
+                if (countEl) {
+                    const total = (STATE.appointments || []).length;
+                    countEl.textContent = `Showing ${rows.length} of ${total}`;
+                }
+
                 if (!rows.length) {
-                    allAppointmentsBody.innerHTML = '<tr><td colspan="6">No appointments found.</td></tr>';
+                    allAppointmentsBody.innerHTML = '<tr><td colspan="6">No appointments match the current filters.</td></tr>';
                     return;
                 }
                 allAppointmentsBody.innerHTML = rows.map(r => {
@@ -554,8 +686,8 @@
                     const cancellable = status === "scheduled" || status === "pending";
                     return `
                         <tr>
-                            <td>${escapeHtml(safeText(patientMap.get(r.patient_id), `Patient #${safeText(r.patient_id, "N/A")}`))}</td>
-                            <td>${escapeHtml(safeText(doctorMap.get(r.doctor_id), `Doctor #${safeText(r.doctor_id, "N/A")}`))}</td>
+                            <td>${escapeHtml(safeText(patientMap.get(r.patient_id) || r.patient_name, `Patient #${safeText(r.patient_id, "N/A")}`))}</td>
+                            <td>${escapeHtml(safeText(doctorMap.get(r.doctor_id) || r.doctor_name, `Doctor #${safeText(r.doctor_id, "N/A")}`))}</td>
                             <td>${escapeHtml(formatDate(r.appointment_date))}</td>
                             <td>${escapeHtml(safeText(r.reason, "—"))}</td>
                             <td><span class="badge ${getStatusClass(r.status)}">${escapeHtml(safeText(r.status, "unknown"))}</span></td>
@@ -569,11 +701,51 @@
                 }).join("");
             }
 
+            function formatMoney(value) {
+                const n = Number(value);
+                if (!Number.isFinite(n)) return "Rs 0";
+                return "Rs " + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function updateBillingSummary() {
+                const bills = STATE.billing || [];
+                let totalRevenue = 0, pendingAmount = 0, paidCount = 0, pendingCount = 0;
+                bills.forEach(b => {
+                    const total = Number(b.total_amount ?? b.amount ?? 0) || 0;
+                    const paid = Number(b.paid_amount ?? 0) || 0;
+                    const status = String(b.payment_status || b.status || "pending").toLowerCase();
+                    totalRevenue += paid;
+                    if (status === "paid") {
+                        paidCount += 1;
+                    } else {
+                        pendingAmount += Math.max(total - paid, 0);
+                        pendingCount += 1;
+                    }
+                });
+                const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+                setText("billingTotalRevenue", formatMoney(totalRevenue));
+                setText("billingPendingAmount", formatMoney(pendingAmount));
+                setText("billingPaidCount", `${paidCount} paid bill${paidCount === 1 ? "" : "s"}`);
+                setText("billingPendingCount", `${pendingCount} unpaid bill${pendingCount === 1 ? "" : "s"}`);
+            }
+
             function renderBilling() {
                 const patientMap = new Map((STATE.patients || []).map(p => [p.patient_id, p.name]));
-                const rows = STATE.billing || [];
+                const all = STATE.billing || [];
+                const filter = (document.getElementById("billingStatusFilter")?.value || "all").toLowerCase();
+                const rows = all.filter(b => {
+                    if (filter === "all") return true;
+                    const status = String(b.payment_status || b.status || "pending").toLowerCase();
+                    return status === filter;
+                });
+
+                updateBillingSummary();
+
+                const countEl = document.getElementById("billingFilterCount");
+                if (countEl) countEl.textContent = `Showing ${rows.length} of ${all.length}`;
+
                 if (!rows.length) {
-                    billingBody.innerHTML = '<tr><td colspan="6">No bills found.</td></tr>';
+                    billingBody.innerHTML = '<tr><td colspan="6">No bills match the current filter.</td></tr>';
                     return;
                 }
                 billingBody.innerHTML = rows.map(b => {
@@ -585,7 +757,7 @@
                     return `
                         <tr>
                             <td>${escapeHtml(safeText(patientMap.get(b.patient_id), `Patient #${safeText(b.patient_id, "N/A")}`))}</td>
-                            <td>Rs ${escapeHtml(safeText(amount, "0"))}</td>
+                            <td>${formatMoney(amount)}</td>
                             <td><span class="badge ${getStatusClass(status)}">${escapeHtml(status)}</span></td>
                             <td>${escapeHtml(invoice)}</td>
                             <td>${escapeHtml(formatDate(b.created_at || b.date))}</td>
@@ -599,25 +771,113 @@
                 }).join("");
             }
 
-            function renderSettings() {
+            function formatUptime(startIso) {
+                if (!startIso) return "—";
+                const start = new Date(startIso).getTime();
+                if (Number.isNaN(start)) return "—";
+                let seconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
+                const d = Math.floor(seconds / 86400); seconds %= 86400;
+                const h = Math.floor(seconds / 3600);  seconds %= 3600;
+                const m = Math.floor(seconds / 60);    seconds %= 60;
+                const parts = [];
+                if (d) parts.push(`${d}d`);
+                if (h || d) parts.push(`${h}h`);
+                parts.push(`${m}m`, `${seconds}s`);
+                return parts.join(" ");
+            }
+
+            function renderSystemInfo() {
+                const info = STATE.systemInfo || {};
                 const stats = STATE.stats || {};
-                const uptimeMs = Date.now() - PAGE_LOAD_AT;
-                const uptimeSeconds = Math.floor(uptimeMs / 1000);
-                const uptimeDisplay = `${Math.floor(uptimeSeconds / 60)}m ${uptimeSeconds % 60}s (session)`;
-                const dbStatus = "Connected";
-                const totalPatients = STATE.patients.length || stats.total_patients || 0;
-                const totalDoctors  = STATE.doctors.length  || stats.doctors_available || 0;
-                const connectedUsers = totalPatients + totalDoctors;
-                settingsBody.innerHTML = `
-                    <div class="settings-grid">
-                        <div class="settings-item"><strong>API Base URL</strong><span>${escapeHtml(API_BASE)}</span></div>
-                        <div class="settings-item"><strong>Database</strong><span>${escapeHtml(dbStatus)}</span></div>
-                        <div class="settings-item"><strong>Registered Patients</strong><span>${escapeHtml(totalPatients)}</span></div>
-                        <div class="settings-item"><strong>Active Doctors</strong><span>${escapeHtml(totalDoctors)}</span></div>
-                        <div class="settings-item"><strong>Connected Users (total)</strong><span>${escapeHtml(connectedUsers)}</span></div>
-                        <div class="settings-item"><strong>Server Uptime</strong><span>${escapeHtml(uptimeDisplay)}</span></div>
+                const byType = info.users_by_type || {};
+                const dbBadge = info.database_connected
+                    ? `<span class="badge-inline ok">Connected</span>`
+                    : `<span class="badge-inline bad">Disconnected</span>`;
+                const totalRecords = info.records_total != null
+                    ? info.records_total
+                    : (stats.total_records || 0);
+                systemInfoBody.innerHTML = `
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <strong>Database Mode</strong>
+                            <span>${escapeHtml(safeText(info.database_mode, "fallback").toUpperCase())} ${dbBadge}</span>
+                        </div>
+                        <div class="info-card">
+                            <strong>Database Host</strong>
+                            <span>${escapeHtml(safeText(info.database_host, "—"))} / ${escapeHtml(safeText(info.database_name, "—"))}</span>
+                        </div>
+                        <div class="info-card">
+                            <strong>Total Users</strong>
+                            <span>${escapeHtml(safeText(info.users_total, "0"))}</span>
+                        </div>
+                        <div class="info-card">
+                            <strong>Users by Type</strong>
+                            <span>${escapeHtml(byType.admin || 0)} admin · ${escapeHtml(byType.doctor || 0)} doctor · ${escapeHtml(byType.patient || 0)} patient${byType.staff ? ` · ${escapeHtml(byType.staff)} staff` : ""}</span>
+                        </div>
+                        <div class="info-card">
+                            <strong>Total Records</strong>
+                            <span>${escapeHtml(totalRecords)}</span>
+                        </div>
+                        <div class="info-card">
+                            <strong>Server Started</strong>
+                            <span>${escapeHtml(formatDate(info.server_start_time))}</span>
+                        </div>
+                        <div class="info-card">
+                            <strong>Server Uptime</strong>
+                            <span>${escapeHtml(formatUptime(info.server_start_time))}</span>
+                        </div>
+                        <div class="info-card">
+                            <strong>Last Backup</strong>
+                            <span>${escapeHtml(safeText(info.last_backup, "Not configured"))}</span>
+                        </div>
+                        <div class="info-card">
+                            <strong>API Base URL</strong>
+                            <span style="font-weight:500;font-size:.88rem;">${escapeHtml(API_BASE)}</span>
+                        </div>
                     </div>
                 `;
+            }
+
+            function renderUsers() {
+                const term = (document.getElementById("usersSearch")?.value || "").trim().toLowerCase();
+                const all = STATE.users || [];
+                const rows = all.filter(u => {
+                    if (!term) return true;
+                    return (u.email || "").toLowerCase().includes(term)
+                        || (u.user_type || "").toLowerCase().includes(term)
+                        || (u.status || "").toLowerCase().includes(term);
+                });
+                if (!rows.length) {
+                    usersBody.innerHTML = '<tr><td colspan="5">No users found.</td></tr>';
+                    return;
+                }
+                const currentUserId = String(localStorage.getItem("userId") || "");
+                usersBody.innerHTML = rows.map(u => {
+                    const status = String(u.status || "active").toLowerCase();
+                    const isActive = status === "active";
+                    const toggleAction = isActive ? "deactivate" : "activate";
+                    const toggleLabel = isActive ? "Deactivate" : "Activate";
+                    const isSelf = currentUserId && String(u.user_id) === currentUserId;
+                    return `
+                        <tr>
+                            <td>${escapeHtml(safeText(u.email, "—"))}</td>
+                            <td>${escapeHtml(safeText(u.user_type, "—"))}</td>
+                            <td><span class="badge ${getStatusClass(status)}">${escapeHtml(status)}</span></td>
+                            <td>${escapeHtml(formatDate(u.created_at))}</td>
+                            <td>
+                                ${isSelf
+                                    ? `<span style="color:var(--muted);font-size:.82rem;">Current account</span>`
+                                    : `<button class="action-btn action-toggle" data-action="${toggleAction}" data-id="${escapeHtml(u.user_id)}">${toggleLabel}</button>
+                                       <button class="action-btn action-reset" data-action="reset" data-id="${escapeHtml(u.user_id)}" data-email="${escapeHtml(u.email || "")}">Reset Password</button>`}
+                            </td>
+                        </tr>
+                    `;
+                }).join("");
+            }
+
+            function renderSettings() {
+                renderSystemInfo();
+                renderUsers();
             }
 
             async function reviewDoctorApplication(applicationId, action) {
@@ -674,6 +934,12 @@
                         STATE.tickets = (payload && payload.tickets) || [];
                         renderSupportTickets(STATE.tickets);
                     } else if (id === "settings") {
+                        const [info, users] = await Promise.all([
+                            fetchJson(`${API_BASE}/admin/system-info`),
+                            fetchJson(`${API_BASE}/admin/users`)
+                        ]);
+                        STATE.systemInfo = info || {};
+                        STATE.users = Array.isArray(users) ? users : [];
                         renderSettings();
                     }
                     STATE.loaded.add(id);
@@ -852,11 +1118,123 @@
                 if (action !== "markpaid" || !id) return;
                 if (!confirm("Mark this bill as paid?")) return;
                 try {
-                    await apiSend(`${API_BASE}/billing/${id}`, "PUT", { payment_status: "paid" });
+                    const result = await apiSend(`${API_BASE}/admin/billing/${id}/pay`, "PUT");
+                    const updated = result && result.billing;
                     const bill = STATE.billing.find(b => String(b.bill_id ?? b.billing_id) === String(id));
-                    if (bill) { bill.payment_status = "paid"; bill.status = "paid"; }
+                    if (bill) {
+                        if (updated) Object.assign(bill, updated);
+                        else {
+                            bill.payment_status = "paid";
+                            bill.status = "paid";
+                            bill.paid_amount = bill.total_amount ?? bill.amount ?? bill.paid_amount;
+                            bill.payment_date = new Date().toISOString();
+                        }
+                    }
                     renderBilling();
-                } catch (err) { setError(err.message || "Unable to mark bill as paid. Backend may not yet support this endpoint."); }
+                } catch (err) { setError(err.message || "Unable to mark bill as paid."); }
+            });
+
+            // ==================== Filter wiring ====================
+            ["apptStatusFilter", "apptDateFrom", "apptDateTo"].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener("change", renderAllAppointments);
+            });
+            const apptResetBtn = document.getElementById("apptFilterReset");
+            if (apptResetBtn) apptResetBtn.addEventListener("click", () => {
+                document.getElementById("apptStatusFilter").value = "all";
+                document.getElementById("apptDateFrom").value = "";
+                document.getElementById("apptDateTo").value = "";
+                renderAllAppointments();
+            });
+
+            const billingStatusEl = document.getElementById("billingStatusFilter");
+            if (billingStatusEl) billingStatusEl.addEventListener("change", renderBilling);
+            const billingResetBtn = document.getElementById("billingFilterReset");
+            if (billingResetBtn) billingResetBtn.addEventListener("click", () => {
+                document.getElementById("billingStatusFilter").value = "all";
+                renderBilling();
+            });
+
+            // ==================== User accounts ====================
+            const usersSearchEl = document.getElementById("usersSearch");
+            if (usersSearchEl) usersSearchEl.addEventListener("input", renderUsers);
+
+            usersBody.addEventListener("click", async function (e) {
+                const target = e.target.closest("[data-action]");
+                if (!target) return;
+                const action = target.getAttribute("data-action");
+                const id = target.getAttribute("data-id");
+                if (!action || !id) return;
+                const user = STATE.users.find(u => String(u.user_id) === String(id));
+                const email = (user && user.email) || target.getAttribute("data-email") || "this user";
+
+                if (action === "activate" || action === "deactivate") {
+                    const next = action === "activate" ? "active" : "inactive";
+                    if (!confirm(`${action === "activate" ? "Activate" : "Deactivate"} ${email}?`)) return;
+                    try {
+                        await apiSend(`${API_BASE}/admin/users/${id}/status`, "PUT", { status: next });
+                        if (user) user.status = next;
+                        renderUsers();
+                    } catch (err) { setError(err.message || "Unable to update user status."); }
+                } else if (action === "reset") {
+                    if (!confirm(`Generate a temporary password for ${email}? The current password will be replaced.`)) return;
+                    try {
+                        const result = await apiSend(`${API_BASE}/admin/users/${id}/reset-password`, "POST");
+                        const tempPw = (result && result.temporary_password) || "";
+                        const safeEmail = escapeHtml(result && result.email || email);
+                        const safePw = escapeHtml(tempPw);
+                        openModal("Temporary Password Issued", `
+                            <p style="margin-bottom:8px;">A temporary password has been generated for <strong>${safeEmail}</strong>.</p>
+                            <p style="color:var(--muted);font-size:.86rem;margin-bottom:8px;">Share this password with the user manually. It will not be shown again.</p>
+                            <div class="temp-pw" id="tempPwBox">
+                                <code id="tempPwValue">${safePw}</code>
+                                <button type="button" id="tempPwCopy">Copy</button>
+                            </div>
+                            <p style="color:#b45309;font-size:.82rem;margin-top:6px;">
+                                <i class="fa-solid fa-triangle-exclamation"></i> The user should change this password after their next login.
+                            </p>
+                        `);
+                        const copyBtn = document.getElementById("tempPwCopy");
+                        if (copyBtn) copyBtn.addEventListener("click", async () => {
+                            try {
+                                await navigator.clipboard.writeText(tempPw);
+                                copyBtn.textContent = "Copied!";
+                                setTimeout(() => { copyBtn.textContent = "Copy"; }, 1500);
+                            } catch (_e) {
+                                copyBtn.textContent = "Copy failed";
+                            }
+                        });
+                    } catch (err) { setError(err.message || "Unable to reset password."); }
+                }
+            });
+
+            // ==================== Quick Actions ====================
+            const refreshDemoBtn = document.getElementById("qaRefreshDemo");
+            if (refreshDemoBtn) refreshDemoBtn.addEventListener("click", async () => {
+                const warn = "This will DELETE every user, patient, doctor, appointment, and bill, then reseed the three demo accounts. You will be logged out.\n\nType RESET to confirm:";
+                const answer = window.prompt(warn, "");
+                if (answer !== "RESET") {
+                    if (answer !== null) setError("Refresh cancelled — confirmation token did not match.");
+                    return;
+                }
+                refreshDemoBtn.disabled = true;
+                refreshDemoBtn.textContent = "Resetting…";
+                try {
+                    const result = await apiSend(`${API_BASE}/admin/refresh-demo-data`, "POST", { confirm: "RESET" });
+                    alert((result && result.message) || "Demo data reset. Please log in again.");
+                    clearSession();
+                    window.location.href = "login.html";
+                } catch (err) {
+                    setError(err.message || "Unable to refresh demo data.");
+                    refreshDemoBtn.disabled = false;
+                    refreshDemoBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> Refresh Demo Data';
+                }
+            });
+
+            const viewPendingBtn = document.getElementById("qaViewPending");
+            if (viewPendingBtn) viewPendingBtn.addEventListener("click", () => {
+                switchSection("dashboard");
+                setAdminTab("pending");
             });
 
             init();

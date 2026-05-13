@@ -11,6 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import os
 import re
+import sys
 import jwt
 import json
 import pymysql
@@ -103,6 +104,9 @@ app.config['JWT_SECRET_KEY'] = _jwt_secret_from_env
 # Allow up to 16 MB for patient-uploaded records (photos / PDFs / etc.)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
+# Server start time, used by /api/admin/system-info for the settings panel.
+SERVER_START_TIME = datetime.now()
+
 # Flask-Mail (Gmail SMTP)
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', '587'))
@@ -123,6 +127,8 @@ if Mail and app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD'):
 CORS(app, resources={
     r"/api/*": {
         "origins": [
+            "http://127.0.0.1:5501",
+            "http://localhost:5501",
             re.compile(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"),
         ],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -2713,8 +2719,10 @@ def get_billing(current_user_id, current_user_type):
 
         if mysql_ready():
             query = """
-                SELECT bill_id AS billing_id, patient_id, total_amount AS amount, payment_status AS status,
-                       invoice_number AS description, created_at AS date
+                SELECT bill_id AS billing_id, patient_id, total_amount AS amount,
+                       total_amount, paid_amount, payment_status AS status,
+                       payment_status, payment_date, invoice_number AS description,
+                       invoice_number, created_at AS date, created_at
                 FROM billing
                 WHERE 1=1
             """
@@ -3786,6 +3794,301 @@ def admin_update_doctor_status(current_user_id, current_user_type, doctor_id):
     if doctor.get('email'):
         db_execute("UPDATE users SET status=%s WHERE email=%s AND user_type='doctor'", (status, doctor['email']))
     return jsonify({'message': f'Doctor status updated to {status}'}), 200
+
+
+@app.route('/api/admin/billing/<int:bill_id>/pay', methods=['PUT'])
+@token_required
+def admin_mark_billing_paid(current_user_id, current_user_type, bill_id):
+    """Admin-only: mark a bill fully paid.
+
+    Sets payment_status='paid', paid_amount=total_amount, payment_date=NOW().
+    """
+    if current_user_type != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        if mysql_ready():
+            row = db_select_one(
+                "SELECT bill_id, total_amount FROM billing WHERE bill_id=%s",
+                (bill_id,)
+            )
+            if not row:
+                return jsonify({'error': 'Bill not found'}), 404
+            db_execute(
+                """
+                UPDATE billing
+                SET payment_status='paid',
+                    paid_amount=total_amount,
+                    payment_date=NOW()
+                WHERE bill_id=%s
+                """,
+                (bill_id,)
+            )
+            updated = db_select_one(
+                """
+                SELECT bill_id AS billing_id, patient_id, total_amount AS amount,
+                       total_amount, paid_amount, payment_status AS status,
+                       payment_status, payment_date, invoice_number AS description,
+                       invoice_number, created_at AS date, created_at
+                FROM billing WHERE bill_id=%s
+                """,
+                (bill_id,)
+            )
+            for key in ('payment_date', 'created_at', 'date'):
+                if updated and hasattr(updated.get(key), 'isoformat'):
+                    updated[key] = updated[key].isoformat()
+            return jsonify({'message': 'Bill marked as paid', 'billing': updated}), 200
+
+        bill = next((b for b in mock_billing if (b.get('bill_id') == bill_id or b.get('billing_id') == bill_id)), None)
+        if not bill:
+            return jsonify({'error': 'Bill not found'}), 404
+        total = bill.get('total_amount', bill.get('amount', 0))
+        bill['payment_status'] = 'paid'
+        bill['status'] = 'paid'
+        bill['paid_amount'] = total
+        bill['payment_date'] = datetime.now().isoformat()
+        return jsonify({'message': 'Bill marked as paid', 'billing': bill}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ==================== ADMIN: SYSTEM INFO & USER MANAGEMENT ====================
+@app.route('/api/admin/system-info', methods=['GET'])
+@token_required
+def admin_system_info(current_user_id, current_user_type):
+    """Admin-only system information for the Settings panel."""
+    if current_user_type != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        connected = mysql_ready()
+        info = {
+            'database_mode': 'mysql' if connected else 'fallback',
+            'database_connected': bool(connected),
+            'database_host': DB_HOST,
+            'database_name': DB_NAME,
+            'server_start_time': SERVER_START_TIME.isoformat(),
+            'last_backup': 'Not configured',
+            'users_total': 0,
+            'users_by_type': {'admin': 0, 'doctor': 0, 'patient': 0, 'staff': 0},
+            'records_total': 0,
+        }
+
+        if connected:
+            type_rows = db_select(
+                "SELECT user_type, COUNT(*) AS c FROM users GROUP BY user_type"
+            ) or []
+            for row in type_rows:
+                key = str(row.get('user_type') or '').lower() or 'other'
+                info['users_by_type'][key] = int(row.get('c') or 0)
+            info['users_total'] = sum(info['users_by_type'].values())
+
+            record_tables = (
+                'patients', 'doctors', 'appointments', 'medical_records',
+                'prescriptions', 'billing'
+            )
+            total_records = 0
+            for table in record_tables:
+                try:
+                    row = db_select_one(f"SELECT COUNT(*) AS c FROM {table}")
+                    total_records += int((row or {}).get('c') or 0)
+                except Exception:
+                    continue
+            info['records_total'] = total_records
+        else:
+            info['users_by_type'] = {
+                'admin': sum(1 for u in mock_users.values() if u.get('user_type') == 'admin'),
+                'doctor': sum(1 for u in mock_users.values() if u.get('user_type') == 'doctor'),
+                'patient': sum(1 for u in mock_users.values() if u.get('user_type') == 'patient'),
+                'staff': 0,
+            }
+            info['users_total'] = sum(info['users_by_type'].values())
+            info['records_total'] = (
+                len(mock_patients) + len(mock_doctors) + len(mock_appointments)
+                + len(mock_medical_records) + len(mock_prescriptions) + len(mock_billing)
+            )
+
+        return jsonify(info), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/users', methods=['GET'])
+@token_required
+def admin_list_users(current_user_id, current_user_type):
+    """Admin-only: list every account in the users table."""
+    if current_user_type != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        if mysql_ready():
+            rows = db_select(
+                """
+                SELECT user_id, email, user_type, status, created_at, updated_at
+                FROM users
+                ORDER BY created_at DESC, user_id DESC
+                """
+            )
+            for row in rows or []:
+                for key in ('created_at', 'updated_at'):
+                    val = row.get(key)
+                    if hasattr(val, 'isoformat'):
+                        row[key] = val.isoformat()
+            return jsonify(rows or []), 200
+
+        rows = []
+        for email, u in mock_users.items():
+            rows.append({
+                'user_id': u.get('user_id'),
+                'email': email,
+                'user_type': u.get('user_type'),
+                'status': u.get('status', 'active'),
+                'created_at': None,
+                'updated_at': None,
+            })
+        return jsonify(rows), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/users/<int:user_id>/status', methods=['PUT'])
+@token_required
+def admin_update_user_status(current_user_id, current_user_type, user_id):
+    """Admin-only: toggle a user's account status (active/inactive).
+
+    Also propagates the status to the associated patients/doctors profile row
+    when one exists, so the dashboards stay consistent.
+    """
+    if current_user_type != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json() or {}
+    status = str(data.get('status', '')).strip().lower()
+    if status not in ('active', 'inactive'):
+        return jsonify({'error': 'Invalid status value'}), 400
+    if int(user_id) == int(current_user_id) and status == 'inactive':
+        return jsonify({'error': 'You cannot deactivate your own account.'}), 400
+    if not mysql_ready():
+        return jsonify({'error': 'Database not available'}), 503
+    try:
+        user = db_select_one(
+            "SELECT user_id, email, user_type FROM users WHERE user_id=%s",
+            (user_id,)
+        )
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        db_execute("UPDATE users SET status=%s WHERE user_id=%s", (status, user_id))
+        email = user.get('email')
+        utype = (user.get('user_type') or '').lower()
+        if email and utype == 'patient':
+            db_execute("UPDATE patients SET status=%s WHERE email=%s", (status, email))
+        elif email and utype == 'doctor':
+            db_execute("UPDATE doctors SET status=%s WHERE email=%s", (status, email))
+        return jsonify({'message': f'User status updated to {status}', 'user_id': user_id, 'status': status}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+def _generate_temp_password():
+    """Generate a temporary password that satisfies our complexity rules."""
+    alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
+    body = ''.join(secrets.choice(alphabet) for _ in range(8))
+    return f"Tmp@{body}"
+
+
+@app.route('/api/admin/users/<int:user_id>/reset-password', methods=['POST'])
+@token_required
+def admin_reset_user_password(current_user_id, current_user_type, user_id):
+    """Admin-only: generate a temporary password and return it once.
+
+    The plaintext password is returned in the response for the admin to
+    relay to the user manually; it is never stored as plaintext.
+    """
+    if current_user_type != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    if not mysql_ready():
+        return jsonify({'error': 'Database not available'}), 503
+    try:
+        user = db_select_one(
+            "SELECT user_id, email, user_type FROM users WHERE user_id=%s",
+            (user_id,)
+        )
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        temp_password = _generate_temp_password()
+        db_execute(
+            "UPDATE users SET password=%s WHERE user_id=%s",
+            (generate_password_hash(temp_password), user_id)
+        )
+        return jsonify({
+            'message': 'Temporary password generated',
+            'user_id': user_id,
+            'email': user.get('email'),
+            'temporary_password': temp_password,
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/refresh-demo-data', methods=['POST'])
+@token_required
+def admin_refresh_demo_data(current_user_id, current_user_type):
+    """Admin-only: wipe clinical/user tables and reseed the three demo accounts.
+
+    DESTRUCTIVE — removes all current users (including the calling admin) and
+    clinical data, then recreates the three demo accounts seeded by
+    ``reset_demo_accounts.py``. The admin will need to log in again afterward
+    using the demo admin credentials.
+    """
+    if current_user_type != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    if not mysql_ready():
+        return jsonify({'error': 'Database not available'}), 503
+
+    confirm = (request.get_json(silent=True) or {}).get('confirm')
+    if str(confirm) != 'RESET':
+        return jsonify({'error': 'Confirmation token missing. Send {"confirm": "RESET"}.'}), 400
+
+    try:
+        # Lazy-import the script's helpers so server boot doesn't depend on it.
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
+        import importlib
+        if 'reset_demo_accounts' in sys.modules:
+            rda = importlib.reload(sys.modules['reset_demo_accounts'])
+        else:
+            import reset_demo_accounts as rda
+
+        conn = pymysql.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            charset='utf8mb4',
+            cursorclass=pymysql.cursors.DictCursor,
+            autocommit=False,
+        )
+        try:
+            with conn.cursor() as cursor:
+                rda.wipe(cursor)
+                rda.seed_admin(cursor)
+                rda.seed_doctor(cursor)
+                rda.seed_patient(cursor)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+        return jsonify({
+            'message': 'Demo data reset successfully. Please log in again with the demo admin credentials.',
+            'demo_accounts': [
+                {'role': 'admin', 'email': 'admin@clinixpro.com', 'password': 'Admin@123'},
+                {'role': 'doctor', 'email': 'doctor@clinixpro.com', 'password': 'Doctor@123'},
+                {'role': 'patient', 'email': 'patient@clinixpro.com', 'password': 'Patient@123'},
+            ],
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Demo reset failed: {e}'}), 500
 
 
 @app.route('/api/support/tickets/<ticket_id>/reply', methods=['POST'])
