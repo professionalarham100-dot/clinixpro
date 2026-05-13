@@ -15,7 +15,18 @@
     <link rel="stylesheet" href="css/chatbot.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="css/admin-dashboard.css">
-    <style>body.session-pending{visibility:hidden}</style>
+    <style>body.session-pending{visibility:hidden}
+    .detail-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center}
+    .detail-modal{background:#fff;border-radius:12px;width:min(520px,92vw);max-height:82vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.22)}
+    .detail-modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px;border-bottom:1px solid #eee}
+    .detail-modal-header h3{margin:0;font-size:1.08rem;font-weight:600}
+    .detail-modal-header button{background:none;border:none;font-size:1.5rem;cursor:pointer;color:#666;line-height:1;padding:0 4px}
+    .detail-modal-header button:hover{color:#111}
+    .detail-modal-body{padding:18px 20px}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+    .detail-item strong{display:block;font-size:.71rem;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+    .detail-item span{font-size:.94rem;color:#1a1a2e;word-break:break-word}
+    </style>
 </head>
 <body class="session-pending">
     <div class="layout">
@@ -174,6 +185,17 @@
         </main>
     </div>
 
+    <!-- ==================== DETAIL MODAL ==================== -->
+    <div id="detailModal" class="detail-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="detail-modal">
+            <div class="detail-modal-header">
+                <h3 id="modalTitle">Details</h3>
+                <button type="button" id="modalClose" aria-label="Close">&times;</button>
+            </div>
+            <div id="modalBody" class="detail-modal-body">Loading…</div>
+        </div>
+    </div>
+
     <script>
         (function () {
             function clearSession() {
@@ -208,6 +230,9 @@
             const tabPending = document.getElementById("tabPending");
             const tabButtons = document.querySelectorAll(".admin-tab");
             let lineChart, doughnutChart;
+            const detailModal = document.getElementById("detailModal");
+            const modalTitle = document.getElementById("modalTitle");
+            const modalBody = document.getElementById("modalBody");
 
             const STATE = {
                 patients: [],
@@ -228,6 +253,49 @@
                 tickets:      { title: "Support Tickets",  subtitle: "Review customer support requests" },
                 settings:     { title: "Settings",         subtitle: "System information and status" }
             };
+
+            function openModal(title, bodyHtml) {
+                modalTitle.textContent = title;
+                modalBody.innerHTML = bodyHtml;
+                detailModal.style.display = "flex";
+            }
+            function closeModal() {
+                detailModal.style.display = "none";
+                modalBody.innerHTML = "Loading…";
+            }
+
+            function buildPatientModalHtml(p) {
+                const esc = escapeHtml, st = safeText;
+                return `<div class="detail-grid">
+                    <div class="detail-item"><strong>Name</strong><span>${esc(st(p.name,'—'))}</span></div>
+                    <div class="detail-item"><strong>Email</strong><span>${esc(st(p.email,'—'))}</span></div>
+                    <div class="detail-item"><strong>Phone</strong><span>${esc(st(p.phone,'—'))}</span></div>
+                    <div class="detail-item"><strong>Gender</strong><span>${esc(st(p.gender,'—'))}</span></div>
+                    <div class="detail-item"><strong>Blood Group</strong><span>${esc(st(p.blood_type||p.blood_group,'—'))}</span></div>
+                    <div class="detail-item"><strong>Date of Birth</strong><span>${esc(st(p.dob,'—'))}</span></div>
+                    <div class="detail-item"><strong>Address</strong><span>${esc(st(p.address,'—'))}</span></div>
+                    <div class="detail-item"><strong>Emergency Contact</strong><span>${esc(st(p.emergency_contact,'—'))}</span></div>
+                    <div class="detail-item"><strong>Status</strong><span>${esc(st(p.status,'active'))}</span></div>
+                    <div class="detail-item"><strong>Registered</strong><span>${esc(formatDate(p.created_at))}</span></div>
+                </div>`;
+            }
+
+            function buildDoctorModalHtml(d) {
+                const esc = escapeHtml, st = safeText;
+                const fee = d.consultation_fee != null ? 'Rs ' + esc(String(d.consultation_fee)) : '—';
+                return `<div class="detail-grid">
+                    <div class="detail-item"><strong>Name</strong><span>${esc(st(d.name,'—'))}</span></div>
+                    <div class="detail-item"><strong>Email</strong><span>${esc(st(d.email,'—'))}</span></div>
+                    <div class="detail-item"><strong>Specialization</strong><span>${esc(st(d.specialty||d.specialization,'—'))}</span></div>
+                    <div class="detail-item"><strong>License</strong><span>${esc(st(d.license_number,'—'))}</span></div>
+                    <div class="detail-item"><strong>Department</strong><span>${esc(st(d.department,'—'))}</span></div>
+                    <div class="detail-item"><strong>Experience</strong><span>${esc(st(d.experience||d.experience_years,'—'))} yrs</span></div>
+                    <div class="detail-item"><strong>Phone</strong><span>${esc(st(d.phone,'—'))}</span></div>
+                    <div class="detail-item"><strong>Consultation Fee</strong><span>${fee}</span></div>
+                    <div class="detail-item"><strong>Status</strong><span>${esc(st(d.status,'active'))}</span></div>
+                    <div class="detail-item"><strong>Available</strong><span>${d.is_available ? 'Yes' : 'No'}</span></div>
+                </div>`;
+            }
 
             function escapeHtml(value) {
                 if (value === null || value === undefined) return "";
@@ -696,6 +764,9 @@
                 window.location.href = "login.html";
             });
 
+            document.getElementById("modalClose").addEventListener("click", closeModal);
+            detailModal.addEventListener("click", function (e) { if (e.target === detailModal) closeModal(); });
+
             document.querySelectorAll(".menu a").forEach((a) => {
                 a.addEventListener("click", (e) => {
                     e.preventDefault();
@@ -725,12 +796,15 @@
                 const id = e.target && e.target.getAttribute("data-id");
                 if (!action || !id) return;
                 if (action === "view") {
-                    const patient = STATE.patients.find(p => String(p.patient_id) === String(id));
-                    if (patient) alert(`Patient #${patient.patient_id}\nName: ${patient.name || "—"}\nEmail: ${patient.email || "—"}\nPhone: ${patient.phone || "—"}\nGender: ${patient.gender || "—"}\nBlood: ${patient.blood_group || patient.blood_type || "—"}\nStatus: ${patient.status || "active"}`);
+                    openModal("Patient Details", "Loading…");
+                    try {
+                        const p = await fetchJson(`${API_BASE}/patients/${id}`);
+                        openModal("Patient Details", buildPatientModalHtml(p));
+                    } catch (err) { closeModal(); setError(err.message || "Unable to load patient details."); }
                 } else if (action === "deactivate") {
                     if (!confirm("Deactivate this patient account?")) return;
                     try {
-                        await apiSend(`${API_BASE}/patients/${id}`, "PUT", { status: "inactive" });
+                        await apiSend(`${API_BASE}/admin/patients/${id}/status`, "PUT", { status: "inactive" });
                         const p = STATE.patients.find(p => String(p.patient_id) === String(id));
                         if (p) p.status = "inactive";
                         renderPatients();
@@ -743,12 +817,15 @@
                 const id = e.target && e.target.getAttribute("data-id");
                 if (!action || !id) return;
                 if (action === "view") {
-                    const doctor = STATE.doctors.find(d => String(d.doctor_id) === String(id));
-                    if (doctor) alert(`Doctor #${doctor.doctor_id}\nName: ${doctor.name || "—"}\nEmail: ${doctor.email || "—"}\nSpecialization: ${doctor.specialization || "—"}\nLicense: ${doctor.license_number || "—"}\nStatus: ${doctor.status || "active"}`);
+                    openModal("Doctor Details", "Loading…");
+                    try {
+                        const d = await fetchJson(`${API_BASE}/doctors/${id}`);
+                        openModal("Doctor Details", buildDoctorModalHtml(d));
+                    } catch (err) { closeModal(); setError(err.message || "Unable to load doctor details."); }
                 } else if (action === "deactivate") {
                     if (!confirm("Deactivate this doctor account?")) return;
                     try {
-                        await apiSend(`${API_BASE}/doctors/${id}`, "PUT", { status: "inactive" });
+                        await apiSend(`${API_BASE}/admin/doctors/${id}/status`, "PUT", { status: "inactive" });
                         const d = STATE.doctors.find(d => String(d.doctor_id) === String(id));
                         if (d) d.status = "inactive";
                         renderDoctors();

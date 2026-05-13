@@ -1147,7 +1147,7 @@ def login():
             ensure_doctor_applications_table()
             ensure_doctors_profile_schema()
             ensure_demo_users_in_db()
-            user = db_select_one("SELECT user_id, email, password, user_type FROM users WHERE email=%s", (email,))
+            user = db_select_one("SELECT user_id, email, password, user_type, status FROM users WHERE email=%s", (email,))
             if not user:
                 pending_application = db_select_one(
                     "SELECT application_id FROM doctor_applications WHERE email=%s AND status='pending'",
@@ -1169,6 +1169,8 @@ def login():
                     "UPDATE users SET password=%s WHERE user_id=%s",
                     (generate_password_hash(password), user['user_id'])
                 )
+            if str(user.get('status') or '').lower() == 'inactive':
+                return jsonify({'error': 'Your account has been deactivated. Please contact the administrator.'}), 403
 
             effective_user_id = user['user_id']
             name = email
@@ -3742,6 +3744,48 @@ def reject_doctor_application(current_user_id, current_user_type, application_id
         return jsonify({'message': 'Doctor application rejected successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/patients/<int:patient_id>/status', methods=['PUT'])
+@token_required
+def admin_update_patient_status(current_user_id, current_user_type, patient_id):
+    """Admin-only: set a patient's status (active/inactive)."""
+    if current_user_type != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json() or {}
+    status = data.get('status', 'inactive')
+    if status not in ('active', 'inactive'):
+        return jsonify({'error': 'Invalid status value'}), 400
+    if not mysql_ready():
+        return jsonify({'error': 'Database not available'}), 503
+    patient = db_select_one("SELECT patient_id, email FROM patients WHERE patient_id=%s", (patient_id,))
+    if not patient:
+        return jsonify({'error': 'Patient not found'}), 404
+    db_execute("UPDATE patients SET status=%s WHERE patient_id=%s", (status, patient_id))
+    if patient.get('email'):
+        db_execute("UPDATE users SET status=%s WHERE email=%s AND user_type='patient'", (status, patient['email']))
+    return jsonify({'message': f'Patient status updated to {status}'}), 200
+
+
+@app.route('/api/admin/doctors/<int:doctor_id>/status', methods=['PUT'])
+@token_required
+def admin_update_doctor_status(current_user_id, current_user_type, doctor_id):
+    """Admin-only: set a doctor's status (active/inactive)."""
+    if current_user_type != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json() or {}
+    status = data.get('status', 'inactive')
+    if status not in ('active', 'inactive'):
+        return jsonify({'error': 'Invalid status value'}), 400
+    if not mysql_ready():
+        return jsonify({'error': 'Database not available'}), 503
+    doctor = db_select_one("SELECT doctor_id, email FROM doctors WHERE doctor_id=%s", (doctor_id,))
+    if not doctor:
+        return jsonify({'error': 'Doctor not found'}), 404
+    db_execute("UPDATE doctors SET status=%s WHERE doctor_id=%s", (status, doctor_id))
+    if doctor.get('email'):
+        db_execute("UPDATE users SET status=%s WHERE email=%s AND user_type='doctor'", (status, doctor['email']))
+    return jsonify({'message': f'Doctor status updated to {status}'}), 200
 
 
 @app.route('/api/support/tickets/<ticket_id>/reply', methods=['POST'])
