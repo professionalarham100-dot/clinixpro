@@ -53,11 +53,82 @@
     .action-reset:hover{filter:brightness(1.1)}
     .action-toggle{background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;box-shadow:0 4px 10px rgba(14,165,233,.3)}
     .action-toggle:hover{filter:brightness(1.1)}
+
+    /* ==================== Toast notifications ==================== */
+    #toastContainer{position:fixed;top:18px;right:18px;z-index:1100;display:flex;flex-direction:column;gap:10px;pointer-events:none;max-width:360px}
+    .toast{pointer-events:auto;background:#fff;border-left:4px solid var(--primary,#667eea);border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.18);padding:12px 16px 12px 14px;display:flex;align-items:flex-start;gap:10px;min-width:260px;font-size:.9rem;color:var(--text);animation:toastIn .25s ease}
+    .toast.success{border-left-color:#16a34a}
+    .toast.success .toast-icon{color:#16a34a}
+    .toast.error{border-left-color:#dc2626}
+    .toast.error .toast-icon{color:#dc2626}
+    .toast.warning{border-left-color:#d97706}
+    .toast.warning .toast-icon{color:#d97706}
+    .toast.info .toast-icon{color:#0ea5e9}
+    .toast.removing{animation:toastOut .2s ease forwards}
+    .toast-icon{font-size:1.05rem;line-height:1.4;flex-shrink:0}
+    .toast-body{flex:1;line-height:1.4}
+    .toast-close{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1rem;padding:0 0 0 6px;line-height:1}
+    .toast-close:hover{color:#1e293b}
+    @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes toastOut{to{opacity:0;transform:translateX(20px)}}
+
+    /* ==================== Confirm modal ==================== */
+    #confirmModal .detail-modal{width:min(440px,92vw)}
+    .confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+    .confirm-actions button{border:none;border-radius:10px;padding:9px 18px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit;transition:filter .15s ease}
+    .btn-cancel{background:#e2e8f0;color:#334155}
+    .btn-cancel:hover{filter:brightness(.95)}
+    .btn-confirm{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+    .btn-confirm:hover{filter:brightness(1.08)}
+    .btn-confirm.danger{background:linear-gradient(135deg,#f5576c,#c53030)}
+    .confirm-message{color:var(--text);font-size:.94rem;line-height:1.5}
+    .confirm-message strong{color:#0f172a}
+
+    /* ==================== Loading spinner ==================== */
+    .spinner{display:inline-block;width:20px;height:20px;border:2.5px solid #e2e8f0;border-top-color:var(--primary,#667eea);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle}
+    .spinner-lg{width:32px;height:32px;border-width:3px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-row td{text-align:center;padding:32px 12px!important;color:var(--muted)}
+    .loading-row .spinner{margin-right:10px}
+
+    /* ==================== Refresh button ==================== */
+    .refresh-btn{background:rgba(255,255,255,0.85);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:.82rem;font-weight:600;color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:inherit;transition:all .15s ease}
+    .refresh-btn:hover{background:#fff;border-color:var(--primary);color:var(--primary)}
+    .refresh-btn:disabled{opacity:.6;cursor:not-allowed}
+    .refresh-btn .fa-rotate{transition:transform .4s ease}
+    .refresh-btn.spinning .fa-rotate{animation:spin .8s linear infinite}
+
+    /* ==================== Breadcrumb ==================== */
+    .breadcrumb{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.85);font-size:.78rem;margin-top:6px;font-weight:500}
+    .breadcrumb i{font-size:.7rem;opacity:.7}
+    .breadcrumb .crumb-current{color:#fff;font-weight:600}
+
+    /* ==================== Hamburger / mobile sidebar ==================== */
+    .hamburger{display:none;background:rgba(255,255,255,0.18);border:none;border-radius:10px;width:42px;height:42px;color:#fff;font-size:1.1rem;cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(8px);flex-shrink:0;margin-right:12px}
+    .hamburger:hover{background:rgba(255,255,255,0.28)}
+    .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:90;animation:fadeIn .2s ease}
+    .sidebar-backdrop.show{display:block}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @media (max-width: 960px){
+        .hamburger{display:inline-flex}
+        .sidebar{z-index:100;transition:transform .25s ease;box-shadow:4px 0 20px rgba(0,0,0,.2)}
+        .sidebar.open{transform:translateX(0)}
+        .top{padding:14px 16px}
+        .tools{min-width:0;width:auto;flex:1;justify-content:flex-end;gap:8px}
+    }
+    @media (max-width: 640px){
+        .top{flex-wrap:nowrap;gap:10px}
+        .top h1{font-size:1.1rem;font-weight:700}
+        .top p{font-size:.78rem}
+        .breadcrumb{font-size:.7rem}
+        .tools .search{display:none}
+    }
     </style>
 </head>
 <body class="session-pending">
     <div class="layout">
-        <aside class="sidebar">
+        <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
+        <aside class="sidebar" id="adminSidebar">
             <div class="logo"><i class="fa-solid fa-heart-pulse"></i> ClinixPro</div>
             <ul class="menu">
                 <li><a href="#" class="active" data-section="dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
@@ -73,9 +144,18 @@
 
         <main class="content">
             <header class="top">
-                <div>
+                <button type="button" class="hamburger" id="hamburgerBtn" aria-label="Open menu" aria-expanded="false" aria-controls="adminSidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div style="flex:1; min-width:0;">
                     <h1 id="sectionTitle">Main Dashboard</h1>
                     <p id="sectionSubtitle">Operational overview for ClinixPro</p>
+                    <nav class="breadcrumb" aria-label="Breadcrumb">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Admin</span>
+                        <i class="fa-solid fa-chevron-right"></i>
+                        <span class="crumb-current" id="breadcrumbCurrent">Main Dashboard</span>
+                    </nav>
                 </div>
                 <div class="tools">
                     <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" placeholder="Search..."></div>
@@ -88,17 +168,18 @@
 
             <!-- ==================== DASHBOARD SECTION ==================== -->
             <section id="section-dashboard" class="admin-section active">
-                <div class="admin-tabs" role="tablist">
+                <div class="admin-tabs" role="tablist" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                     <button type="button" class="admin-tab active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
                     <button type="button" class="admin-tab" data-tab="pending" role="tab" aria-selected="false">Pending Doctors</button>
+                    <button type="button" class="refresh-btn" data-refresh="dashboard" style="margin-left:auto;"><i class="fa-solid fa-rotate"></i> Refresh</button>
                 </div>
 
                 <div id="tabOverview" class="tab-panel active">
                     <section class="stats">
-                        <article class="card blue"><h3>Total Patients</h3><div class="value" id="totalPatients">0</div><small>+8.2% from last week</small></article>
-                        <article class="card green"><h3>Today Appointments</h3><div class="value" id="todayAppointments">0</div><small>+3.4% from yesterday</small></article>
-                        <article class="card purple"><h3>Total Doctors</h3><div class="value" id="totalDoctors">0</div><small>+1.8% this month</small></article>
-                        <article class="card orange"><h3>Pending Bills</h3><div class="value" id="pendingBills">0</div><small>-2.1% from last week</small></article>
+                        <article class="card blue"><h3>Total Patients</h3><div class="value" id="totalPatients">0</div></article>
+                        <article class="card green"><h3>Today Appointments</h3><div class="value" id="todayAppointments">0</div></article>
+                        <article class="card purple"><h3>Total Doctors</h3><div class="value" id="totalDoctors">0</div></article>
+                        <article class="card orange"><h3>Pending Bills</h3><div class="value" id="pendingBills">0</div></article>
                     </section>
 
                     <section class="charts">
@@ -136,7 +217,10 @@
                 <section class="panel">
                     <div class="section-header">
                         <h2>All Patients</h2>
-                        <input type="search" id="patientSearch" class="search-input" placeholder="Search by name, email, or phone">
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <input type="search" id="patientSearch" class="search-input" placeholder="Search by name, email, or phone">
+                            <button type="button" class="refresh-btn" data-refresh="patients"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                        </div>
                     </div>
                     <div class="table-wrap" style="margin-top:14px;">
                         <table>
@@ -152,7 +236,10 @@
                 <section class="panel">
                     <div class="section-header">
                         <h2>Active Doctors</h2>
-                        <input type="search" id="doctorSearch" class="search-input" placeholder="Search by name, email, or specialization">
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <input type="search" id="doctorSearch" class="search-input" placeholder="Search by name, email, or specialization">
+                            <button type="button" class="refresh-btn" data-refresh="doctors"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                        </div>
                     </div>
                     <div class="table-wrap" style="margin-top:14px;">
                         <table>
@@ -166,7 +253,10 @@
             <!-- ==================== APPOINTMENTS SECTION ==================== -->
             <section id="section-appointments" class="admin-section">
                 <section class="panel">
-                    <div class="section-header"><h2>All Appointments</h2></div>
+                    <div class="section-header">
+                        <h2>All Appointments</h2>
+                        <button type="button" class="refresh-btn" data-refresh="appointments"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                    </div>
                     <div class="filter-bar">
                         <label>Status
                             <select id="apptStatusFilter">
@@ -209,7 +299,10 @@
                     </article>
                 </div>
                 <section class="panel">
-                    <div class="section-header"><h2>All Bills</h2></div>
+                    <div class="section-header">
+                        <h2>All Bills</h2>
+                        <button type="button" class="refresh-btn" data-refresh="billing"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                    </div>
                     <div class="filter-bar">
                         <label>Status
                             <select id="billingStatusFilter">
@@ -234,7 +327,10 @@
             <!-- ==================== SUPPORT TICKETS SECTION ==================== -->
             <section id="section-tickets" class="admin-section">
                 <section class="panel tickets-panel">
-                    <div class="section-header"><h2>Support Tickets</h2></div>
+                    <div class="section-header">
+                        <h2>Support Tickets</h2>
+                        <button type="button" class="refresh-btn" data-refresh="tickets"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                    </div>
                     <div class="table-wrap" style="margin-top:14px;">
                         <table>
                             <thead><tr><th>Name</th><th>Email</th><th>Message</th><th>Date</th><th>Status</th></tr></thead>
@@ -247,7 +343,10 @@
             <!-- ==================== SETTINGS SECTION ==================== -->
             <section id="section-settings" class="admin-section">
                 <section class="panel">
-                    <div class="section-header"><h2>System Information</h2></div>
+                    <div class="section-header">
+                        <h2>System Information</h2>
+                        <button type="button" class="refresh-btn" data-refresh="settings"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                    </div>
                     <div id="systemInfoBody" style="margin-top:14px;">Loading...</div>
                 </section>
 
@@ -294,6 +393,26 @@
             <div id="modalBody" class="detail-modal-body">Loading…</div>
         </div>
     </div>
+
+    <!-- ==================== CONFIRM MODAL ==================== -->
+    <div id="confirmModal" class="detail-modal-overlay" style="display:none;" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+        <div class="detail-modal">
+            <div class="detail-modal-header">
+                <h3 id="confirmTitle">Please confirm</h3>
+                <button type="button" id="confirmCloseBtn" aria-label="Close">&times;</button>
+            </div>
+            <div class="detail-modal-body">
+                <p id="confirmMessage" class="confirm-message">Are you sure?</p>
+                <div class="confirm-actions">
+                    <button type="button" class="btn-cancel" id="confirmCancelBtn">Cancel</button>
+                    <button type="button" class="btn-confirm" id="confirmOkBtn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST CONTAINER ==================== -->
+    <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
 
     <script>
         (function () {
@@ -426,11 +545,109 @@
             function setError(message) {
                 errorEl.textContent = message;
                 errorEl.classList.add("show");
+                showToast(message, "error");
             }
             function clearError() {
                 errorEl.textContent = "";
                 errorEl.classList.remove("show");
             }
+
+            // ==================== Toast notifications ====================
+            const toastContainer = document.getElementById("toastContainer");
+            function showToast(message, type = "info", duration = 4000) {
+                if (!toastContainer || !message) return;
+                const toast = document.createElement("div");
+                toast.className = `toast ${type}`;
+                const iconMap = {
+                    success: "fa-circle-check",
+                    error: "fa-circle-xmark",
+                    warning: "fa-triangle-exclamation",
+                    info: "fa-circle-info"
+                };
+                toast.innerHTML = `
+                    <i class="fa-solid ${iconMap[type] || iconMap.info} toast-icon" aria-hidden="true"></i>
+                    <div class="toast-body">${escapeHtml(message)}</div>
+                    <button type="button" class="toast-close" aria-label="Dismiss">&times;</button>
+                `;
+                const dismiss = () => {
+                    if (toast.classList.contains("removing")) return;
+                    toast.classList.add("removing");
+                    setTimeout(() => toast.remove(), 200);
+                };
+                toast.querySelector(".toast-close").addEventListener("click", dismiss);
+                toastContainer.appendChild(toast);
+                if (duration > 0) setTimeout(dismiss, duration);
+                return toast;
+            }
+
+            // ==================== Confirm dialog ====================
+            const confirmModal = document.getElementById("confirmModal");
+            const confirmTitleEl = document.getElementById("confirmTitle");
+            const confirmMessageEl = document.getElementById("confirmMessage");
+            const confirmOkBtn = document.getElementById("confirmOkBtn");
+            const confirmCancelBtn = document.getElementById("confirmCancelBtn");
+            const confirmCloseBtn = document.getElementById("confirmCloseBtn");
+            let confirmResolve = null;
+            function closeConfirm(result) {
+                confirmModal.style.display = "none";
+                if (confirmResolve) {
+                    const r = confirmResolve;
+                    confirmResolve = null;
+                    r(result);
+                }
+            }
+            function showConfirm({ title = "Please confirm", message = "Are you sure?", confirmText = "Confirm", cancelText = "Cancel", danger = false } = {}) {
+                confirmTitleEl.textContent = title;
+                confirmMessageEl.innerHTML = message;
+                confirmOkBtn.textContent = confirmText;
+                confirmCancelBtn.textContent = cancelText;
+                confirmOkBtn.classList.toggle("danger", !!danger);
+                confirmModal.style.display = "flex";
+                confirmOkBtn.focus();
+                return new Promise((resolve) => {
+                    confirmResolve = resolve;
+                });
+            }
+            confirmOkBtn.addEventListener("click", () => closeConfirm(true));
+            confirmCancelBtn.addEventListener("click", () => closeConfirm(false));
+            confirmCloseBtn.addEventListener("click", () => closeConfirm(false));
+            confirmModal.addEventListener("click", (e) => { if (e.target === confirmModal) closeConfirm(false); });
+            document.addEventListener("keydown", (e) => {
+                if (confirmModal.style.display === "flex" && e.key === "Escape") closeConfirm(false);
+            });
+
+            // ==================== Loading helpers ====================
+            function showLoadingRow(tbody, colspan, label = "Loading…") {
+                if (!tbody) return;
+                tbody.innerHTML = `
+                    <tr class="loading-row">
+                        <td colspan="${colspan}">
+                            <span class="spinner" aria-hidden="true"></span>
+                            <span>${escapeHtml(label)}</span>
+                        </td>
+                    </tr>
+                `;
+            }
+            function showLoadingBlock(el, label = "Loading…") {
+                if (!el) return;
+                el.innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;padding:32px;color:var(--muted);gap:10px;">
+                        <span class="spinner spinner-lg" aria-hidden="true"></span>
+                        <span>${escapeHtml(label)}</span>
+                    </div>
+                `;
+            }
+            const SECTION_LOADING = {
+                patients:     () => showLoadingRow(patientsBody, 7),
+                doctors:      () => showLoadingRow(doctorsBody, 6),
+                appointments: () => showLoadingRow(allAppointmentsBody, 6),
+                billing:      () => showLoadingRow(billingBody, 6),
+                tickets:      () => showLoadingRow(supportTicketsBody, 5),
+                settings:     () => {
+                    showLoadingBlock(systemInfoBody);
+                    showLoadingRow(usersBody, 5);
+                }
+            };
 
             function formatDate(value) {
                 if (value === null || value === undefined || value === "") return "Not available";
@@ -899,10 +1116,11 @@
                 }
             }
 
-            async function loadSectionData(id) {
-                if (STATE.loaded.has(id)) return;
+            async function loadSectionData(id, force = false) {
+                if (!force && STATE.loaded.has(id)) return;
                 try {
                     clearError();
+                    if (SECTION_LOADING[id]) SECTION_LOADING[id]();
                     if (id === "patients") {
                         const data = await fetchJson(`${API_BASE}/patients`);
                         STATE.patients = Array.isArray(data) ? data : (data && (data.data || data.patients)) || [];
@@ -971,6 +1189,9 @@
                 const titleInfo = SECTION_TITLES[id] || SECTION_TITLES.dashboard;
                 sectionTitle.textContent = titleInfo.title;
                 sectionSubtitle.textContent = titleInfo.subtitle;
+                const breadcrumbEl = document.getElementById("breadcrumbCurrent");
+                if (breadcrumbEl) breadcrumbEl.textContent = titleInfo.title;
+                closeSidebar();
                 renderSection(id);
                 loadSectionData(id);
             }
@@ -1068,12 +1289,19 @@
                         openModal("Patient Details", buildPatientModalHtml(p));
                     } catch (err) { closeModal(); setError(err.message || "Unable to load patient details."); }
                 } else if (action === "deactivate") {
-                    if (!confirm("Deactivate this patient account?")) return;
+                    const patient = STATE.patients.find(p => String(p.patient_id) === String(id));
+                    const ok = await showConfirm({
+                        title: "Deactivate patient",
+                        message: `Are you sure you want to deactivate <strong>${escapeHtml(patient?.name || "this patient")}</strong>?<br><span style="color:var(--muted);font-size:.86rem;">They will no longer be able to log in.</span>`,
+                        confirmText: "Deactivate",
+                        danger: true
+                    });
+                    if (!ok) return;
                     try {
                         await apiSend(`${API_BASE}/admin/patients/${id}/status`, "PUT", { status: "inactive" });
-                        const p = STATE.patients.find(p => String(p.patient_id) === String(id));
-                        if (p) p.status = "inactive";
+                        if (patient) patient.status = "inactive";
                         renderPatients();
+                        showToast("Patient deactivated.", "success");
                     } catch (err) { setError(err.message || "Unable to deactivate patient."); }
                 }
             });
@@ -1089,12 +1317,19 @@
                         openModal("Doctor Details", buildDoctorModalHtml(d));
                     } catch (err) { closeModal(); setError(err.message || "Unable to load doctor details."); }
                 } else if (action === "deactivate") {
-                    if (!confirm("Deactivate this doctor account?")) return;
+                    const doctor = STATE.doctors.find(d => String(d.doctor_id) === String(id));
+                    const ok = await showConfirm({
+                        title: "Deactivate doctor",
+                        message: `Deactivate <strong>${escapeHtml(doctor?.name || "this doctor")}</strong>?<br><span style="color:var(--muted);font-size:.86rem;">They will be removed from the active doctors list and cannot log in.</span>`,
+                        confirmText: "Deactivate",
+                        danger: true
+                    });
+                    if (!ok) return;
                     try {
                         await apiSend(`${API_BASE}/admin/doctors/${id}/status`, "PUT", { status: "inactive" });
-                        const d = STATE.doctors.find(d => String(d.doctor_id) === String(id));
-                        if (d) d.status = "inactive";
+                        if (doctor) doctor.status = "inactive";
                         renderDoctors();
+                        showToast("Doctor deactivated.", "success");
                     } catch (err) { setError(err.message || "Unable to deactivate doctor."); }
                 }
             });
@@ -1103,12 +1338,20 @@
                 const action = e.target && e.target.getAttribute("data-action");
                 const id = e.target && e.target.getAttribute("data-id");
                 if (action !== "cancel" || !id) return;
-                if (!confirm("Cancel this appointment?")) return;
+                const ok = await showConfirm({
+                    title: "Cancel appointment",
+                    message: "Cancel this appointment?<br><span style=\"color:var(--muted);font-size:.86rem;\">Both the patient and doctor will see it as cancelled.</span>",
+                    confirmText: "Cancel appointment",
+                    cancelText: "Keep it",
+                    danger: true
+                });
+                if (!ok) return;
                 try {
                     await apiSend(`${API_BASE}/appointments/${id}`, "PUT", { status: "cancelled" });
                     const appt = STATE.appointments.find(a => String(a.appointment_id) === String(id));
                     if (appt) appt.status = "cancelled";
                     renderAllAppointments();
+                    showToast("Appointment cancelled.", "success");
                 } catch (err) { setError(err.message || "Unable to cancel appointment."); }
             });
 
@@ -1116,11 +1359,17 @@
                 const action = e.target && e.target.getAttribute("data-action");
                 const id = e.target && e.target.getAttribute("data-id");
                 if (action !== "markpaid" || !id) return;
-                if (!confirm("Mark this bill as paid?")) return;
+                const bill = STATE.billing.find(b => String(b.bill_id ?? b.billing_id) === String(id));
+                const amount = bill?.total_amount ?? bill?.amount ?? "this bill";
+                const ok = await showConfirm({
+                    title: "Mark bill as paid",
+                    message: `Mark <strong>Rs ${escapeHtml(amount)}</strong> bill as paid?<br><span style="color:var(--muted);font-size:.86rem;">The full amount will be recorded as received and the payment date will be set to now.</span>`,
+                    confirmText: "Mark Paid"
+                });
+                if (!ok) return;
                 try {
                     const result = await apiSend(`${API_BASE}/admin/billing/${id}/pay`, "PUT");
                     const updated = result && result.billing;
-                    const bill = STATE.billing.find(b => String(b.bill_id ?? b.billing_id) === String(id));
                     if (bill) {
                         if (updated) Object.assign(bill, updated);
                         else {
@@ -1131,6 +1380,7 @@
                         }
                     }
                     renderBilling();
+                    showToast("Bill marked as paid.", "success");
                 } catch (err) { setError(err.message || "Unable to mark bill as paid."); }
             });
 
@@ -1170,14 +1420,27 @@
 
                 if (action === "activate" || action === "deactivate") {
                     const next = action === "activate" ? "active" : "inactive";
-                    if (!confirm(`${action === "activate" ? "Activate" : "Deactivate"} ${email}?`)) return;
+                    const verb = action === "activate" ? "Activate" : "Deactivate";
+                    const ok = await showConfirm({
+                        title: `${verb} user`,
+                        message: `${verb} <strong>${escapeHtml(email)}</strong>?` + (action === "deactivate" ? "<br><span style=\"color:var(--muted);font-size:.86rem;\">They will not be able to sign in until reactivated.</span>" : ""),
+                        confirmText: verb,
+                        danger: action === "deactivate"
+                    });
+                    if (!ok) return;
                     try {
                         await apiSend(`${API_BASE}/admin/users/${id}/status`, "PUT", { status: next });
                         if (user) user.status = next;
                         renderUsers();
+                        showToast(`User ${next === "active" ? "activated" : "deactivated"}.`, "success");
                     } catch (err) { setError(err.message || "Unable to update user status."); }
                 } else if (action === "reset") {
-                    if (!confirm(`Generate a temporary password for ${email}? The current password will be replaced.`)) return;
+                    const ok = await showConfirm({
+                        title: "Reset password",
+                        message: `Generate a temporary password for <strong>${escapeHtml(email)}</strong>?<br><span style=\"color:var(--muted);font-size:.86rem;\">The current password will be replaced. The new one will be shown to you once.</span>`,
+                        confirmText: "Generate password"
+                    });
+                    if (!ok) return;
                     try {
                         const result = await apiSend(`${API_BASE}/admin/users/${id}/reset-password`, "POST");
                         const tempPw = (result && result.temporary_password) || "";
@@ -1221,9 +1484,11 @@
                 refreshDemoBtn.textContent = "Resetting…";
                 try {
                     const result = await apiSend(`${API_BASE}/admin/refresh-demo-data`, "POST", { confirm: "RESET" });
-                    alert((result && result.message) || "Demo data reset. Please log in again.");
-                    clearSession();
-                    window.location.href = "login.html";
+                    showToast((result && result.message) || "Demo data reset. Please log in again.", "success", 6000);
+                    setTimeout(() => {
+                        clearSession();
+                        window.location.href = "login.html";
+                    }, 1200);
                 } catch (err) {
                     setError(err.message || "Unable to refresh demo data.");
                     refreshDemoBtn.disabled = false;
@@ -1235,6 +1500,68 @@
             if (viewPendingBtn) viewPendingBtn.addEventListener("click", () => {
                 switchSection("dashboard");
                 setAdminTab("pending");
+            });
+
+            // ==================== Mobile sidebar (hamburger) ====================
+            const sidebarEl = document.getElementById("adminSidebar");
+            const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+            const hamburgerBtn = document.getElementById("hamburgerBtn");
+            function openSidebar() {
+                if (!sidebarEl) return;
+                sidebarEl.classList.add("open");
+                sidebarBackdrop.classList.add("show");
+                hamburgerBtn.setAttribute("aria-expanded", "true");
+            }
+            function closeSidebar() {
+                if (!sidebarEl) return;
+                sidebarEl.classList.remove("open");
+                sidebarBackdrop.classList.remove("show");
+                hamburgerBtn.setAttribute("aria-expanded", "false");
+            }
+            if (hamburgerBtn) hamburgerBtn.addEventListener("click", () => {
+                if (sidebarEl.classList.contains("open")) closeSidebar();
+                else openSidebar();
+            });
+            if (sidebarBackdrop) sidebarBackdrop.addEventListener("click", closeSidebar);
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" && sidebarEl?.classList.contains("open")) closeSidebar();
+            });
+            window.addEventListener("resize", () => {
+                if (window.innerWidth > 960) closeSidebar();
+            });
+
+            // ==================== Per-section Refresh buttons ====================
+            async function refreshSection(sectionId, btn) {
+                if (btn) {
+                    btn.classList.add("spinning");
+                    btn.disabled = true;
+                }
+                try {
+                    if (sectionId === "dashboard") {
+                        STATE.loaded.delete("dashboard");
+                        await init();
+                        showToast("Dashboard refreshed.", "success", 2500);
+                    } else {
+                        STATE.loaded.delete(sectionId);
+                        await loadSectionData(sectionId, true);
+                        showToast(`${(SECTION_TITLES[sectionId]?.title) || sectionId} refreshed.`, "success", 2500);
+                    }
+                } catch (err) {
+                    if (String(err && err.message || "") !== "Session expired") {
+                        setError(err.message || `Unable to refresh ${sectionId}.`);
+                    }
+                } finally {
+                    if (btn) {
+                        btn.classList.remove("spinning");
+                        btn.disabled = false;
+                    }
+                }
+            }
+            document.querySelectorAll("[data-refresh]").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const sectionId = btn.getAttribute("data-refresh");
+                    if (sectionId) refreshSection(sectionId, btn);
+                });
             });
 
             init();
