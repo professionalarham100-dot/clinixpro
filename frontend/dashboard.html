@@ -430,7 +430,7 @@
                 return;
             }
 
-            const API_BASE = window.location.port === "5000" ? "/api" : "http://127.0.0.1:5000/api";
+            const API_BASE = "/api";
             const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
             const PAGE_LOAD_AT = Date.now();
 

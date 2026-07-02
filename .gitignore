@@ -29,6 +29,7 @@ backend/uploads_local/
 # IDE / OS
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 .DS_Store

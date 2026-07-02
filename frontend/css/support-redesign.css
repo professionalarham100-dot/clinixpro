@@ -22,9 +22,81 @@ main.support-container {
     padding: 0;
 }
 
-/* ---------- Hero ----------
-   The legacy support.css adds margin-top: 60px (originally to clear a fixed
-   navbar that no longer exists). Override to 0 and use natural padding. */
+header.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(254, 249, 244, 0.95);
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    border-bottom: 1px solid rgba(10, 31, 36, 0.08);
+    box-shadow: none;
+}
+
+.topbar .container.topbar-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.topbar .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    text-decoration: none;
+    font-family: "Fraunces", serif;
+    font-weight: 600;
+    font-size: 1.35rem;
+    color: var(--cp-ink-900);
+}
+
+.topbar .brand i {
+    color: var(--cp-teal-500);
+}
+
+.topbar .nav {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+}
+
+.topbar .nav a {
+    color: var(--cp-ink-600);
+    font-weight: 500;
+    font-size: 0.92rem;
+    text-decoration: none;
+    transition: color 180ms ease, background 180ms ease;
+    padding: 0.45rem 0.6rem;
+    border-radius: var(--cp-radius-md);
+}
+
+.topbar .nav a:hover,
+.topbar .nav a.active {
+    color: var(--cp-teal-600);
+    background: rgba(15, 118, 110, 0.06);
+}
+
+.topbar .actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.support-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2.5rem 24px 4rem;
+}
+
+.support-hero {
+    margin-top: 0;
+}
+
 .support-hero {
     position: relative;
     overflow: hidden;

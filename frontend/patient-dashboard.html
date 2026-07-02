@@ -221,6 +221,7 @@
                         <div class="panel-actions">
                             <input id="profilePhotoInput" type="file" accept="image/*" style="display:none;">
                             <button id="uploadPhotoBtn" class="btn btn-soft" type="button"><i class="fa-solid fa-camera"></i> Upload Photo</button>
+                            <button id="removePhotoBtn" class="btn btn-soft" type="button"><i class="fa-solid fa-trash-can"></i> Remove Photo</button>
                             <button id="openProfileEditBtn" class="btn btn-soft" type="button"><i class="fa-solid fa-pen"></i> Edit Profile</button>
                         </div>
                     </div>
@@ -474,7 +475,7 @@
                 return;
             }
 
-            const API_BASE = "http://127.0.0.1:5000/api";
+            const API_BASE = "/api";
 
             const state = {
                 stats: { upcoming: 0, records: 0, prescriptions: 0, bills: 0 },
@@ -660,7 +661,7 @@
             function buildApiUrl(url) {
                 const path = String(url || "");
                 // Always use absolute URL to Flask backend
-                const base = "http://127.0.0.1:5000/api";
+                const base = "/api";
                 // Strip any leading /api or api/ prefix from path to avoid doubling
                 let clean = path;
                 if (clean.startsWith("/api/")) clean = clean.slice(4);
@@ -1827,6 +1828,14 @@
 
             document.getElementById("uploadPhotoBtn").addEventListener("click", () => {
                 document.getElementById("profilePhotoInput").click();
+            });
+
+            document.getElementById("removePhotoBtn").addEventListener("click", () => {
+                const key = avatarStorageKey();
+                if (key) localStorage.removeItem(key);
+                localStorage.removeItem("patientAvatarDataUrl");
+                renderTopInfo();
+                notify("Photo removed.");
             });
 
             document.getElementById("profilePhotoInput").addEventListener("change", (event) => {
