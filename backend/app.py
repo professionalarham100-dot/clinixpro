@@ -13,6 +13,7 @@ import os
 import re
 import sys
 import threading
+import requests as http_requests
 import jwt
 import json
 import pymysql
@@ -32,6 +33,37 @@ try:
 except ImportError:
     Mail = None
     Message = None
+
+
+def send_email_brevo(to_email, subject, html_content):
+    """Send email via Brevo HTTP API (bypasses Railway SMTP port blocks)."""
+    api_key = os.getenv('BREVO_API_KEY', '')
+    sender_email = os.getenv('MAIL_DEFAULT_SENDER', 'supportclinixpro@gmail.com')
+    if not api_key:
+        print("[ClinixPro] BREVO_API_KEY not set, skipping email")
+        return
+    try:
+        resp = http_requests.post(
+            'https://api.brevo.com/v3/smtp/email',
+            headers={
+                'accept': 'application/json',
+                'api-key': api_key,
+                'content-type': 'application/json',
+            },
+            json={
+                'sender': {'email': sender_email, 'name': 'ClinixPro'},
+                'to': [{'email': to_email}],
+                'subject': subject,
+                'htmlContent': html_content,
+            },
+            timeout=10,
+        )
+        if resp.status_code in (200, 201):
+            print(f"[ClinixPro] Email sent to {to_email}")
+        else:
+            print(f"[ClinixPro] Email failed: {resp.status_code} {resp.text}")
+    except Exception as e:
+        print(f"[ClinixPro] Email error: {e}")
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -318,7 +350,7 @@ def send_clinixpro_email(to_email, subject, body_text):
         return False
     try:
         msg = Message(subject=subject, recipients=[to_email], body=body_text)
-        threading.Thread(target=mail.send, args=(msg,)).start()
+        threading.Thread(target=send_email_brevo, args=(to_email, subject, body_text)).start()
         return True
     except Exception as exc:
         print(f"[ClinixPro] Email send failed: {exc}")
