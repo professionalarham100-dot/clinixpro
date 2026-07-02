@@ -1,5 +1,5 @@
 // ==================== API CONFIGURATION ====================
-const API_BASE_URL = (window.location.port === '5000' ? '' : 'http://127.0.0.1:5000') + '/api';
+const API_BASE_URL = '/api';
 
 // ==================== VALIDATION UTILITIES ====================
 function showValidationError(fieldId, message) {
@@ -121,7 +121,7 @@ if (loginForm) {
             let errorMessage = 'Network error. Please try again.';
             
             if (!error.message) {
-                errorMessage = 'Cannot connect to the server. Make sure the backend is running on http://localhost:5000';
+                errorMessage = 'Cannot connect to the server. Please ensure the server is running.';
             } else if (error.message === 'Failed to fetch') {
                 errorMessage = 'Cannot connect to server. Is the backend running?';
             } else {

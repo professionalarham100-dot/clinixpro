@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About ClinixPro | Meet the Team</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/design-tokens.css">
+    <link rel="stylesheet" href="css/accessibility.css">
+    <link rel="stylesheet" href="css/components-base.css">
+    <link rel="stylesheet" href="css/responsive-polish.css">
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/landing-redesign.css">
+    <style>
+        /* =====================================================================
+           About page — scoped styles. Inherits palette + shadows from
+           landing-redesign.css design tokens; adds only what this page needs.
+           ===================================================================== */
+
+        /* ---------- About hero ---------- */
+        .about-hero {
+            position: relative;
+            text-align: center;
+            padding: 60px 24px;
+            overflow: hidden;
+            background:
+                radial-gradient(900px 540px at 92% -10%, rgba(15, 118, 110, 0.08), transparent 65%),
+                radial-gradient(700px 460px at -10% 110%, rgba(251, 113, 133, 0.10), transparent 70%),
+                var(--cp-cream-50);
+        }
+        .about-hero h1 {
+            font-family: "Fraunces", serif;
+            font-weight: 700;
+            font-size: clamp(2.5rem, 4.2vw + 0.8rem, 4.2rem);
+            color: var(--cp-ink-900);
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            margin: 0 auto;
+            max-width: 18ch;
+        }
+        .about-hero p {
+            color: var(--cp-ink-600);
+            font-size: 1.06rem;
+            line-height: 1.75;
+            max-width: 54ch;
+            margin: 22px auto 0;
+        }
+        .about-hero::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.38), transparent 28%),
+                        linear-gradient(145deg, rgba(255,255,255,0.22), transparent 45%);
+        }
+
+        /* ---------- Section shell ---------- */
+        .about-section {
+            max-width: 1180px;
+            margin: 60px auto;
+            padding: 0 24px;
+        }
+
+        /* ---------- Team grid ---------- */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 22px;
+        }
+        .team-card {
+            background: #fff;
+            border: 1px solid rgba(10, 31, 36, 0.06);
+            border-radius: var(--cp-radius-2xl);
+            padding: 28px 22px;
+            box-shadow: var(--cp-shadow-soft);
+            text-align: center;
+            transition: transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                        box-shadow 250ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                        border-color 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .team-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--cp-shadow-card);
+            border-color: rgba(15, 118, 110, 0.30);
+        }
+        .team-card img {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 18px;
+            background: linear-gradient(135deg, var(--cp-cream-100), var(--cp-teal-50));
+            /* Polished frame: white inner edge + teal ring + soft lift */
+            border: 4px solid #fff;
+            box-shadow:
+                0 0 0 2px rgba(15, 118, 110, 0.35),
+                0 10px 26px rgba(10, 31, 36, 0.16);
+            transition: box-shadow 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .team-card:hover img {
+            box-shadow:
+                0 0 0 3px rgba(15, 118, 110, 0.55),
+                0 14px 32px rgba(15, 118, 110, 0.22);
+        }
+        .team-card h3 {
+            font-family: "Fraunces", serif;
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: var(--cp-ink-900);
+            margin: 0 0 4px;
+        }
+        .team-card .role {
+            color: var(--cp-teal-500);
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+        .team-card p {
+            color: var(--cp-ink-500);
+            font-size: 0.92rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* ---------- Supervisor ---------- */
+        .supervisor {
+            text-align: center;
+            margin: 60px auto;
+            max-width: 1180px;
+            padding: 40px 24px;
+            background: linear-gradient(180deg, #fef9f4 0%, #faf2e8 100%);
+            border: 1px solid rgba(10, 31, 36, 0.06);
+            border-radius: var(--cp-radius-2xl);
+        }
+        .supervisor img {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--cp-cream-100), var(--cp-teal-50));
+            /* Polished frame: white inner edge + teal ring + soft lift */
+            border: 4px solid #fff;
+            box-shadow:
+                0 0 0 2px rgba(15, 118, 110, 0.35),
+                0 10px 26px rgba(10, 31, 36, 0.16);
+        }
+        .supervisor h3 {
+            font-family: "Fraunces", serif;
+            font-weight: 600;
+            font-size: 1.3rem;
+            color: var(--cp-ink-900);
+            margin: 0 0 4px;
+        }
+        .supervisor .title {
+            color: var(--cp-teal-500);
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 14px;
+        }
+        .supervisor p {
+            color: var(--cp-ink-500);
+            font-size: 0.98rem;
+            line-height: 1.65;
+            max-width: 60ch;
+            margin: 0 auto;
+        }
+
+        /* ---------- Vision ---------- */
+        .vision {
+            text-align: center;
+            margin: 60px auto;
+            max-width: 1180px;
+            padding: 0 24px;
+        }
+        .vision h2 {
+            font-family: "Fraunces", serif;
+            font-weight: 600;
+            font-size: clamp(1.85rem, 2.6vw + 0.6rem, 2.75rem);
+            color: var(--cp-ink-900);
+            letter-spacing: -0.018em;
+            margin: 0 0 24px;
+        }
+        .vision p {
+            color: var(--cp-ink-500);
+            font-size: 1.05rem;
+            line-height: 1.75;
+            max-width: 68ch;
+            margin: 0 auto 40px;
+        }
+        .vision-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+        .vision-card {
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(15, 118, 110, 0.12);
+            border-radius: var(--cp-radius-2xl);
+            padding: 28px 24px;
+            box-shadow: 0 18px 45px rgba(15, 118, 110, 0.08);
+            text-align: left;
+        }
+        .vision-card h3 {
+            font-family: "Fraunces", serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--cp-ink-900);
+            margin: 0 0 10px;
+        }
+        .vision-card p {
+            color: var(--cp-ink-600);
+            font-size: 0.98rem;
+            line-height: 1.75;
+            margin: 0;
+        }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 980px) {
+            .team-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+        }
+        @media (max-width: 640px) {
+            .about-hero { padding: 44px 18px; }
+            .about-section, .supervisor, .vision { margin: 40px auto; }
+            .team-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 380px) {
+            .about-section, .supervisor, .vision { padding-left: 14px; padding-right: 14px; }
+            .team-card img { width: 150px; height: 150px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .team-card { transition: none; }
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <a href="index.html" class="brand"><i class="fa-solid fa-heart-pulse"></i> ClinixPro</a>
+            <nav class="nav">
+                <a href="index.html#features">Features</a>
+                <a href="index.html#how-it-works">How It Works</a>
+                <a href="about.html" class="active">About Us</a>
+                <a href="support.html">Support</a>
+            </nav>
+            <div class="actions">
+                <a class="btn btn-ghost" href="login.html"><i class="fa-solid fa-arrow-right-to-bracket"></i> Login</a>
+                <a class="btn btn-primary" href="register.html"><i class="fa-solid fa-user-plus"></i> Register</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="about-hero">
+            <h1>Crafting a premium clinic experience with world-class healthcare software.</h1>
+            <p>ClinixPro blends elegant design, intelligent automation, and local industry insight to empower clinics, doctors, and patients with a modern healthcare command center.</p>
+        </section>
+
+        <section class="about-section" aria-label="Team">
+            <div class="team-grid">
+                <article class="team-card">
+                    <img src="images/team/awais.jpg" alt="Awais Ahmed Cheema">
+                    <h3>Awais Ahmed Cheema</h3>
+                    <div class="role">Systems Architect</div>
+                    <p>Designed ClinixPro’s secure backend infrastructure and database workflows for real clinic scale.</p>
+                </article>
+                <article class="team-card">
+                    <img src="images/team/arham.jpg" alt="Arham Aftab" style="object-position: 50% 18%;">
+                    <h3>Arham Aftab</h3>
+                    <div class="role">UX & Frontend Lead</div>
+                    <p>Crafted intuitive dashboards and patient journeys that make clinical operations feel effortless.</p>
+                </article>
+                <article class="team-card">
+                    <img src="images/team/talha.jpg" alt="Talha Asif" style="object-position: 50% 18%;">
+                    <h3>Talha Asif</h3>
+                    <div class="role">Integration & Product Specialist</div>
+                    <p>Engineered seamless automation, reporting, and clinic workflows to save time and reduce errors.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="supervisor" aria-label="Project Supervisor">
+            <img src="images/team/adil.jpg" alt="Sir Adil Butt" style="object-position: 50% 22%;">
+            <h3>Sir Adil Butt</h3>
+            <div class="title">Project Supervisor</div>
+            <p>Led the project with a visionary blend of clinical expertise and technical oversight, ensuring every workflow reflects real healthcare needs and polished, professional quality.</p>
+        </section>
+
+        <section class="vision" aria-label="Our Vision">
+            <h2>Our Vision</h2>
+            <p>We are building ClinixPro to be the trusted digital foundation for clinics aiming to deliver exceptional care. Our platform brings together appointments, patient records, secure communication, and billing in a single polished experience.</p>
+            <div class="vision-grid">
+                <article class="vision-card">
+                    <h3>Mission</h3>
+                    <p>Empower healthcare teams with a premium, easy-to-use platform that turns clinic administration into a seamless experience and frees providers to focus on their patients.</p>
+                </article>
+                <article class="vision-card">
+                    <h3>What We Believe</h3>
+                    <p>Healthcare software should feel modern, trustworthy, and effortless. ClinixPro is designed to be powerful yet approachable, with every workflow built around real clinical needs.</p>
+                </article>
+                <article class="vision-card">
+                    <h3>Why It Matters</h3>
+                    <p>By making clinic operations smarter, faster, and more connected, we help care teams reduce friction, improve patient outcomes, and build stronger trust in every consultation.</p>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h4><i class="fa-solid fa-heart-pulse"></i> ClinixPro</h4>
+                    <p>ClinixPro is a modern healthcare SaaS platform helping clinics streamline care delivery, operations, and patient engagement.</p>
+                    <div class="socials">
+                        <a href="https://www.linkedin.com/feed/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+                        <a href="https://x.com/ClinixPr0" target="_blank" rel="noopener" aria-label="X (Twitter)"><i class="fa-brands fa-x-twitter"></i></a>
+                        <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="https://www.youtube.com/@ClinixPro" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="index.html#features">Features</a></li>
+                        <li><a href="index.html#how-it-works">How It Works</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="support.html">Support</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="login.html">Login</a></li>
+                        <li><a href="register.html">Register</a></li>
+                        <li><a href="dashboard.html">Demo Dashboard</a></li>
+                        <li><a href="tickets.html">Support Tickets</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Contact</h4>
+                    <p>Email: supportclinixpro@gmail.com</p>
+                    <p>Phone: 03190615822</p>
+                    <p>Mon - Fri: 9:00 AM to 6:00 PM</p>
+                    <p>Gujrat, Pakistan</p>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 ClinixPro. All rights reserved.</div>
+        </div>
+    </footer>
+</body>
+</html>

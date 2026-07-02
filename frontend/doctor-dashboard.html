@@ -224,6 +224,7 @@
                     <div class="panel-actions">
                         <input id="profilePhotoInput" type="file" accept="image/*" style="display:none;">
                         <button id="uploadPhotoBtn" class="btn btn-soft" type="button"><i class="fa-solid fa-camera"></i> Upload Photo</button>
+                        <button id="removePhotoBtn" class="btn btn-soft" type="button"><i class="fa-solid fa-trash-can"></i> Remove Photo</button>
                         <button id="openProfileModalBtn" class="btn btn-soft" type="button"><i class="fa-solid fa-pen"></i> Edit Profile</button>
                     </div>
                 </div>
@@ -480,7 +481,7 @@
                 return;
             }
 
-            const API_BASE = window.location.port === "5000" ? "" : "http://127.0.0.1:5000";
+            const API_BASE = "";
             const state = {
                 stats: { todayAppointments: 0, totalPatients: 0, pendingRecords: 0, completedToday: 0 },
                 appointments: [],
@@ -1765,6 +1766,14 @@
 
             document.getElementById("uploadPhotoBtn").addEventListener("click", () => {
                 document.getElementById("profilePhotoInput").click();
+            });
+
+            document.getElementById("removePhotoBtn").addEventListener("click", () => {
+                const key = doctorAvatarKey();
+                if (key) localStorage.removeItem(key);
+                localStorage.removeItem("doctorAvatarDataUrl");
+                renderTopInfo(); // Rebuilds avatar, shows initials fallback
+                notify("Profile photo removed.");
             });
 
             document.getElementById("profilePhotoInput").addEventListener("change", (event) => {

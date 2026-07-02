@@ -16,7 +16,7 @@
     }
 
     function getApiBase() {
-        return window.location.port === "5000" ? "" : "http://127.0.0.1:5000";
+        return "";
     }
 
     function formatTime(dateObj) {
@@ -185,6 +185,28 @@
                     "3) Clear browser cache for the site.\n" +
                     "4) Try another browser/device.\n" +
                     "5) If issue persists, share exact error text and your last action."
+            },
+            {
+                keywords: ["forgot password", "reset password", "change password", "recover account"],
+                reply:
+                    "To reset your password:\n" +
+                    "1) Open the Login page and choose 'Forgot Password'.\n" +
+                    "2) Enter your registered email.\n" +
+                    "3) Follow the reset link/instructions sent to you.\n" +
+                    "4) Set a strong new password and log in again.\n" +
+                    "If no email arrives, check spam or contact support."
+            },
+            {
+                keywords: ["logout", "log out", "sign out", "end session"],
+                reply: "To log out, open your profile/account menu in the top bar and select Logout. Always log out on shared or public devices to protect your account."
+            },
+            {
+                keywords: ["notification", "notifications", "alerts", "reminders"],
+                reply: "ClinixPro shows in-app notifications for appointments, updates, and messages. Check the notification bell in the top bar. Keep your contact details current so reminders reach you."
+            },
+            {
+                keywords: ["language", "theme", "dark mode", "settings"],
+                reply: "Personal preferences such as theme and general settings are available from your dashboard settings/profile area. Adjust them and save; changes apply to your account view."
             }
         ];
 
@@ -218,6 +240,23 @@
             {
                 keywords: ["profile", "update profile", "edit profile", "phone", "address"],
                 reply: "In your dashboard profile/settings page, update your contact and personal details, then save changes. Keep phone and emergency contact information current for clinic communication."
+            },
+            {
+                keywords: ["cancel appointment", "reschedule", "change appointment", "cancel booking"],
+                reply:
+                    "To cancel or reschedule an appointment:\n" +
+                    "1) Open your dashboard appointments/history section.\n" +
+                    "2) Find the appointment you want to change.\n" +
+                    "3) Use the cancel or reschedule option and confirm.\n" +
+                    "Please make changes early so your doctor's slot can be reused."
+            },
+            {
+                keywords: ["medical record", "my records", "test results", "reports", "history"],
+                reply: "Your medical records, visit history, and shared test results appear in the Records section of your patient dashboard. Open an entry to view details, and contact your clinic if something looks missing."
+            },
+            {
+                keywords: ["bill", "invoice", "payment", "pay online", "my bill"],
+                reply: "Your invoices and payment status are shown in the Billing section of your dashboard. Review the amount and status, and follow the listed payment/verification steps. Keep proof of payment for your records."
             }
         ];
 
@@ -244,6 +283,23 @@
             {
                 keywords: ["availability", "schedule", "working hours", "doctor slots"],
                 reply: "Update availability from your schedule/settings area. Keep slots accurate to reduce booking conflicts and no-shows."
+            },
+            {
+                keywords: ["today appointments", "view appointments", "appointment list", "upcoming patients"],
+                reply:
+                    "To review today's appointments:\n" +
+                    "1) Open your doctor dashboard.\n" +
+                    "2) Go to the Appointments section.\n" +
+                    "3) Review the patient list, times, and status.\n" +
+                    "4) Open a patient to start their record or prescription."
+            },
+            {
+                keywords: ["view patient", "patient list", "assigned patients", "my patients"],
+                reply: "Your assigned patients appear via your appointments and the Records section. Open a patient from your appointment list to view their history, add notes, or create a prescription."
+            },
+            {
+                keywords: ["update photo", "profile photo", "profile picture", "change photo"],
+                reply: "To update your profile photo, open your dashboard profile section and use the upload photo option. You can also remove the current photo to fall back to your initials avatar."
             }
         ];
 
@@ -792,8 +848,12 @@
                     return;
                 }
                 if (action.action === "navigate") {
-                    showNavigationFeedback(action.target || {});
-                    openShortcut(action.target);
+                    // Keep the user inside the chat: answer the related question
+                    // as text instead of navigating away from the page.
+                    const q = action.prompt || action.label;
+                    chatInput.value = q;
+                    chatInput.focus();
+                    sendMessageFromText(q);
                     return;
                 }
                 chatInput.value = action.prompt;
@@ -900,7 +960,12 @@
             appendMessage("bot", botText, botNow);
             pushHistory("assistant", botText);
         } catch (err) {
-            const errorText = `Unable to reach AI assistant: ${safeText(err.message, "Unknown error")}`;
+            console.error("Unable to reach AI assistant:", err);
+            // Offline/Groq-failure fallback. Any knowledge-base match is already
+            // served before the network call (see getLocalReply above), so by the
+            // time we reach here the message had no local answer. Show a clean,
+            // friendly notice instead of a raw error string.
+            const errorText = "Unable to reach assistant right now. Try again in a moment.";
             const botNow = formatTime(new Date());
             const updated = readHistory();
             updated.push({ role: "bot", text: errorText, timestamp: botNow });

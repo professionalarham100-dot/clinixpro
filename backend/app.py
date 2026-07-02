@@ -81,11 +81,8 @@ CHAT_MESSAGES_FILE = os.path.join(DATA_DIR, 'chat_messages.json')
 # Load environment variables from backend directory first.
 # Prefer `.env`, but also support `.env.example` for local setups.
 ENV_FILE = os.path.join(BASE_DIR, '.env')
-ENV_EXAMPLE_FILE = os.path.join(BASE_DIR, '.env.example')
 if os.path.exists(ENV_FILE):
     load_dotenv(dotenv_path=ENV_FILE, override=True)
-elif os.path.exists(ENV_EXAMPLE_FILE):
-    load_dotenv(dotenv_path=ENV_EXAMPLE_FILE, override=True)
 
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = int(os.getenv('DB_PORT', 3306))
@@ -121,16 +118,20 @@ if Mail and app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD'):
     mail = Mail(app)
 
 # Initialize extensions
-# CORS: allow any localhost/127.0.0.1 port so dev tools (Live Server, Vite, etc.)
-# can hit the API. `supports_credentials` requires an explicit origin match, so
-# we use a regex instead of "*".
+# CORS: allow localhost for dev + Railway/production origins from env.
+_cors_origins = [
+    "http://127.0.0.1:5501",
+    "http://localhost:5501",
+    re.compile(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"),
+    re.compile(r"^https://.*\.up\.railway\.app$"),
+]
+_extra_origin = os.getenv('CORS_ORIGINS', '').strip()
+if _extra_origin and _extra_origin not in ('*', ''):
+    _cors_origins.append(_extra_origin)
+
 CORS(app, resources={
     r"/api/*": {
-        "origins": [
-            "http://127.0.0.1:5501",
-            "http://localhost:5501",
-            re.compile(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"),
-        ],
+        "origins": _cors_origins,
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "expose_headers": ["Content-Type", "Authorization"],
@@ -695,6 +696,11 @@ def serve_favicon():
     if os.path.isfile(favicon_path):
         return send_from_directory(FRONTEND_DIR, 'favicon.ico')
     return ('', 204)
+
+@app.route('/images/<path:filepath>', methods=['GET'])
+def serve_images(filepath):
+    """Serve image files from images directory."""
+    return send_from_directory(os.path.join(FRONTEND_DIR, 'images'), filepath)
 
 @app.route('/<path:filename>', methods=['GET'])
 def serve_frontend_asset(filename):
@@ -1696,6 +1702,12 @@ def get_patients(current_user_id, current_user_type):
 def get_patient(current_user_id, current_user_type, patient_id):
     """Get specific patient details"""
     try:
+        # Authorization: patients may only view their own record; doctors only
+        # patients they have an appointment with; admins may view any.
+        if current_user_type == 'patient' and int(current_user_id) != int(patient_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+        if current_user_type == 'doctor' and not _doctor_can_access_patient(current_user_id, patient_id):
+            return jsonify({'error': 'Unauthorized'}), 403
         if mysql_ready():
             patient = db_select_one(
                 """
@@ -1752,6 +1764,13 @@ def create_patient(current_user_id, current_user_type):
 @app.route('/api/patients/<int:patient_id>', methods=['PUT'])
 @token_required
 def update_patient(current_user_id, current_user_type, patient_id):
+    # Authorization: patients may only update their own record; admins may
+    # update any. Doctors are not permitted to modify patient profiles here.
+    if current_user_type == 'patient' and int(current_user_id) != int(patient_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    if current_user_type not in ('patient', 'admin'):
+        return jsonify({'error': 'Unauthorized'}), 403
+
     data = request.get_json() or {}
 
     if not mysql_ready():
@@ -3171,6 +3190,12 @@ def search_doctors(current_user_id, current_user_type):
 def get_patient_records_for_doctor(current_user_id, current_user_type, patient_id):
     """Get patient records for doctor"""
     try:
+        # Authorization: doctors may only access records of patients they are
+        # assigned to (via appointments); patients only their own; admins any.
+        if current_user_type == 'doctor' and not _doctor_can_access_patient(current_user_id, patient_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+        if current_user_type == 'patient' and int(current_user_id) != int(patient_id):
+            return jsonify({'error': 'Unauthorized'}), 403
         # Get patient info
         patient = next((p for p in mock_patients if p['patient_id'] == patient_id), None)
         if not patient:
