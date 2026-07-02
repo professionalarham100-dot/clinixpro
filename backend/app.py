@@ -4673,6 +4673,7 @@ if __name__ == '__main__':
         ensure_doctor_applications_table()
         ensure_doctors_profile_schema()
         ensure_patients_gender_schema()
+        ensure_demo_users_in_db()
     print(f"[ClinixPro] Starting backend on port {port} (debug={debug})")
     print(f"[ClinixPro] Database mode: {db_mode} | host={DB_HOST} | db={DB_NAME}")
     app.run(host='0.0.0.0', port=port, debug=debug)
