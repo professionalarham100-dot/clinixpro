@@ -38,12 +38,25 @@ except ImportError:
 def send_email_brevo(to_email, subject, html_content):
     """Send email via Brevo HTTP API (bypasses Railway SMTP port blocks)."""
     api_key = os.getenv('BREVO_API_KEY', '')
+    # Use a non-freemail sender to pass Gmail/Yahoo/Microsoft DMARC checks.
+    # Freemail domains like gmail.com cannot be used as From address via
+    # third-party senders without failing SPF/DKIM alignment.
     sender_email = os.getenv('MAIL_DEFAULT_SENDER', 'supportclinixpro@gmail.com')
+    reply_to_email = os.getenv('MAIL_REPLY_TO', sender_email)
     if not api_key:
         print("[ClinixPro] BREVO_API_KEY not set, skipping email")
         return
     try:
         html_body = html_content.replace('\n', '<br>') if html_content else ''
+        payload = {
+            'sender': {'email': sender_email, 'name': 'ClinixPro'},
+            'to': [{'email': to_email}],
+            'subject': subject,
+            'htmlContent': f'<pre style="font-family:sans-serif;white-space:pre-wrap">{html_body}</pre>',
+            'textContent': html_content,
+        }
+        if reply_to_email and reply_to_email != sender_email:
+            payload['replyTo'] = {'email': reply_to_email}
         resp = http_requests.post(
             'https://api.brevo.com/v3/smtp/email',
             headers={
@@ -51,19 +64,13 @@ def send_email_brevo(to_email, subject, html_content):
                 'api-key': api_key,
                 'content-type': 'application/json',
             },
-            json={
-                'sender': {'email': sender_email, 'name': 'ClinixPro'},
-                'to': [{'email': to_email}],
-                'subject': subject,
-                'htmlContent': f'<pre style="font-family:sans-serif;white-space:pre-wrap">{html_body}</pre>',
-                'textContent': html_content,
-            },
+            json=payload,
             timeout=10,
         )
         if resp.status_code in (200, 201):
-            print(f"[ClinixPro] Email sent to {to_email}")
+            print(f"[ClinixPro] Email sent to {to_email}: {subject}")
         else:
-            print(f"[ClinixPro] Email failed: {resp.status_code} {resp.text}")
+            print(f"[ClinixPro] Email failed ({resp.status_code}): {resp.text}")
     except Exception as e:
         print(f"[ClinixPro] Email error: {e}")
 
