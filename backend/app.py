@@ -967,13 +967,16 @@ def register():
 
             sent = _send_verification_email(email, full_name, code)
 
+            # Always log the code so it is visible in Railway console logs.
+            # This lets you verify the system works during demos even if the
+            # email lands in spam / is filtered by the recipient's provider.
+            print(f"[ClinixPro] VERIFICATION CODE for {email}: {code} (expires in 15 min)")
+
             response = {
                 'pending': True,
                 'email': email,
                 'message': "We've sent a 6-digit verification code to your email. Enter it to finish creating your account."
             }
-            if not sent and not (app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD')):
-                print(f"[DEV] Verification code for {email}: {code}")
             return jsonify(response), 200
         
         # Check if user already exists
