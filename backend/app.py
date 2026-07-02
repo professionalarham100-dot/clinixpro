@@ -43,6 +43,7 @@ def send_email_brevo(to_email, subject, html_content):
         print("[ClinixPro] BREVO_API_KEY not set, skipping email")
         return
     try:
+        html_body = html_content.replace('\n', '<br>') if html_content else ''
         resp = http_requests.post(
             'https://api.brevo.com/v3/smtp/email',
             headers={
@@ -54,7 +55,8 @@ def send_email_brevo(to_email, subject, html_content):
                 'sender': {'email': sender_email, 'name': 'ClinixPro'},
                 'to': [{'email': to_email}],
                 'subject': subject,
-                'htmlContent': html_content,
+                'htmlContent': f'<pre style="font-family:sans-serif;white-space:pre-wrap">{html_body}</pre>',
+                'textContent': html_content,
             },
             timeout=10,
         )
