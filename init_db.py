@@ -46,6 +46,8 @@ def run_schema():
     with open(SCHEMA_FILE, 'r', encoding='utf-8') as f:
         schema_sql = f.read()
 
+    schema_sql = schema_sql.replace('smart_clinic', DB_NAME)
+
     conn = pymysql.connect(
         host=DB_HOST, port=DB_PORT,
         user=DB_USER, password=DB_PASSWORD,
