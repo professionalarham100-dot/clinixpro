@@ -564,26 +564,53 @@ def verify_password(stored_password, provided_password):
     return stored == provided
 
 def ensure_demo_users_in_db():
-    """Ensure the admin login exists. Doctor/patient demo accounts are seeded
-    by `reset_demo_accounts.py` and should not be auto-recreated here so
-    operators can wipe and reseed without the backend reverting passwords."""
+    """Seed all three demo accounts (admin, doctor, patient) on startup."""
     if not mysql_ready():
         return
     demo_accounts = [
         ('admin@clinixpro.com', 'Admin@123', 'admin'),
+        ('doctor@clinixpro.com', 'Doctor@123', 'doctor'),
+        ('patient@clinixpro.com', 'Patient@123', 'patient'),
     ]
     for email, plain_pw, user_type in demo_accounts:
         existing = db_select_one("SELECT user_id FROM users WHERE email=%s", (email,))
         if existing:
             db_execute(
-                "UPDATE users SET user_type=%s, status='active' WHERE email=%s",
-                (user_type, email)
+                "UPDATE users SET user_type=%s, status='active', password=%s WHERE email=%s",
+                (user_type, generate_password_hash(plain_pw), email)
             )
-            continue
-        db_execute(
-            "INSERT INTO users (email, password, user_type, status) VALUES (%s, %s, %s, 'active')",
-            (email, generate_password_hash(plain_pw), user_type)
-        )
+        else:
+            db_execute(
+                "INSERT INTO users (email, password, user_type, status) VALUES (%s, %s, %s, 'active')",
+                (email, generate_password_hash(plain_pw), user_type)
+            )
+
+    # Ensure doctor profile exists in doctors table
+    doctor_user = db_select_one("SELECT user_id FROM users WHERE email='doctor@clinixpro.com'")
+    if doctor_user:
+        existing_doc = db_select_one("SELECT doctor_id FROM doctors WHERE email='doctor@clinixpro.com'")
+        if not existing_doc:
+            try:
+                db_execute(
+                    "INSERT INTO doctors (name, email, phone, specialization, qualification, license_number, department, status, is_available) VALUES (%s, %s, %s, %s, %s, %s, %s, 'active', TRUE)",
+                    ('Dr. Demo', 'doctor@clinixpro.com', '03001234567', 'General Medicine', 'MBBS', 'DEMO001', 'General Medicine')
+                )
+            except Exception as e:
+                print(f"[seed] doctor profile insert: {e}")
+
+    # Ensure patient profile exists in patients table
+    patient_user = db_select_one("SELECT user_id FROM users WHERE email='patient@clinixpro.com'")
+    if patient_user:
+        existing_pat = db_select_one("SELECT patient_id FROM patients WHERE email='patient@clinixpro.com'")
+        if not existing_pat:
+            try:
+                db_execute(
+                    "INSERT INTO patients (name, email, phone, dob, status) VALUES (%s, %s, %s, %s, 'active')",
+                    ('Demo Patient', 'patient@clinixpro.com', '03009876543', '1995-01-01')
+                )
+            except Exception as e:
+                print(f"[seed] patient profile insert: {e}")
+
 
 def get_chat_system_prompt(user_type):
     role = str(user_type or "").strip().lower()
