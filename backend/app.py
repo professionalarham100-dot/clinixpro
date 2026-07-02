@@ -12,6 +12,7 @@ from functools import wraps
 import os
 import re
 import sys
+import threading
 import jwt
 import json
 import pymysql
@@ -316,7 +317,7 @@ def send_clinixpro_email(to_email, subject, body_text):
         return False
     try:
         msg = Message(subject=subject, recipients=[to_email], body=body_text)
-        mail.send(msg)
+        threading.Thread(target=mail.send, args=(msg,)).start()
         return True
     except Exception as exc:
         print(f"[ClinixPro] Email send failed: {exc}")
