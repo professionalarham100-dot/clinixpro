@@ -345,15 +345,37 @@ def ensure_doctors_profile_schema():
 
 
 def send_clinixpro_email(to_email, subject, body_text):
-    """Send notification email when SMTP is configured."""
-    if not to_email or not mail or not Message:
+    """Send email via Brevo HTTP API (bypasses Railway SMTP port blocks)."""
+    import requests as http_requests
+    api_key = os.getenv('BREVO_API_KEY', '')
+    sender_email = os.getenv('MAIL_DEFAULT_SENDER', 'supportclinixpro@gmail.com')
+    if not api_key:
+        print("[ClinixPro] BREVO_API_KEY not set, skipping email")
         return False
     try:
-        msg = Message(subject=subject, recipients=[to_email], body=body_text)
-        threading.Thread(target=send_email_brevo, args=(to_email, subject, body_text)).start()
-        return True
-    except Exception as exc:
-        print(f"[ClinixPro] Email send failed: {exc}")
+        resp = http_requests.post(
+            'https://api.brevo.com/v3/smtp/email',
+            headers={
+                'accept': 'application/json',
+                'api-key': api_key,
+                'content-type': 'application/json',
+            },
+            json={
+                'sender': {'email': sender_email, 'name': 'ClinixPro'},
+                'to': [{'email': to_email}],
+                'subject': subject,
+                'htmlContent': body_text,
+            },
+            timeout=10,
+        )
+        if resp.status_code in (200, 201):
+            print(f"[ClinixPro] Email sent to {to_email}")
+            return True
+        else:
+            print(f"[ClinixPro] Email failed: {resp.status_code} {resp.text}")
+            return False
+    except Exception as e:
+        print(f"[ClinixPro] Email error: {e}")
         return False
 
 
