@@ -16,7 +16,14 @@
     }
 
     function getApiBase() {
-        return "";
+        const origin = window.location.origin || "http://localhost:5000";
+        try {
+            const url = new URL(origin);
+            if ((url.hostname === "localhost" || url.hostname === "127.0.0.1") && url.port && url.port !== "5000") {
+                return `${url.protocol}//${url.hostname}:5000`;
+            }
+        } catch (_e) {}
+        return origin;
     }
 
     function formatTime(dateObj) {
@@ -58,11 +65,34 @@
         return 0;
     }
 
+    // ── Name memory (survives page refresh within the same user session) ──
+    const userNameKey = `clinixpro_user_name_${(function(){return Number(localStorage.getItem("userId")||0)||0;})()||"guest"}`;
+    let sessionUserName = "";
+    try { sessionUserName = localStorage.getItem(userNameKey) || ""; } catch(_e){}
+
+    function tryHandleNameLocally(rawText) {
+        const text = normalizeText(rawText);
+        // "my name is X" or "call me X" → store and acknowledge
+        const setMatch = text.match(/\bmy\s+name\s+is\s+([a-z][a-z\s]{0,28}[a-z])\b/) ||
+                         text.match(/\bcall\s+me\s+([a-z][a-z\s]{0,28}[a-z])\b/);
+        if (setMatch) {
+            const raw = setMatch[1].trim();
+            const name = raw.split(" ").map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
+            sessionUserName = name;
+            try { localStorage.setItem(userNameKey, name); } catch(_e){}
+            return `Nice to meet you, ${name}! I'll remember your name for this session. How can I help you today?`;
+        }
+        // "what's my name", "do you know my name", "whats my name"
+        if (/\b(what(?:\s*s|\s+is)\s+my\s+name|do\s+you\s+know\s+my\s+name|remember\s+my\s+name)\b/.test(text)) {
+            if (sessionUserName) return `Your name is ${sessionUserName}! How can I help you today?`;
+            return "I don't know your name yet — tell me by saying 'My name is [name]' and I'll remember it for this session!";
+        }
+        return null;
+    }
+
     function getLocalFallback(_normalizedText) {
-        // Intentionally empty: greetings, generic help, and free-form
-        // conversation must fall through to the Groq API so it can answer
-        // with conversation history context. The knowledge base still
-        // handles ClinixPro-specific intents above.
+        // Return empty so unmatched queries fall through to Groq.
+        // The offline catch block handles the no-Groq case separately.
         return "";
     }
 
@@ -159,6 +189,14 @@
                     "If you share the exact error shown on screen, I can guide you step-by-step."
             },
             {
+                keywords: ["clinic hours", "opening hours", "working hours", "open time", "what time", "clinic open", "clinic close", "operation hours"],
+                reply:
+                    "ClinixPro clinic hours (standard):\n" +
+                    "• Monday – Saturday: 9:00 AM – 6:00 PM\n" +
+                    "• Sunday: Closed\n\n" +
+                    "For the latest schedule, check the clinic footer or contact supportclinixpro@gmail.com."
+            },
+            {
                 keywords: ["support", "contact", "helpdesk", "ticket", "whatsapp", "email"],
                 reply:
                     "Support options:\n" +
@@ -219,6 +257,101 @@
             {
                 keywords: ["demo", "trial", "watch demo"],
                 reply: "Use the demo/watch flow on the homepage CTA to explore the platform quickly. If you want, I can also explain each core module before you register."
+            }
+        ];
+
+        // ── Health & symptom entries (patient + visitor) ─────────────────
+        const healthSymptoms = [
+            {
+                keywords: ["headache", "head pain", "migraine", "head hurts", "head ache"],
+                reply:
+                    "For headaches, common first steps:\n" +
+                    "• Rest in a quiet, dark room and stay hydrated.\n" +
+                    "• Over-the-counter paracetamol or ibuprofen may help.\n" +
+                    "• Avoid screens if light sensitivity is present.\n" +
+                    "⚠️ Seek immediate care if the headache is sudden and severe, or accompanied by fever, stiff neck, or vision changes.\n\n" +
+                    "Would you like to book an appointment with a doctor?"
+            },
+            {
+                keywords: ["fever", "high temperature", "feeling hot", "temperature", "sweating"],
+                reply:
+                    "For managing fever:\n" +
+                    "• Stay hydrated — drink water, juices, or ORS.\n" +
+                    "• Rest and avoid exertion.\n" +
+                    "• Paracetamol (500mg) every 6 hrs can help reduce temperature.\n" +
+                    "⚠️ See a doctor if fever exceeds 39°C (102°F) or lasts more than 2 days.\n\n" +
+                    "I can help you book an appointment — just go to your dashboard and click 'Book New Appointment'."
+            },
+            {
+                keywords: ["cough", "cold", "runny nose", "flu", "sneezing", "sore throat", "throat pain"],
+                reply:
+                    "For cold/flu symptoms:\n" +
+                    "• Rest and drink warm fluids (honey+ginger tea helps).\n" +
+                    "• Antihistamines or decongestants can ease congestion.\n" +
+                    "• Gargle with warm salt water for sore throat.\n" +
+                    "⚠️ If symptoms worsen, breathing becomes difficult, or you have a high fever — see a doctor.\n\n" +
+                    "Would you like to book an appointment?"
+            },
+            {
+                keywords: ["stomach pain", "stomach ache", "abdominal pain", "nausea", "vomiting", "diarrhea", "loose motion"],
+                reply:
+                    "For stomach issues:\n" +
+                    "• Avoid solid food temporarily; try clear fluids or ORS.\n" +
+                    "• Avoid dairy, spicy or fatty foods until symptoms ease.\n" +
+                    "• Rest and keep hydrated.\n" +
+                    "⚠️ Seek care if pain is severe, persistent (>24hrs), or accompanied by blood.\n\n" +
+                    "I recommend booking an appointment for a proper diagnosis."
+            },
+            {
+                keywords: ["chest pain", "chest tightness", "heart pain", "shortness of breath", "breathing difficulty"],
+                reply:
+                    "⚠️ IMPORTANT: Chest pain or difficulty breathing can be serious.\n" +
+                    "Please seek immediate medical attention or call emergency services.\n\n" +
+                    "Do not wait — go to the nearest emergency room or call an ambulance if symptoms are severe."
+            },
+            {
+                keywords: ["back pain", "back ache", "lower back", "spine pain"],
+                reply:
+                    "For back pain:\n" +
+                    "• Apply heat or ice to the affected area (20 mins, 3x/day).\n" +
+                    "• Gentle stretching and avoiding prolonged sitting helps.\n" +
+                    "• Ibuprofen or paracetamol can reduce pain/inflammation.\n" +
+                    "⚠️ See a doctor if pain is severe, radiates to legs, or persists beyond a week."
+            },
+            {
+                keywords: ["feeling unwell", "feeling sick", "not feeling well", "general pain", "body ache", "fatigue", "tired", "weakness"],
+                reply:
+                    "I'm sorry to hear you're not feeling well. Here's what I suggest:\n" +
+                    "• Rest and stay hydrated.\n" +
+                    "• Monitor your temperature and symptoms.\n" +
+                    "• If symptoms persist or worsen, see a doctor promptly.\n\n" +
+                    "I can help you book an appointment with a doctor on ClinixPro. Go to your dashboard and click 'Book New Appointment'."
+            },
+            {
+                keywords: ["how many doctors", "available doctors", "doctors available", "which doctors", "doctor list", "how many doctor"],
+                reply:
+                    "I don't have live doctor availability data right now.\n\n" +
+                    "Please open your patient dashboard and use 'Book New Appointment' to see current available doctors."
+            },
+            {
+                keywords: ["blood pressure", "bp", "hypertension", "high blood pressure", "low blood pressure"],
+                reply:
+                    "Blood pressure tips:\n" +
+                    "• Normal range: 90/60 – 120/80 mmHg.\n" +
+                    "• For high BP: reduce salt, exercise regularly, avoid stress.\n" +
+                    "• For low BP: increase fluid intake, avoid sudden position changes.\n" +
+                    "⚠️ Always follow your doctor's prescribed medication and check-up schedule.\n\n" +
+                    "Book a check-up via your patient dashboard."
+            },
+            {
+                keywords: ["diabetes", "blood sugar", "sugar level", "insulin"],
+                reply:
+                    "Diabetes management tips:\n" +
+                    "• Monitor blood sugar regularly as advised by your doctor.\n" +
+                    "• Follow a low-sugar, balanced diet.\n" +
+                    "• Exercise regularly and maintain a healthy weight.\n" +
+                    "• Take medications/insulin as prescribed — never skip doses.\n" +
+                    "⚠️ Always consult your doctor for dosage adjustments."
             }
         ];
 
@@ -328,10 +461,10 @@
             }
         ];
 
-        if (currentUserType === "patient") return common.concat(patient);
-        if (currentUserType === "doctor") return common.concat(doctor);
+        if (currentUserType === "patient") return common.concat(healthSymptoms, patient);
+        if (currentUserType === "doctor") return common.concat(healthSymptoms, doctor);
         if (currentUserType === "admin") return common.concat(admin);
-        return common.concat(visitor);
+        return common.concat(healthSymptoms, visitor);
     }
 
     // Patterns that are clearly personal/general conversation and must NEVER
@@ -367,8 +500,11 @@
             return "";
         }
 
-        // Hard short-circuit for personal/general talk — these must reach Groq
-        // with conversation history so the model can remember the user's name.
+        // Name memory: handle locally before sending to Groq.
+        const nameReply = tryHandleNameLocally(message);
+        if (nameReply !== null) return nameReply;
+
+        // Other personal/general talk — let Groq handle with conversation history.
         if (isPersonalConversation(text)) return "";
 
         const textTokens = getTextTokens(text);
@@ -834,6 +970,74 @@
         ];
     }
 
+    // ── Live doctor availability from backend ─────────────────────────
+    function isDoctorAvailabilityQuery(text) {
+        const t = normalizeText(text);
+        // Match any message containing both "doctor" (or "dr") and
+        // availability-related words, in any order.
+        const hasDoctor = /\b(doctor|doctors|dr)\b/.test(t);
+        const hasAvail  = /\b(available|availability|rightnow|right now|online|free|open|who|which|list|show|see|any|how many|current)\b/.test(t);
+        if (hasDoctor && hasAvail) return true;
+        // Also catch standalone "available doctor" style phrases
+        return /\b(available\s+doctor|doctor\s+available|which\s+doctor|how\s+many\s+doctor|doctor\s+list|show\s+doctor|see\s+a\s+doctor|doctors\s+available|who\s+is\s+available|who\s+can\s+i\s+see)\b/.test(t);
+    }
+
+    async function fetchAndShowDoctors() {
+        const token = localStorage.getItem("token") || "";
+        let doctors = [];
+        try {
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+            const res = await fetch(`${API_BASE}/api/doctors`, { headers });
+            if (res.ok) {
+                const raw = await res.json();
+                doctors = Array.isArray(raw) ? raw : [];
+            }
+        } catch (_e) { /* network error — fall through to fallback */ }
+
+        let reply = "";
+        if (doctors.length === 0) {
+            reply = "I couldn't fetch live doctor data right now.\n\nYou can view available doctors directly in your dashboard under 'Book New Appointment'.";
+        } else {
+            const available = doctors.filter(d =>
+                String(d.status || "active").toLowerCase() !== "inactive" &&
+                d.is_available !== false
+            );
+            if (available.length === 0) {
+                reply = "No doctors are currently marked as available. Please check back soon or contact the clinic.";
+            } else {
+                const lines = available.map(d => {
+                    const name = d.name || "Unknown Doctor";
+                    const spec = d.specialty || d.specialization || d.department || "General";
+                    const fee  = d.consultation_fee ? ` — Fee: Rs. ${d.consultation_fee}` : "";
+                    return `• ${name} (${spec})${fee}`;
+                });
+                reply =
+                    `✅ ${available.length} doctor${available.length > 1 ? "s are" : " is"} currently available:\n\n` +
+                    lines.join("\n") +
+                    "\n\nClick the button below to book an appointment right now!";
+            }
+        }
+
+        const botNow = formatTime(new Date());
+        const updated = readHistory();
+        updated.push({ role: "bot", text: reply, timestamp: botNow });
+        writeHistory(updated);
+        appendMessage("bot", reply, botNow);
+        pushHistory("assistant", reply);
+
+        // Show a direct "Book Appointment" action button
+        const bookBtn = document.createElement("button");
+        bookBtn.type = "button";
+        bookBtn.textContent = "⚡ Book Appointment Now";
+        bookBtn.style.cssText = "margin:6px 0 4px 0;padding:8px 16px;background:#0f766e;color:#fff;border:none;border-radius:20px;font-size:0.85rem;font-weight:600;cursor:pointer;";
+        bookBtn.addEventListener("click", () => openShortcut({ page: "patient-dashboard.html", section: "appointments" }));
+        chatBody.appendChild(bookBtn);
+        chatBody.scrollTop = chatBody.scrollHeight;
+
+        return true;
+    }
+
     function renderQuickActions() {
         if (!quickActionsWrap) return;
         quickActionsWrap.innerHTML = "";
@@ -920,22 +1124,33 @@
         typing.classList.add("show");
         sendBtn.disabled = true;
         try {
+            // ── Live doctor availability: fetch real data, skip local KB + Groq ──
+            if (userType === "patient" && isDoctorAvailabilityQuery(message)) {
+                await fetchAndShowDoctors();
+                typing.classList.remove("show");
+                sendBtn.disabled = false;
+                return;
+            }
+
             const localReply = getLocalReply(message);
             // Debug aid: log whether the local handler matched. An empty string
             // means the message will be sent to Groq with conversation history.
             console.log("[chatbot] Local reply:", localReply ? localReply.slice(0, 80) + (localReply.length > 80 ? "…" : "") : "(none — sending to Groq)");
             if (localReply) {
                 const lastBotText = getLastBotMessage();
-                const finalLocalReply = lastBotText === localReply
-                    ? "Looks like this is similar to your previous question. Share your current exact issue/error and I will give the next specific step."
-                    : localReply;
-                const botNowLocal = formatTime(new Date());
-                const updatedLocal = readHistory();
-                updatedLocal.push({ role: "bot", text: finalLocalReply, timestamp: botNowLocal });
-                writeHistory(updatedLocal);
-                appendMessage("bot", finalLocalReply, botNowLocal);
-                pushHistory("assistant", finalLocalReply);
-                return;
+                // If same answer would repeat, fall through to Groq for a
+                // richer, context-aware follow-up instead of a confusing message.
+                if (lastBotText === localReply) {
+                    // intentional fall-through to Groq below
+                } else {
+                    const botNowLocal = formatTime(new Date());
+                    const updatedLocal = readHistory();
+                    updatedLocal.push({ role: "bot", text: localReply, timestamp: botNowLocal });
+                    writeHistory(updatedLocal);
+                    appendMessage("bot", localReply, botNowLocal);
+                    pushHistory("assistant", localReply);
+                    return;
+                }
             }
 
             const res = await fetch(`${API_BASE}/api/chat`, {
@@ -961,11 +1176,23 @@
             pushHistory("assistant", botText);
         } catch (err) {
             console.error("Unable to reach AI assistant:", err);
-            // Offline/Groq-failure fallback. Any knowledge-base match is already
-            // served before the network call (see getLocalReply above), so by the
-            // time we reach here the message had no local answer. Show a clean,
-            // friendly notice instead of a raw error string.
-            const errorText = "Unable to reach assistant right now. Try again in a moment.";
+            // Network / Groq failure — try the local knowledge base one more
+            // time before showing the offline banner. The first getLocalReply()
+            // call (above) skips greetings & personal-conversation so they can
+            // reach Groq; on network failure we want ANY useful reply.
+            // For offline fallback, bypass the Groq-only guards so greetings
+            // and personal messages also get a useful local answer.
+            let offlineLocal = getLocalReply(message);
+            if (!offlineLocal) {
+                const nameReplyOffline = tryHandleNameLocally(message);
+                if (nameReplyOffline !== null) offlineLocal = nameReplyOffline;
+            }
+            if (!offlineLocal && isGreeting(normalizeText(message))) {
+                offlineLocal = getDisclaimer(userType);
+            }
+            const name = sessionUserName ? `, ${sessionUserName}` : "";
+            const errorText = offlineLocal ||
+                `Hi${name}! I'm Clio, your ClinixPro AI Health Assistant. I can help with booking appointments, prescriptions, medical records, billing, and health questions. What would you like help with?`;
             const botNow = formatTime(new Date());
             const updated = readHistory();
             updated.push({ role: "bot", text: errorText, timestamp: botNow });
@@ -1009,6 +1236,8 @@
     });
     clearBtn.addEventListener("click", function () {
         localStorage.removeItem(storageKey);
+        localStorage.removeItem(userNameKey);
+        sessionUserName = "";
         conversationHistory.length = 0;
         lastIntentContext = "";
         renderHistory();

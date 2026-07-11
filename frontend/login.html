@@ -240,7 +240,18 @@
 
     <script>
         (function () {
-            const API_BASE = "/api";
+            function getBackendOrigin() {
+                const origin = window.location.origin || "http://localhost:5000";
+                try {
+                    const url = new URL(origin);
+                    if ((url.hostname === "localhost" || url.hostname === "127.0.0.1") && url.port && url.port !== "5000") {
+                        return `${url.protocol}//${url.hostname}:5000`;
+                    }
+                } catch (_e) {}
+                return origin;
+            }
+
+            const API_BASE = `${getBackendOrigin()}/api`;
             const API_URL = `${API_BASE}/auth/login`;
             const FORGOT_URL = `${API_BASE}/auth/forgot-password`;
             const RESET_URL = `${API_BASE}/auth/reset-password`;
@@ -279,15 +290,37 @@
                 return (payload.user_type || payload.role || "").toLowerCase();
             }
 
+            function clearLegacySessionData() {
+                const staleKeys = Object.keys(localStorage).filter((key) =>
+                    key === 'userName' ||
+                    key === 'userData' ||
+                    key === 'user' ||
+                    key === 'doctorName' ||
+                    key === 'patientName' ||
+                    key === 'userEmail' ||
+                    key === 'patientProfileLocal' ||
+                    key === 'patientProfileExtras' ||
+                    key === 'patientAvatarDataUrl' ||
+                    key === 'doctorAvatarDataUrl' ||
+                    key === 'userRole' ||
+                    key === 'userType' ||
+                    key === 'patientId' ||
+                    key === 'doctorId' ||
+                    key === 'patientName' ||
+                    key === 'doctorName'
+                );
+                staleKeys.forEach((k) => localStorage.removeItem(k));
+                Object.keys(localStorage).forEach((key) => {
+                    if (key.startsWith('clinixpro_user_name_')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+            }
+
             function persistSession(payload) {
+                clearLegacySessionData();
                 localStorage.setItem("token", payload.token || "");
                 localStorage.setItem("userRole", normalizeRole(payload));
-
-                // Always clear any stale name data before setting fresh values
-                localStorage.removeItem('userName');
-                localStorage.removeItem('userData');
-                localStorage.removeItem('doctorName');
-                localStorage.removeItem('patientName');
 
                 const userData = {
                     id: payload.user_id || null,

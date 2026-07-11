@@ -85,7 +85,7 @@ DEMO_PATIENT = {
     'email': 'patient@clinixpro.com',
     'phone': '+92-321-7778899',
     'dob': date(1995, 6, 15),
-    'gender': 'M',
+    'gender': 'Male',
     'address': '12 Demo Street, Block A',
     'city': 'Karachi',
     'state': 'Sindh',

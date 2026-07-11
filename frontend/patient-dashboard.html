@@ -258,9 +258,11 @@
                         <label for="appointmentDate">Date</label>
                         <input id="appointmentDate" type="date" required>
                     </div>
-                    <div class="form-group">
-                        <label for="appointmentTime">Time</label>
-                        <input id="appointmentTime" type="time" required>
+                    <div class="form-group full">
+                        <label>Available Time Slots</label>
+                        <div id="slotGridMessage" class="hint-note">Select a doctor and date to view available times.</div>
+                        <div id="slotGrid" class="slot-grid"></div>
+                        <input id="selectedAppointmentDateTime" type="hidden" name="selected_appointment_datetime">
                     </div>
                     <div class="form-group full">
                         <label for="appointmentReason">Reason for visit</label>
@@ -463,6 +465,12 @@
                     "patientId","patientName","doctorId","doctorName",
                     "patientProfileLocal","patientProfileExtras"
                 ].forEach((k) => localStorage.removeItem(k));
+                try {
+                    const avatarKeys = Object.keys(localStorage).filter(
+                        k => k.startsWith('patientAvatarDataUrl') || k.startsWith('doctorAvatarDataUrl') || k.startsWith('clinixpro_user_name_')
+                    );
+                    avatarKeys.forEach((k) => localStorage.removeItem(k));
+                } catch (_e) {}
             }
 
             function getStoredRole() {
@@ -475,7 +483,18 @@
                 return;
             }
 
-            const API_BASE = "/api";
+            function getBackendOrigin() {
+                const origin = window.location.origin || "http://localhost:5000";
+                try {
+                    const url = new URL(origin);
+                    if ((url.hostname === "localhost" || url.hostname === "127.0.0.1") && url.port && url.port !== "5000") {
+                        return `${url.protocol}//${url.hostname}:5000`;
+                    }
+                } catch (_e) {}
+                return origin;
+            }
+
+            const API_BASE = `${getBackendOrigin()}/api`;
 
             const state = {
                 stats: { upcoming: 0, records: 0, prescriptions: 0, bills: 0 },
@@ -492,15 +511,10 @@
                 currentUserId: "",
                 currentUserName: "",
                 activeMessage: null,
-                uploadFile: null
+                uploadFile: null,
+                selectedSlot: null,
+                slotGridLoading: false
             };
-            state.profile = Object.assign(
-                {},
-                parseJsonSafe(localStorage.getItem("patientProfileLocal")),
-                parseJsonSafe(localStorage.getItem("patientProfileExtras")),
-                parseJsonSafe(localStorage.getItem("userData")),
-                { name: localStorage.getItem("userName") || localStorage.getItem("patientName") || "" }
-            );
 
             const sidebar = document.getElementById("sidebar");
             const sideLinks = document.querySelectorAll(".side-link");
@@ -584,10 +598,8 @@
             }
 
             function getUser() {
-                const legacyUser = parseJsonSafe(localStorage.getItem("user"));
                 const loginUser = parseJsonSafe(localStorage.getItem("userData"));
-                const merged = Object.assign({}, legacyUser, loginUser);
-                return merged && typeof merged === "object" ? merged : {};
+                return loginUser && typeof loginUser === "object" ? loginUser : {};
             }
 
             function currentPatientName() {
@@ -596,9 +608,6 @@
                     state.currentUserName ||
                     state.profile.name ||
                     state.profile.full_name ||
-                    localStorage.getItem("patientName") ||
-                    localStorage.getItem("name") ||
-                    localStorage.getItem("userName") ||
                     user.full_name ||
                     user.name,
                     "Patient"
@@ -612,16 +621,13 @@
                     user.id ||
                     user.user_id ||
                     user.patient_id ||
-                    user.patientId ||
-                    localStorage.getItem("patientId") ||
-                    localStorage.getItem("userId") ||
                     ""
                 );
             }
 
             function currentPatientEmail() {
                 const user = getUser();
-                return safeText(state.profile.email || localStorage.getItem("userEmail") || user.email, "");
+                return safeText(state.profile.email || user.email, "");
             }
 
             function normalizeProfile(rawProfile) {
@@ -635,7 +641,8 @@
                     dob: raw.dob || raw.date_of_birth || raw.birth_date || "",
                     address: raw.address || raw.home_address || "",
                     emergency_contact_phone: raw.emergency_contact_phone || raw.emergency_contact || "",
-                    gender: raw.gender || ""
+                    gender: raw.gender || "",
+                    photo_data: raw.photo_data || ""
                 };
             }
 
@@ -660,8 +667,7 @@
 
             function buildApiUrl(url) {
                 const path = String(url || "");
-                // Always use absolute URL to Flask backend
-                const base = "/api";
+                const base = API_BASE;
                 // Strip any leading /api or api/ prefix from path to avoid doubling
                 let clean = path;
                 if (clean.startsWith("/api/")) clean = clean.slice(4);
@@ -774,7 +780,12 @@
                     localStorage.removeItem("patientAvatarDataUrl");
                 }
                 const key = avatarStorageKey();
-                const photo = key ? localStorage.getItem(key) : "";
+                const cached = key ? localStorage.getItem(key) : "";
+                // The server-stored photo (loaded via /api/auth/me) is the source
+                // of truth — it survives logout and other devices. localStorage
+                // is only a same-session cache.
+                const serverPhoto = state.profile && state.profile.photo_data;
+                const photo = isValidPhotoSrc(serverPhoto) ? serverPhoto : cached;
 
                 if (isValidPhotoSrc(photo)) {
                     // Real photo — paint it with !important so it wins over
@@ -789,7 +800,7 @@
 
                 // No photo (or corrupt value) — clean up + show initials on
                 // the teal background supplied by the theme stylesheet.
-                if (photo && key) localStorage.removeItem(key);
+                if (cached && key) localStorage.removeItem(key);
                 avatar.style.removeProperty("background-image");
                 avatar.style.removeProperty("background-size");
                 avatar.style.removeProperty("background-position");
@@ -1315,10 +1326,12 @@
                 const select = document.getElementById("messageToSelect");
                 if (!select) return;
                 select.innerHTML = `<option value="">Select doctor</option>`;
-                // Restrict to doctors the patient has booked appointments with
-                // (cancelled appointments still count — once you've seen them, you can talk to them).
+                // Only allow messaging doctors with a scheduled or completed appointment.
+                // Cancelled appointments do NOT grant messaging access.
+                const eligibleStatuses = new Set(["scheduled", "completed"]);
                 const apptDoctorIds = new Set(
                     state.appointments
+                        .filter((a) => eligibleStatuses.has(String(a.status || "").toLowerCase()))
                         .map((a) => a.doctor_id)
                         .filter((id) => id !== undefined && id !== null && String(id).trim() !== "")
                         .map((id) => String(id))
@@ -1430,7 +1443,7 @@
             (function upgradeLegacyEmptyStates() {
                 if (!polish) return;
                 const upgrades = [
-                    { id: "appointmentsEmpty", kind: "appointments", cta: "Book an appointment", section: "appointments" },
+                    { id: "appointmentsEmpty", kind: "appointments", cta: "Book an appointment", action: () => { const b = document.getElementById("openAppointmentModalBtn"); if (b) b.click(); } },
                     { id: "recordsEmpty",      kind: "records" },
                     { id: "myUploadsEmpty",    kind: "records",       title: "No personal records yet", hint: "Upload past lab reports, prescriptions, x-rays or vaccination cards so any doctor you book can see them.", cta: "Add Record", action: () => { const b = document.getElementById("openUploadRecordBtn"); if (b) b.click(); } },
                     { id: "prescriptionsEmpty",kind: "prescriptions" },
@@ -1498,6 +1511,91 @@
                     opt.textContent = `${doctorName} — ${specialty}`;
                     doctorSelect.appendChild(opt);
                 });
+            }
+
+            function formatTimeLabel(timeValue) {
+                if (!timeValue) return "";
+                const [hours, minutes] = String(timeValue).split(":").map((part) => Number(part));
+                if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeValue;
+                const suffix = hours >= 12 ? "PM" : "AM";
+                const adjusted = hours % 12 || 12;
+                return `${adjusted}:${String(minutes).padStart(2, "0")} ${suffix}`;
+            }
+
+            function resetSlotSelection() {
+                state.selectedSlot = null;
+                const hidden = document.getElementById("selectedAppointmentDateTime");
+                if (hidden) hidden.value = "";
+                const slotGrid = document.getElementById("slotGrid");
+                if (slotGrid) slotGrid.innerHTML = "";
+                const message = document.getElementById("slotGridMessage");
+                if (message) message.textContent = "Select a doctor and date to view available times.";
+            }
+
+            function renderSlotGrid(payload) {
+                const slotGrid = document.getElementById("slotGrid");
+                const message = document.getElementById("slotGridMessage");
+                if (!slotGrid || !message) return;
+                slotGrid.innerHTML = "";
+                if (!payload || !Array.isArray(payload.slots)) {
+                    message.textContent = "No time slots available for this date.";
+                    return;
+                }
+                const slots = payload.slots || [];
+                if (!slots.length) {
+                    message.textContent = safeText(payload.reason, "No time slots available for this date.");
+                    return;
+                }
+                message.textContent = `Available ${safeText(payload.slot_duration_minutes, "30")} minute slots for ${safeText(payload.date, "this date")}.`;
+                const fragment = document.createDocumentFragment();
+                slots.forEach((slot) => {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "slot-chip";
+                    button.setAttribute("data-datetime", safeText(slot.datetime, ""));
+                    button.textContent = formatTimeLabel(slot.time);
+                    if (!slot.available) {
+                        button.classList.add("slot-chip-disabled");
+                        button.disabled = true;
+                        button.textContent = slot.reason === "past" ? "Past" : "Already Booked";
+                    } else {
+                        button.addEventListener("click", () => {
+                            state.selectedSlot = slot;
+                            document.getElementById("selectedAppointmentDateTime").value = safeText(slot.datetime, "");
+                            document.querySelectorAll(".slot-chip").forEach((chip) => chip.classList.remove("slot-chip-selected"));
+                            button.classList.add("slot-chip-selected");
+                        });
+                    }
+                    fragment.appendChild(button);
+                });
+                slotGrid.appendChild(fragment);
+            }
+
+            async function refreshAppointmentSlots() {
+                const doctorId = document.getElementById("doctorSelect").value;
+                const date = document.getElementById("appointmentDate").value;
+                const hidden = document.getElementById("selectedAppointmentDateTime");
+                if (!doctorId || !date) {
+                    resetSlotSelection();
+                    return;
+                }
+                state.selectedSlot = null;
+                if (hidden) hidden.value = "";
+                if (state.slotGridLoading) return;
+                state.slotGridLoading = true;
+                const message = document.getElementById("slotGridMessage");
+                if (message) message.textContent = "Loading available times…";
+                try {
+                    const payload = await apiGet(`/api/doctors/${encodeURIComponent(doctorId)}/slots?date=${encodeURIComponent(date)}`);
+                    renderSlotGrid(payload);
+                    if (hidden && state.selectedSlot && state.selectedSlot.datetime) {
+                        hidden.value = state.selectedSlot.datetime;
+                    }
+                } catch (err) {
+                    if (message) message.textContent = safeText(err.message, "Unable to load time slots.");
+                } finally {
+                    state.slotGridLoading = false;
+                }
             }
 
             async function ensureDoctorsLoaded() {
@@ -1679,7 +1777,15 @@
                 seedDoctors();
                 const today = new Date().toISOString().split('T')[0];
                 document.getElementById("appointmentDate").min = today;
+                resetSlotSelection();
                 openModal("appointmentModalBackdrop");
+            });
+
+            document.getElementById("doctorSelect").addEventListener("change", () => {
+                refreshAppointmentSlots();
+            });
+            document.getElementById("appointmentDate").addEventListener("change", () => {
+                refreshAppointmentSlots();
             });
 
             document.getElementById("openProfileEditBtn").addEventListener("click", async () => {
@@ -1781,14 +1887,16 @@
 
             document.getElementById("openComposeMessageBtn").addEventListener("click", async () => {
                 await ensureDoctorsLoaded();
+                const eligibleStatuses = new Set(["scheduled", "completed"]);
                 const apptDoctorIds = new Set(
                     state.appointments
+                        .filter((a) => eligibleStatuses.has(String(a.status || "").toLowerCase()))
                         .map((a) => a.doctor_id)
                         .filter((id) => id !== undefined && id !== null && String(id).trim() !== "")
                         .map((id) => String(id))
                 );
                 if (!apptDoctorIds.size) {
-                    notify("Book an appointment first — you can only message doctors you have appointments with.");
+                    notify("Book an appointment first — you can only message doctors you have a scheduled appointment with.");
                     return;
                 }
                 seedMessageRecipients();
@@ -1830,40 +1938,78 @@
                 document.getElementById("profilePhotoInput").click();
             });
 
-            document.getElementById("removePhotoBtn").addEventListener("click", () => {
+            // Downscale to a small square JPEG so the stored data URL stays
+            // tiny (well under the server's 4MB photo cap).
+            function compressPhotoToDataUrl(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(new Error("Unable to read image."));
+                    reader.onload = () => {
+                        const img = new Image();
+                        img.onerror = () => reject(new Error("Unable to load image."));
+                        img.onload = () => {
+                            const MAX = 512;
+                            const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+                            const canvas = document.createElement("canvas");
+                            canvas.width = Math.max(1, Math.round(img.width * scale));
+                            canvas.height = Math.max(1, Math.round(img.height * scale));
+                            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+                            resolve(canvas.toDataURL("image/jpeg", 0.85));
+                        };
+                        img.src = String(reader.result || "");
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            function patientIdForProfile() {
+                return Number(state.profile.patient_id || state.resolvedPatientId || state.currentUserId || 0);
+            }
+
+            document.getElementById("removePhotoBtn").addEventListener("click", async () => {
                 const key = avatarStorageKey();
                 if (key) localStorage.removeItem(key);
                 localStorage.removeItem("patientAvatarDataUrl");
+                try {
+                    const pid = patientIdForProfile();
+                    if (pid) await apiPut(`/api/patients/${pid}`, { photo_data: "" });
+                    state.profile.photo_data = "";
+                    notify("Photo removed.");
+                } catch (err) {
+                    notify(safeText(err.message, "Unable to remove photo from your profile."));
+                }
                 renderTopInfo();
-                notify("Photo removed.");
             });
 
-            document.getElementById("profilePhotoInput").addEventListener("change", (event) => {
+            document.getElementById("profilePhotoInput").addEventListener("change", async (event) => {
                 const input = event.target;
                 if (!(input instanceof HTMLInputElement) || !input.files || !input.files[0]) return;
                 const file = input.files[0];
+                input.value = "";
                 if (!file.type.startsWith("image/")) {
                     notify("Please select an image file.");
                     return;
                 }
-                const reader = new FileReader();
-                reader.onload = function () {
-                    const result = typeof reader.result === "string" ? reader.result : "";
-                    if (!result) {
-                        notify("Unable to load selected image.");
-                        return;
-                    }
+                const pid = patientIdForProfile();
+                if (!pid) {
+                    notify("Profile not loaded yet. Please refresh and try again.");
+                    return;
+                }
+                try {
+                    const dataUrl = await compressPhotoToDataUrl(file);
+                    // Persist server-side first — that is what survives logout.
+                    await apiPut(`/api/patients/${pid}`, { photo_data: dataUrl });
+                    state.profile.photo_data = dataUrl;
                     const key = avatarStorageKey();
-                    if (!key) {
-                        notify("Profile not loaded yet. Please refresh and try again.");
-                        return;
-                    }
                     localStorage.removeItem("patientAvatarDataUrl");
-                    localStorage.setItem(key, result);
+                    if (key) {
+                        try { localStorage.setItem(key, dataUrl); } catch (_e) { /* cache only */ }
+                    }
                     renderTopInfo();
                     notify("Profile photo updated.");
-                };
-                reader.readAsDataURL(file);
+                } catch (err) {
+                    notify(safeText(err.message, "Unable to save profile photo."));
+                }
             });
 
             document.getElementById("recordsList").addEventListener("click", (event) => {
@@ -1920,11 +2066,11 @@
                 event.preventDefault();
                 const doctorId = document.getElementById("doctorSelect").value;
                 const date = document.getElementById("appointmentDate").value;
-                const time = document.getElementById("appointmentTime").value;
+                const selectedDateTime = document.getElementById("selectedAppointmentDateTime").value;
                 const reason = document.getElementById("appointmentReason").value.trim();
 
-                if (!doctorId || !date || !time || !reason) {
-                    notify("Please complete all appointment fields.");
+                if (!doctorId || !date || !selectedDateTime || !reason) {
+                    notify("Please select an available time slot.");
                     return;
                 }
 
@@ -1945,7 +2091,7 @@
                 const payload = {
                     patient_id: patientId,
                     doctor_id: Number(doctorId),
-                    appointment_date: `${date} ${time}:00`,
+                    appointment_date: selectedDateTime,
                     reason: reason
                 };
 
@@ -1953,14 +2099,19 @@
                     await apiPost("/api/appointments", payload);
                     closeModal("appointmentModalBackdrop");
                     document.getElementById("appointmentForm").reset();
+                    resetSlotSelection();
                     notify("Appointment booked successfully.");
                     await loadData();
+                    await refreshAppointmentSlots();
                     switchSection("appointments");
                     renderAppointments();
                     renderStats();
                     renderNotifications();
                 } catch (err) {
                     notify(safeText(err.message, "Unable to book appointment right now."));
+                    if (String(err.message || "").toLowerCase().includes("already booked") || String(err.message || "").toLowerCase().includes("slot")) {
+                        await refreshAppointmentSlots();
+                    }
                 }
             });
 
@@ -1997,6 +2148,13 @@
                     await apiPut(`/api/patients/${patientId}`, payload);
                     closeModal("profileModalBackdrop");
                     await loadData();
+                    // Sync the new name to localStorage so the welcome header
+                    // and sidebar update immediately without a page refresh.
+                    if (payload.name) {
+                        localStorage.setItem("userName", payload.name);
+                        state.currentUserName = payload.name;
+                    }
+                    renderTopInfo();
                     renderProfile();
                     notify("Profile updated successfully.");
                 } catch (err) {

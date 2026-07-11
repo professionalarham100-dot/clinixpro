@@ -121,7 +121,7 @@
                     <thead>
                         <tr>
                             <th>Patient</th>
-                            <th>Time</th>
+                            <th>Date &amp; Time</th>
                             <th>Reason</th>
                             <th>Status</th>
                             <th>Action</th>
@@ -235,6 +235,9 @@
                     <div class="profile-field"><small>Department</small><strong id="pfDepartment">Not available</strong></div>
                     <div class="profile-field"><small>Phone</small><strong id="pfPhone">Not available</strong></div>
                     <div class="profile-field"><small>Email</small><strong id="pfEmail">Not available</strong></div>
+                    <div class="profile-field"><small>Availability</small><strong id="pfAvailability">Not set</strong></div>
+                    <div class="profile-field"><small>Hours</small><strong id="pfHours">Not set</strong></div>
+                    <div class="profile-field"><small>Session Length</small><strong id="pfSlotDuration">30 min</strong></div>
                 </div>
             </article>
         </section>
@@ -400,6 +403,28 @@
                         <label for="editEmail">Email</label>
                         <input id="editEmail" type="email" required>
                     </div>
+                    <div class="form-group full">
+                        <label>Working Days</label>
+                        <div id="availabilityDaysGroup" class="availability-days-group"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="officeHoursStart">Office Hours Start</label>
+                        <input id="officeHoursStart" type="time" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="officeHoursEnd">Office Hours End</label>
+                        <input id="officeHoursEnd" type="time" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="slotDurationMinutes">Session Length</label>
+                        <select id="slotDurationMinutes">
+                            <option value="15">15 minutes</option>
+                            <option value="20">20 minutes</option>
+                            <option value="30" selected>30 minutes</option>
+                            <option value="45">45 minutes</option>
+                            <option value="60">60 minutes</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-soft" data-close-modal="profileModalBackdrop">Cancel</button>
@@ -481,7 +506,17 @@
                 return;
             }
 
-            const API_BASE = "";
+            function getBackendOrigin() {
+                const origin = window.location.origin || "http://localhost:5000";
+                try {
+                    const url = new URL(origin);
+                    if ((url.hostname === "localhost" || url.hostname === "127.0.0.1") && url.port && url.port !== "5000") {
+                        return `${url.protocol}//${url.hostname}:5000`;
+                    }
+                } catch (_e) {}
+                return origin;
+            }
+            const API_BASE = getBackendOrigin();
             const state = {
                 stats: { todayAppointments: 0, totalPatients: 0, pendingRecords: 0, completedToday: 0 },
                 appointments: [],
@@ -752,7 +787,11 @@
                     localStorage.removeItem("doctorAvatarDataUrl");
                 }
                 const key = doctorAvatarKey();
-                const photo = key ? localStorage.getItem(key) : "";
+                const cached = key ? localStorage.getItem(key) : "";
+                // The server-stored photo (doctors.photo_data via /api/auth/me)
+                // is the source of truth; localStorage is a same-session cache.
+                const serverPhoto = state.doctorProfile && state.doctorProfile.photo_data;
+                const photo = isValidPhotoSrc(serverPhoto) ? serverPhoto : cached;
 
                 if (isValidPhotoSrc(photo)) {
                     // Real photo — paint with !important so it wins over
@@ -766,7 +805,7 @@
                 }
 
                 // No photo (or corrupt value) — clean up + show initials.
-                if (photo && key) localStorage.removeItem(key);
+                if (cached && key) localStorage.removeItem(key);
                 avatar.style.removeProperty("background-image");
                 avatar.style.removeProperty("background-size");
                 avatar.style.removeProperty("background-position");
@@ -941,7 +980,6 @@
                                 </div>
                                 <div class="patient-upload-actions">
                                     <button type="button" class="btn btn-primary btn-sm" data-doc-upload-action="view" data-id="${escapeHtml(rec.id)}"><i class="fa-solid fa-eye"></i> View</button>
-                                    <button type="button" class="btn btn-soft btn-sm" data-doc-upload-action="download" data-id="${escapeHtml(rec.id)}" data-filename="${escapeHtml(safeText(rec.file_name, 'record'))}"><i class="fa-solid fa-download"></i></button>
                                 </div>
                             </article>
                         `;
@@ -971,7 +1009,12 @@
                     const win = window.open(url, "_blank", "noopener");
                     if (!win) {
                         const a = document.createElement("a");
-                        a.href = url; a.target = "_blank"; a.rel = "noopener"; a.click();
+                        a.href = url;
+                        a.target = "_blank";
+                        a.rel = "noopener";
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
                     }
                     setTimeout(() => URL.revokeObjectURL(url), 60000);
                 } catch (err) {
@@ -1038,6 +1081,7 @@
                     const isPast = !Number.isNaN(apptDate.getTime()) && apptDate.getTime() < todayDate.getTime();
                     const patient = safeText(appointment.patient_name || appointment.patient, patientNameById(appointment.patient_id));
                     const time = formatTime(dateRaw);
+                    const dateStr = formatDate(dateRaw);
                     const reason = safeText(appointment.reason, "Not available");
                     const status = safeText(appointment.status, "pending");
                     const id = appointment.appointment_id || appointment.id || "";
@@ -1051,7 +1095,7 @@
                     }
                     row.innerHTML = `
                         <td>${escapeHtml(patient)}</td>
-                        <td>${isToday ? '<span style="color:#16a34a;">●</span> ' : ''}${escapeHtml(time)}</td>
+                        <td>${isToday ? '<span style="color:#16a34a;">●</span> ' : ''}${escapeHtml(dateStr)} • ${escapeHtml(time)}</td>
                         <td>${escapeHtml(reason)}</td>
                         <td><span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span></td>
                         <td>
@@ -1188,6 +1232,13 @@
                 document.getElementById("pfDepartment").textContent = safeText(p.department, "Not available");
                 document.getElementById("pfPhone").textContent = safeText(p.phone || p.contact_number, "Not available");
                 document.getElementById("pfEmail").textContent = safeText(p.email, "Not available");
+                const days = safeText(p.availability_days || p.availabilityDays || "", "");
+                document.getElementById("pfAvailability").textContent = days ? days : "Not set";
+                const hours = p.office_hours_start || p.officeHoursStart || p.office_hours_end || p.officeHoursEnd
+                    ? `${safeText(p.office_hours_start || p.officeHoursStart, "--")}${safeText(p.office_hours_end || p.officeHoursEnd, "") ? " – " + safeText(p.office_hours_end || p.officeHoursEnd, "") : ""}`
+                    : "Not set";
+                document.getElementById("pfHours").textContent = hours;
+                document.getElementById("pfSlotDuration").textContent = `${safeText(p.slot_duration_minutes || p.slotDurationMinutes, 30)} min`;
             }
 
             function renderMessages() {
@@ -1461,6 +1512,24 @@
                 openModal("patientDetailModalBackdrop");
             }
 
+            function renderAvailabilityCheckboxes() {
+                const container = document.getElementById("availabilityDaysGroup");
+                if (!container) return;
+                const selected = _availabilityDaySetFromProfile();
+                container.innerHTML = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => `
+                    <label class="availability-day-option">
+                        <input type="checkbox" name="availabilityDays" value="${day}" ${selected.has(day) ? "checked" : ""}>
+                        <span>${day}</span>
+                    </label>
+                `).join("");
+            }
+
+            function _availabilityDaySetFromProfile() {
+                const raw = safeText((state.doctorProfile && (state.doctorProfile.availability_days || state.doctorProfile.availabilityDays)) || "", "");
+                if (!raw) return new Set();
+                return new Set(String(raw).split(',').map((item) => item.trim()).filter(Boolean));
+            }
+
             function fillProfileForm() {
                 const p = state.doctorProfile;
                 document.getElementById("editName").value = safeText(p.name || p.full_name || currentDoctorName(), "");
@@ -1469,6 +1538,10 @@
                 document.getElementById("editDepartment").value = safeText(p.department, "");
                 document.getElementById("editPhone").value = safeText(p.phone || p.contact_number, "");
                 document.getElementById("editEmail").value = safeText(p.email, "");
+                document.getElementById("officeHoursStart").value = safeText(p.office_hours_start || p.officeHoursStart, "");
+                document.getElementById("officeHoursEnd").value = safeText(p.office_hours_end || p.officeHoursEnd, "");
+                document.getElementById("slotDurationMinutes").value = String(p.slot_duration_minutes || p.slotDurationMinutes || 30);
+                renderAvailabilityCheckboxes();
             }
 
             function applyLocalDoctorProfileOverrides() {
@@ -1734,7 +1807,6 @@
                 const id = target.getAttribute("data-id");
                 if (!id) return;
                 if (action === "view") viewDoctorUploadedRecord(id);
-                else if (action === "download") downloadDoctorUploadedRecord(id, target.getAttribute("data-filename"));
             });
 
             document.querySelectorAll("[data-patient-action]").forEach((btn) => {
@@ -1768,40 +1840,74 @@
                 document.getElementById("profilePhotoInput").click();
             });
 
-            document.getElementById("removePhotoBtn").addEventListener("click", () => {
+            // Downscale to a small square JPEG so the stored data URL stays
+            // tiny (well under the server's 4MB photo cap).
+            function compressPhotoToDataUrl(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(new Error("Unable to read image."));
+                    reader.onload = () => {
+                        const img = new Image();
+                        img.onerror = () => reject(new Error("Unable to load image."));
+                        img.onload = () => {
+                            const MAX = 512;
+                            const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+                            const canvas = document.createElement("canvas");
+                            canvas.width = Math.max(1, Math.round(img.width * scale));
+                            canvas.height = Math.max(1, Math.round(img.height * scale));
+                            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+                            resolve(canvas.toDataURL("image/jpeg", 0.85));
+                        };
+                        img.src = String(reader.result || "");
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            document.getElementById("removePhotoBtn").addEventListener("click", async () => {
                 const key = doctorAvatarKey();
                 if (key) localStorage.removeItem(key);
                 localStorage.removeItem("doctorAvatarDataUrl");
+                try {
+                    const docId = Number(state.doctorIdResolved || currentDoctorId() || 0);
+                    if (docId) await apiPut(`/api/doctors/${docId}`, { photo_data: "" });
+                    if (state.doctorProfile) state.doctorProfile.photo_data = "";
+                    notify("Profile photo removed.");
+                } catch (err) {
+                    notify(safeText(err.message, "Unable to remove photo from your profile."));
+                }
                 renderTopInfo(); // Rebuilds avatar, shows initials fallback
-                notify("Profile photo removed.");
             });
 
-            document.getElementById("profilePhotoInput").addEventListener("change", (event) => {
+            document.getElementById("profilePhotoInput").addEventListener("change", async (event) => {
                 const input = event.target;
                 if (!(input instanceof HTMLInputElement) || !input.files || !input.files[0]) return;
                 const file = input.files[0];
+                input.value = "";
                 if (!file.type.startsWith("image/")) {
                     notify("Please select an image file.");
                     return;
                 }
-                const reader = new FileReader();
-                reader.onload = function () {
-                    const result = typeof reader.result === "string" ? reader.result : "";
-                    if (!result) {
-                        notify("Unable to load selected image.");
-                        return;
-                    }
+                const docId = Number(state.doctorIdResolved || currentDoctorId() || 0);
+                if (!docId) {
+                    notify("Profile not loaded yet. Please refresh and try again.");
+                    return;
+                }
+                try {
+                    const dataUrl = await compressPhotoToDataUrl(file);
+                    // Persist server-side first — that is what survives logout.
+                    await apiPut(`/api/doctors/${docId}`, { photo_data: dataUrl });
+                    if (state.doctorProfile) state.doctorProfile.photo_data = dataUrl;
                     const key = doctorAvatarKey();
-                    if (!key) {
-                        notify("Profile not loaded yet. Please refresh and try again.");
-                        return;
-                    }
                     localStorage.removeItem("doctorAvatarDataUrl");
-                    localStorage.setItem(key, result);
+                    if (key) {
+                        try { localStorage.setItem(key, dataUrl); } catch (_e) { /* cache only */ }
+                    }
                     renderTopInfo();
                     notify("Profile photo updated.");
-                };
-                reader.readAsDataURL(file);
+                } catch (err) {
+                    notify(safeText(err.message, "Unable to save profile photo."));
+                }
             });
 
             document.getElementById("composeMessageForm").addEventListener("submit", async (event) => {
@@ -1886,18 +1992,26 @@
                     notify("Doctor id is missing. Please login again.");
                     return;
                 }
+                const selectedDays = Array.from(document.querySelectorAll("input[name='availabilityDays']:checked")).map((input) => input.value).join(",");
+                const emailValue = document.getElementById("editEmail").value.trim();
                 const payload = {
                     phone: document.getElementById("editPhone").value.trim(),
-                    email: document.getElementById("editEmail").value.trim()
+                    availability_days: selectedDays,
+                    office_hours_start: document.getElementById("officeHoursStart").value,
+                    office_hours_end: document.getElementById("officeHoursEnd").value,
+                    slot_duration_minutes: Number(document.getElementById("slotDurationMinutes").value)
                 };
+                if (emailValue && emailValue !== safeText(state.doctorProfile.email, "")) {
+                    payload.email = emailValue;
+                }
                 try {
                     await apiPut(`/api/doctors/${doctorId}`, payload);
                     const existingName = state.doctorName || currentDoctorName();
                     if (existingName) localStorage.setItem("doctorName", existingName);
-                    const userData = parseJsonSafe(localStorage.getItem("userData"));
+                    const userData = parseJsonSafe(localStorage.getItem("userData")) || {};
                     localStorage.setItem("userData", JSON.stringify(Object.assign({}, userData, {
                         name: existingName,
-                        email: payload.email,
+                        email: payload.email || userData.email || state.doctorProfile.email || "",
                         id: userData.id || doctorId,
                         role: "doctor"
                     })));

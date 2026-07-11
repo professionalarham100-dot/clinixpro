@@ -436,6 +436,22 @@ tbody tr:last-child td { border-bottom: none; }
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
 }
+.availability-days-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+.availability-day-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: #f8fafc;
+    font-size: 0.9rem;
+}
 .profile-field {
     background: #f8fafc;
     border-radius: 8px;

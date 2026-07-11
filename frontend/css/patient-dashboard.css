@@ -467,6 +467,54 @@ tbody tr:last-child td { border-bottom: none; }
 
 #profile .panel { border-top: 4px solid var(--brand-from); }
 
+.slot-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+.slot-chip {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #1e293b;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.slot-chip:hover {
+    border-color: var(--brand-from);
+    color: var(--brand-from);
+}
+.slot-chip-selected {
+    background: var(--brand-from);
+    border-color: var(--brand-from);
+    color: #fff;
+}
+.slot-chip-disabled {
+    background: #e2e8f0;
+    color: #64748b;
+    cursor: not-allowed;
+    border-color: #cbd5e1;
+}
+.availability-days-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+.availability-day-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: #f8fafc;
+    font-size: 0.9rem;
+}
+
 .profile-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

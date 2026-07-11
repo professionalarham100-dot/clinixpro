@@ -194,13 +194,13 @@ body::before {
 .form-group textarea::placeholder {
     color: rgba(74, 93, 99, 0.55) !important;
 }
-.form-group input:hover,
+.form-group input:not([type="checkbox"]):hover,
 .form-group select:hover,
 .form-group textarea:hover {
     border-color: rgba(15, 118, 110, 0.35) !important;
     background: #ffffff !important;
 }
-.form-group input:focus,
+.form-group input:not([type="checkbox"]):focus,
 .form-group select:focus,
 .form-group textarea:focus {
     outline: none !important;
@@ -239,7 +239,7 @@ body::before {
 }
 .register-feedback.success { color: var(--cp-teal-700); }
 
-/* Terms checkbox */
+/* Terms checkbox — isolated from all input transition/hover rules */
 .form-group.checkbox {
     flex-direction: row !important;
     align-items: center;
@@ -253,6 +253,13 @@ body::before {
     accent-color: var(--cp-teal-600);
     cursor: pointer;
     flex-shrink: 0;
+    transition: none !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    -webkit-appearance: checkbox !important;
+    appearance: checkbox !important;
 }
 .form-group.checkbox label {
     margin: 0 !important;
@@ -263,6 +270,7 @@ body::before {
     text-transform: none !important;
     letter-spacing: 0 !important;
     cursor: pointer;
+    transition: none !important;
 }
 
 /* ---------- Submit button ---------- */
@@ -292,13 +300,13 @@ body::before {
     overflow: hidden;
 }
 .btn-login:hover:not(:disabled) {
-    transform: translateY(-2px) !important;
     box-shadow:
         0 1px 2px rgba(10, 31, 36, 0.2),
         0 22px 44px rgba(15, 118, 110, 0.40) !important;
     color: var(--cp-cream-50) !important;
+    filter: brightness(1.08);
 }
-.btn-login:active { transform: translateY(0) !important; }
+.btn-login:active { transform: translateY(1px) !important; }
 .btn-login:disabled { opacity: 0.7; cursor: not-allowed; }
 
 /* ---------- Footer ---------- */

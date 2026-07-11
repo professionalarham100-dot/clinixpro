@@ -42,6 +42,7 @@
     @media(max-width:640px){.summary-cards{grid-template-columns:1fr}}
     .quick-actions{display:flex;flex-wrap:wrap;gap:10px}
     .quick-actions .action-btn{padding:10px 16px;font-size:.88rem;display:inline-flex;align-items:center;gap:8px}
+    .doc-missing{display:inline-block;font-size:.78rem;color:#94a3b8;font-style:italic;margin-right:6px}
     .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
     .info-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
     .info-card strong{display:block;font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;font-weight:600}
@@ -430,7 +431,17 @@
                 return;
             }
 
-            const API_BASE = "/api";
+            function getBackendOrigin() {
+                const origin = window.location.origin || "http://localhost:5000";
+                try {
+                    const url = new URL(origin);
+                    if ((url.hostname === "localhost" || url.hostname === "127.0.0.1") && url.port && url.port !== "5000") {
+                        return `${url.protocol}//${url.hostname}:5000`;
+                    }
+                } catch (_e) {}
+                return origin;
+            }
+            const API_BASE = `${getBackendOrigin()}/api`;
             const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
             const PAGE_LOAD_AT = Date.now();
 
@@ -802,6 +813,9 @@
                         <td>${escapeHtml(safeText(d.medical_license_number, "Not available"))}</td>
                         <td>${escapeHtml(formatDate(d.applied_at || d.created_at || d.application_date))}</td>
                         <td>
+                            ${d.has_document
+                                ? `<button class="action-btn action-view" data-action="view-document" data-id="${escapeHtml(d.application_id)}">View Document</button>`
+                                : `<span class="doc-missing" title="No document uploaded">No document</span>`}
                             <button class="action-btn action-approve" data-action="approve" data-id="${escapeHtml(d.application_id)}">Approve</button>
                             <button class="action-btn action-reject" data-action="reject" data-id="${escapeHtml(d.application_id)}">Reject</button>
                         </td>
@@ -1105,7 +1119,7 @@
                     const reason = window.prompt("Enter rejection reason:");
                     if (!reason || !reason.trim()) {
                         setError("Rejection reason is required.");
-                        return;
+                        return { cancelled: true };
                     }
                     options.body = JSON.stringify({ reason: reason.trim() });
                 }
@@ -1115,6 +1129,7 @@
                 if (!response.ok) {
                     throw new Error(payload.error || "Unable to process doctor application.");
                 }
+                return payload;
             }
 
             async function loadSectionData(id, force = false) {
@@ -1267,10 +1282,41 @@
                 const action = e.target && e.target.getAttribute("data-action");
                 const applicationId = e.target && e.target.getAttribute("data-id");
                 if (!action || !applicationId) return;
+                if (action === "view-document") {
+                    try {
+                        const res = await fetch(`${API_BASE}/admin/doctor-applications/${applicationId}/document`, {
+                            headers: { "Authorization": `Bearer ${token}` }
+                        });
+                        if (!res.ok) {
+                            let msg = "Unable to load document.";
+                            try { const p = await res.json(); msg = p.error || msg; } catch (_e) {}
+                            throw new Error(msg);
+                        }
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, "_blank");
+                        setTimeout(() => URL.revokeObjectURL(url), 60000);
+                    } catch (error) {
+                        setError(error.message || "Unable to load verification document.");
+                    }
+                    return;
+                }
                 try {
-                    await reviewDoctorApplication(applicationId, action);
+                    const result = await reviewDoctorApplication(applicationId, action);
+                    if (result && result.cancelled) return;
                     const pendingPayload = await fetchJson(`${API_BASE}/admin/doctor-applications?status=pending`);
                     renderPendingDoctors((pendingPayload || {}).applications || []);
+                    if (result && result.email_sent === false) {
+                        showToast(
+                            action === "approve"
+                                ? "Doctor was approved but the notification email failed to send."
+                                : "Doctor was rejected but the notification email failed to send.",
+                            "warning",
+                            6000
+                        );
+                    } else {
+                        showToast(action === "approve" ? "Doctor approved." : "Doctor rejected.", "success");
+                    }
                 } catch (error) {
                     setError(error.message || "Unable to process doctor review action.");
                 }
