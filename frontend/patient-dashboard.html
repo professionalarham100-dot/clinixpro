@@ -2455,6 +2455,91 @@
                 }
             }
 
+            function formatTimeLabel(timeValue) {
+                if (!timeValue) return "";
+                const [hours, minutes] = String(timeValue).split(":").map((part) => Number(part));
+                if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeValue;
+                const suffix = hours >= 12 ? "PM" : "AM";
+                const adjusted = hours % 12 || 12;
+                return `${adjusted}:${String(minutes).padStart(2, "0")} ${suffix}`;
+            }
+
+            function resetSlotSelection() {
+                state.selectedSlot = null;
+                const hidden = document.getElementById("selectedAppointmentDateTime");
+                if (hidden) hidden.value = "";
+                const slotGrid = document.getElementById("slotGrid");
+                if (slotGrid) slotGrid.innerHTML = "";
+                const message = document.getElementById("slotGridMessage");
+                if (message) message.textContent = "Select a doctor and date to view available times.";
+            }
+
+            function renderSlotGrid(payload) {
+                const slotGrid = document.getElementById("slotGrid");
+                const message = document.getElementById("slotGridMessage");
+                if (!slotGrid || !message) return;
+                slotGrid.innerHTML = "";
+                if (!payload || !Array.isArray(payload.slots)) {
+                    message.textContent = "No time slots available for this date.";
+                    return;
+                }
+                const slots = payload.slots || [];
+                if (!slots.length) {
+                    message.textContent = safeText(payload.reason, "No time slots available for this date.");
+                    return;
+                }
+                message.textContent = `Available ${safeText(payload.slot_duration_minutes, "30")} minute slots for ${safeText(payload.date, "this date")}.`;
+                const fragment = document.createDocumentFragment();
+                slots.forEach((slot) => {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "slot-chip";
+                    button.setAttribute("data-datetime", safeText(slot.datetime, ""));
+                    button.textContent = formatTimeLabel(slot.time);
+                    if (!slot.available) {
+                        button.classList.add("slot-chip-disabled");
+                        button.disabled = true;
+                        button.textContent = slot.reason === "past" ? "Past" : "Already Booked";
+                    } else {
+                        button.addEventListener("click", () => {
+                            state.selectedSlot = slot;
+                            document.getElementById("selectedAppointmentDateTime").value = safeText(slot.datetime, "");
+                            document.querySelectorAll(".slot-chip").forEach((chip) => chip.classList.remove("slot-chip-selected"));
+                            button.classList.add("slot-chip-selected");
+                        });
+                    }
+                    fragment.appendChild(button);
+                });
+                slotGrid.appendChild(fragment);
+            }
+
+            async function refreshAppointmentSlots() {
+                const doctorId = document.getElementById("doctorSelect").value;
+                const date = document.getElementById("appointmentDate").value;
+                const hidden = document.getElementById("selectedAppointmentDateTime");
+                if (!doctorId || !date) {
+                    resetSlotSelection();
+                    return;
+                }
+                state.selectedSlot = null;
+                if (hidden) hidden.value = "";
+                if (state.slotGridLoading) return;
+                state.slotGridLoading = true;
+                const message = document.getElementById("slotGridMessage");
+                if (message) message.textContent = "Loading available times…";
+                try {
+                    const payload = await apiGet(`/api/doctors/${encodeURIComponent(doctorId)}/slots?date=${encodeURIComponent(date)}`);
+                    renderSlotGrid(payload);
+                    if (hidden && state.selectedSlot && state.selectedSlot.datetime) {
+                        hidden.value = state.selectedSlot.datetime;
+                    }
+                } catch (err) {
+                    if (message) message.textContent = safeText(err.message, "Unable to load time slots.");
+                } finally {
+                    state.slotGridLoading = false;
+                }
+            }
+
             async function ensureDoctorsLoaded() {
                 if (state.doctors && state.doctors.length) return;
                 try {
@@ -3042,6 +3127,7 @@
                     }
                     await loadData();
                     await refreshAppointmentSlots();
+                    switchSection("appointments");
                     renderAppointments();
                     renderBilling();
                     renderStats();

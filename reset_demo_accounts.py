@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from datetime import date
 
 import pymysql
 from dotenv import load_dotenv
@@ -100,6 +101,42 @@ def _column_exists(cursor, table_name: str, column_name: str) -> bool:
     if isinstance(row, dict):
         return int(row.get("c") or 0) > 0
     return int(row[0] if row else 0) > 0
+
+
+DEMO_DOCTOR = {
+    'name': 'Dr. Demo Doctor',
+    'email': 'doctor@clinixpro.com',
+    'phone': '+92-300-1112233',
+    'specialization': 'General Physician',
+    'qualification': 'MBBS, FCPS (Medicine)',
+    'license_number': 'PMC-DEMO-001',
+    'department': 'Internal Medicine',
+    'consultation_fee': 1500.00,
+    'experience_years': 8,
+    'bio': 'General physician with focus on chronic care and preventive medicine.',
+    'office_hours_start': '09:00:00',
+    'office_hours_end': '17:00:00',
+    'password': 'Doctor@123',
+}
+
+
+DEMO_PATIENT = {
+    'name': 'Demo Patient',
+    'email': 'patient@clinixpro.com',
+    'phone': '+92-321-7778899',
+    'dob': date(1995, 6, 15),
+    'gender': 'Male',
+    'address': '12 Demo Street, Block A',
+    'city': 'Karachi',
+    'state': 'Sindh',
+    'postal_code': '74000',
+    'blood_group': 'O+',
+    'allergies': 'None reported',
+    'medical_history': 'No significant past medical history.',
+    'emergency_contact_name': 'Family Member',
+    'emergency_contact_phone': '+92-321-0001111',
+    'password': 'Patient@123',
+}
 
 
 def wipe(cursor) -> None:
