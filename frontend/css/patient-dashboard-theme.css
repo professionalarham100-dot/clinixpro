@@ -255,3 +255,12 @@ h1, h2, h3, h4,
     font-family: "Fraunces", serif;
     color: var(--t-ink-900);
 }
+
+/* Modal heads + billing accents */
+.modal-head {
+    background: linear-gradient(135deg, var(--t-ink-900) 0%, var(--t-teal-800) 100%) !important;
+}
+.billing-card-amount { color: var(--t-teal-800) !important; }
+.receipt-brand h2 {
+    font-family: "Fraunces", serif;
+}

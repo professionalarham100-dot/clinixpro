@@ -8,44 +8,42 @@
 }
 
 /* Header */
-.tickets-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 2rem;
-    margin-bottom: 3rem;
-    margin-top: 60px;
-}
-
-.header-content h1 {
-    font-size: 2rem;
-    color: var(--primary);
-    margin-bottom: 0.5rem;
-}
-
-.header-content p {
-    color: var(--text-light);
-    font-size: 0.95rem;
-}
-
-/* Controls Section */
-.tickets-controls {
-    background: white;
-    padding: 1.5rem;
-    border-radius: var(--radius-lg);
-    margin-bottom: 2rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    box-shadow: var(--shadow-sm);
-}
-
-.search-bar {
-    flex: 1;
-    min-width: 250px;
+.footer-bottom {
     position: relative;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 1rem;
+}
+.footer-bottom .copyright { text-align: left; }
+.footer-bottom .that-group {
+    font-weight: 700;
+    color: #ffffff;
+    background: #0f766e;
+    padding: 8px 14px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(15,118,110,0.18);
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+@media (max-width: 700px) {
+    .footer-bottom {
+        display: block;
+        text-align: center;
+    }
+    .footer-bottom .that-group {
+        position: static;
+        transform: none;
+        display: inline-block;
+        margin-left: 12px;
+        color: #0f766e;
+        background: transparent;
+        padding: 0;
+        box-shadow: none;
+        font-weight: 700;
+    }
+}
     background: var(--light);
     border-radius: var(--radius-md);
     padding: 0 1rem;
@@ -136,6 +134,46 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
+}
+
+/* Footer that-group positioning */
+.footer-bottom {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding-top: 1rem;
+}
+.footer-bottom .copyright { text-align: center; }
+.footer-bottom .that-group {
+    margin-left: auto;
+    margin-right: 36px;
+    font-weight: 700;
+    color: #ffffff;
+    background: #0f766e;
+    padding: 6px 12px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(15,118,110,0.18);
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+@media (max-width: 700px) {
+    .footer-bottom {
+        display: block;
+        text-align: center;
+    }
+    .footer-bottom .that-group {
+        position: static;
+        transform: none;
+        display: inline-block;
+        margin-left: 12px;
+        color: #0f766e;
+        background: transparent;
+        padding: 0;
+        box-shadow: none;
+        font-weight: 700;
+    }
 }
 
 .tickets-list {

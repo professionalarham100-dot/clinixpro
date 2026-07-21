@@ -42,6 +42,7 @@
     @media(max-width:640px){.summary-cards{grid-template-columns:1fr}}
     .quick-actions{display:flex;flex-wrap:wrap;gap:10px}
     .quick-actions .action-btn{padding:10px 16px;font-size:.88rem;display:inline-flex;align-items:center;gap:8px}
+    .doc-missing{display:inline-block;font-size:.78rem;color:#94a3b8;font-style:italic;margin-right:6px}
     .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
     .info-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
     .info-card strong{display:block;font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;font-weight:600}
@@ -430,7 +431,17 @@
                 return;
             }
 
-            const API_BASE = "/api";
+            function getBackendOrigin() {
+                const origin = window.location.origin || "http://localhost:5000";
+                try {
+                    const url = new URL(origin);
+                    if ((url.hostname === "localhost" || url.hostname === "127.0.0.1") && url.port && url.port !== "5000") {
+                        return `${url.protocol}//${url.hostname}:5000`;
+                    }
+                } catch (_e) {}
+                return origin;
+            }
+            const API_BASE = `${getBackendOrigin()}/api`;
             const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
             const PAGE_LOAD_AT = Date.now();
 
@@ -476,7 +487,10 @@
                 settings:     { title: "Settings",         subtitle: "System information and status" }
             };
 
-            function openModal(title, bodyHtml) {
+            function openModal(title, bodyHtml, opts = {}) {
+                const shell = detailModal.querySelector(".detail-modal");
+                const rich = !!opts.rich;
+                if (shell) shell.classList.toggle("is-rich-profile", rich);
                 modalTitle.textContent = title;
                 modalBody.innerHTML = bodyHtml;
                 detailModal.style.display = "flex";
@@ -484,38 +498,156 @@
             function closeModal() {
                 detailModal.style.display = "none";
                 modalBody.innerHTML = "Loading…";
+                const shell = detailModal.querySelector(".detail-modal");
+                if (shell) shell.classList.remove("is-rich-profile");
+            }
+
+            function initialsFromName(name) {
+                const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+                if (!parts.length) return "P";
+                if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
             }
 
             function buildPatientModalHtml(p) {
                 const esc = escapeHtml, st = safeText;
-                return `<div class="detail-grid">
-                    <div class="detail-item"><strong>Name</strong><span>${esc(st(p.name,'—'))}</span></div>
-                    <div class="detail-item"><strong>Email</strong><span>${esc(st(p.email,'—'))}</span></div>
-                    <div class="detail-item"><strong>Phone</strong><span>${esc(st(p.phone,'—'))}</span></div>
-                    <div class="detail-item"><strong>Gender</strong><span>${esc(st(p.gender,'—'))}</span></div>
-                    <div class="detail-item"><strong>Blood Group</strong><span>${esc(st(p.blood_type||p.blood_group,'—'))}</span></div>
-                    <div class="detail-item"><strong>Date of Birth</strong><span>${esc(st(p.dob,'—'))}</span></div>
-                    <div class="detail-item"><strong>Address</strong><span>${esc(st(p.address,'—'))}</span></div>
-                    <div class="detail-item"><strong>Emergency Contact</strong><span>${esc(st(p.emergency_contact,'—'))}</span></div>
-                    <div class="detail-item"><strong>Status</strong><span>${esc(st(p.status,'active'))}</span></div>
-                    <div class="detail-item"><strong>Registered</strong><span>${esc(formatDate(p.created_at))}</span></div>
+                const name = st(p.name, "Patient");
+                const email = st(p.email, "—");
+                const phone = st(p.phone, "—");
+                const gender = st(p.gender, "—");
+                const blood = st(p.blood_type || p.blood_group, "—");
+                const dob = st(p.dob, "—");
+                const address = st(p.address, "—");
+                const emergency = st(p.emergency_contact, "—");
+                const statusRaw = String(st(p.status, "active")).toLowerCase();
+                const statusLabel = statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1);
+                const statusClass = statusRaw === "active" ? "is-active" : "is-inactive";
+                const registered = formatDate(p.created_at);
+                const patientId = st(p.patient_id, "—");
+                const initials = initialsFromName(name);
+
+                return `
+                <div class="adm-patient-profile">
+                    <div class="adm-patient-hero">
+                        <button type="button" class="adm-patient-close" data-close-detail aria-label="Close">&times;</button>
+                        <div class="adm-patient-hero-inner">
+                            <div class="adm-patient-avatar" aria-hidden="true">${esc(initials)}</div>
+                            <div class="adm-patient-meta">
+                                <p class="adm-patient-kicker">Patient profile</p>
+                                <h3>${esc(name)}</h3>
+                                <p class="adm-patient-sub">ID #${esc(String(patientId))} · ${esc(email)}</p>
+                                <div class="adm-patient-chips">
+                                    <span class="adm-patient-chip ${statusClass}"><i class="fa-solid fa-circle"></i> ${esc(statusLabel)}</span>
+                                    <span class="adm-patient-chip"><i class="fa-solid fa-droplet"></i> ${esc(blood)}</span>
+                                    <span class="adm-patient-chip"><i class="fa-solid fa-venus-mars"></i> ${esc(gender)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="adm-patient-body">
+                        <div class="adm-patient-stats">
+                            <div class="adm-patient-stat">
+                                <i class="fa-solid fa-phone"></i>
+                                <div><small>Phone</small><strong>${esc(phone)}</strong></div>
+                            </div>
+                            <div class="adm-patient-stat">
+                                <i class="fa-regular fa-calendar"></i>
+                                <div><small>Date of birth</small><strong>${esc(dob)}</strong></div>
+                            </div>
+                            <div class="adm-patient-stat">
+                                <i class="fa-regular fa-clock"></i>
+                                <div><small>Registered</small><strong>${esc(registered)}</strong></div>
+                            </div>
+                        </div>
+                        <h4 class="adm-patient-section-title"><i class="fa-solid fa-id-card"></i> Personal information</h4>
+                        <div class="adm-patient-info-grid">
+                            <div class="adm-patient-info"><small>Full name</small><span>${esc(name)}</span></div>
+                            <div class="adm-patient-info"><small>Email</small><span>${esc(email)}</span></div>
+                            <div class="adm-patient-info"><small>Phone</small><span>${esc(phone)}</span></div>
+                            <div class="adm-patient-info"><small>Gender</small><span>${esc(gender)}</span></div>
+                            <div class="adm-patient-info"><small>Blood group</small><span>${esc(blood)}</span></div>
+                            <div class="adm-patient-info"><small>Date of birth</small><span>${esc(dob)}</span></div>
+                            <div class="adm-patient-info adm-patient-info-wide"><small>Address</small><span>${esc(address)}</span></div>
+                            <div class="adm-patient-info adm-patient-info-wide"><small>Emergency contact</small><span>${esc(emergency)}</span></div>
+                        </div>
+                    </div>
+                    <div class="adm-patient-actions">
+                        <button type="button" class="adm-patient-btn" data-close-detail>Close</button>
+                    </div>
                 </div>`;
             }
 
             function buildDoctorModalHtml(d) {
                 const esc = escapeHtml, st = safeText;
-                const fee = d.consultation_fee != null ? 'Rs ' + esc(String(d.consultation_fee)) : '—';
-                return `<div class="detail-grid">
-                    <div class="detail-item"><strong>Name</strong><span>${esc(st(d.name,'—'))}</span></div>
-                    <div class="detail-item"><strong>Email</strong><span>${esc(st(d.email,'—'))}</span></div>
-                    <div class="detail-item"><strong>Specialization</strong><span>${esc(st(d.specialty||d.specialization,'—'))}</span></div>
-                    <div class="detail-item"><strong>License</strong><span>${esc(st(d.license_number,'—'))}</span></div>
-                    <div class="detail-item"><strong>Department</strong><span>${esc(st(d.department,'—'))}</span></div>
-                    <div class="detail-item"><strong>Experience</strong><span>${esc(st(d.experience||d.experience_years,'—'))} yrs</span></div>
-                    <div class="detail-item"><strong>Phone</strong><span>${esc(st(d.phone,'—'))}</span></div>
-                    <div class="detail-item"><strong>Consultation Fee</strong><span>${fee}</span></div>
-                    <div class="detail-item"><strong>Status</strong><span>${esc(st(d.status,'active'))}</span></div>
-                    <div class="detail-item"><strong>Available</strong><span>${d.is_available ? 'Yes' : 'No'}</span></div>
+                const name = st(d.name, "Doctor");
+                const email = st(d.email, "—");
+                const phone = st(d.phone, "—");
+                const specialty = st(d.specialty || d.specialization, "—");
+                const license = st(d.license_number, "—");
+                const department = st(d.department, "—");
+                const experienceRaw = d.experience ?? d.experience_years;
+                const experience = experienceRaw != null && String(experienceRaw).trim() !== ""
+                    ? `${st(experienceRaw, "—")} yrs`
+                    : "—";
+                const fee = d.consultation_fee != null ? `Rs ${st(d.consultation_fee, "—")}` : "—";
+                const statusRaw = String(st(d.status, "active")).toLowerCase();
+                const statusLabel = statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1);
+                const statusClass = statusRaw === "active" ? "is-active" : "is-inactive";
+                const available = d.is_available ? "Yes" : "No";
+                const availableClass = d.is_available ? "is-active" : "is-inactive";
+                const doctorId = st(d.doctor_id || d.id, "—");
+                const initials = initialsFromName(name);
+
+                return `
+                <div class="adm-patient-profile">
+                    <div class="adm-patient-hero">
+                        <button type="button" class="adm-patient-close" data-close-detail aria-label="Close">&times;</button>
+                        <div class="adm-patient-hero-inner">
+                            <div class="adm-patient-avatar" aria-hidden="true">${esc(initials)}</div>
+                            <div class="adm-patient-meta">
+                                <p class="adm-patient-kicker">Doctor profile</p>
+                                <h3>${esc(name)}</h3>
+                                <p class="adm-patient-sub">ID #${esc(String(doctorId))} · ${esc(email)}</p>
+                                <div class="adm-patient-chips">
+                                    <span class="adm-patient-chip ${statusClass}"><i class="fa-solid fa-circle"></i> ${esc(statusLabel)}</span>
+                                    <span class="adm-patient-chip ${availableClass}"><i class="fa-solid fa-user-doctor"></i> ${d.is_available ? "Available" : "Unavailable"}</span>
+                                    <span class="adm-patient-chip"><i class="fa-solid fa-stethoscope"></i> ${esc(specialty)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="adm-patient-body">
+                        <div class="adm-patient-stats">
+                            <div class="adm-patient-stat">
+                                <i class="fa-solid fa-phone"></i>
+                                <div><small>Phone</small><strong>${esc(phone)}</strong></div>
+                            </div>
+                            <div class="adm-patient-stat">
+                                <i class="fa-solid fa-briefcase-medical"></i>
+                                <div><small>Experience</small><strong>${esc(experience)}</strong></div>
+                            </div>
+                            <div class="adm-patient-stat">
+                                <i class="fa-solid fa-coins"></i>
+                                <div><small>Consultation fee</small><strong>${esc(fee)}</strong></div>
+                            </div>
+                        </div>
+                        <h4 class="adm-patient-section-title"><i class="fa-solid fa-id-card"></i> Professional information</h4>
+                        <div class="adm-patient-info-grid">
+                            <div class="adm-patient-info"><small>Full name</small><span>${esc(name)}</span></div>
+                            <div class="adm-patient-info"><small>Email</small><span>${esc(email)}</span></div>
+                            <div class="adm-patient-info"><small>Specialization</small><span>${esc(specialty)}</span></div>
+                            <div class="adm-patient-info"><small>License</small><span>${esc(license)}</span></div>
+                            <div class="adm-patient-info"><small>Department</small><span>${esc(department)}</span></div>
+                            <div class="adm-patient-info"><small>Experience</small><span>${esc(experience)}</span></div>
+                            <div class="adm-patient-info"><small>Phone</small><span>${esc(phone)}</span></div>
+                            <div class="adm-patient-info"><small>Consultation fee</small><span>${esc(fee)}</span></div>
+                            <div class="adm-patient-info"><small>Status</small><span>${esc(statusLabel)}</span></div>
+                            <div class="adm-patient-info"><small>Available</small><span>${esc(available)}</span></div>
+                        </div>
+                    </div>
+                    <div class="adm-patient-actions">
+                        <button type="button" class="adm-patient-btn" data-close-detail>Close</button>
+                    </div>
                 </div>`;
             }
 
@@ -802,6 +934,9 @@
                         <td>${escapeHtml(safeText(d.medical_license_number, "Not available"))}</td>
                         <td>${escapeHtml(formatDate(d.applied_at || d.created_at || d.application_date))}</td>
                         <td>
+                            ${d.has_document
+                                ? `<button class="action-btn action-view" data-action="view-document" data-id="${escapeHtml(d.application_id)}">View Document</button>`
+                                : `<span class="doc-missing" title="No document uploaded">No document</span>`}
                             <button class="action-btn action-approve" data-action="approve" data-id="${escapeHtml(d.application_id)}">Approve</button>
                             <button class="action-btn action-reject" data-action="reject" data-id="${escapeHtml(d.application_id)}">Reject</button>
                         </td>
@@ -1105,7 +1240,7 @@
                     const reason = window.prompt("Enter rejection reason:");
                     if (!reason || !reason.trim()) {
                         setError("Rejection reason is required.");
-                        return;
+                        return { cancelled: true };
                     }
                     options.body = JSON.stringify({ reason: reason.trim() });
                 }
@@ -1115,6 +1250,7 @@
                 if (!response.ok) {
                     throw new Error(payload.error || "Unable to process doctor application.");
                 }
+                return payload;
             }
 
             async function loadSectionData(id, force = false) {
@@ -1253,6 +1389,11 @@
             });
 
             document.getElementById("modalClose").addEventListener("click", closeModal);
+            detailModal.addEventListener("click", (e) => {
+                if (e.target === detailModal) closeModal();
+                const closeBtn = e.target && e.target.closest && e.target.closest("[data-close-detail]");
+                if (closeBtn) closeModal();
+            });
             detailModal.addEventListener("click", function (e) { if (e.target === detailModal) closeModal(); });
 
             document.querySelectorAll(".menu a").forEach((a) => {
@@ -1267,10 +1408,41 @@
                 const action = e.target && e.target.getAttribute("data-action");
                 const applicationId = e.target && e.target.getAttribute("data-id");
                 if (!action || !applicationId) return;
+                if (action === "view-document") {
+                    try {
+                        const res = await fetch(`${API_BASE}/admin/doctor-applications/${applicationId}/document`, {
+                            headers: { "Authorization": `Bearer ${token}` }
+                        });
+                        if (!res.ok) {
+                            let msg = "Unable to load document.";
+                            try { const p = await res.json(); msg = p.error || msg; } catch (_e) {}
+                            throw new Error(msg);
+                        }
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, "_blank");
+                        setTimeout(() => URL.revokeObjectURL(url), 60000);
+                    } catch (error) {
+                        setError(error.message || "Unable to load verification document.");
+                    }
+                    return;
+                }
                 try {
-                    await reviewDoctorApplication(applicationId, action);
+                    const result = await reviewDoctorApplication(applicationId, action);
+                    if (result && result.cancelled) return;
                     const pendingPayload = await fetchJson(`${API_BASE}/admin/doctor-applications?status=pending`);
                     renderPendingDoctors((pendingPayload || {}).applications || []);
+                    if (result && result.email_sent === false) {
+                        showToast(
+                            action === "approve"
+                                ? "Doctor was approved but the notification email failed to send."
+                                : "Doctor was rejected but the notification email failed to send.",
+                            "warning",
+                            6000
+                        );
+                    } else {
+                        showToast(action === "approve" ? "Doctor approved." : "Doctor rejected.", "success");
+                    }
                 } catch (error) {
                     setError(error.message || "Unable to process doctor review action.");
                 }
@@ -1287,7 +1459,7 @@
                     openModal("Patient Details", "Loading…");
                     try {
                         const p = await fetchJson(`${API_BASE}/patients/${id}`);
-                        openModal("Patient Details", buildPatientModalHtml(p));
+                        openModal("Patient Details", buildPatientModalHtml(p), { rich: true });
                     } catch (err) { closeModal(); setError(err.message || "Unable to load patient details."); }
                 } else if (action === "deactivate") {
                     const patient = STATE.patients.find(p => String(p.patient_id) === String(id));
@@ -1315,7 +1487,7 @@
                     openModal("Doctor Details", "Loading…");
                     try {
                         const d = await fetchJson(`${API_BASE}/doctors/${id}`);
-                        openModal("Doctor Details", buildDoctorModalHtml(d));
+                        openModal("Doctor Details", buildDoctorModalHtml(d), { rich: true });
                     } catch (err) { closeModal(); setError(err.message || "Unable to load doctor details."); }
                 } else if (action === "deactivate") {
                     const doctor = STATE.doctors.find(d => String(d.doctor_id) === String(id));

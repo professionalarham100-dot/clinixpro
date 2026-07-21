@@ -1,4 +1,15 @@
 // ==================== SUPPORT PAGE SCRIPTS ====================
+function getBackendOrigin() {
+    const origin = window.location.origin || 'http://localhost:5000';
+    try {
+        const url = new URL(origin);
+        if ((url.hostname === 'localhost' || url.hostname === '127.0.0.1') && url.port && url.port !== '5000') {
+            return `${url.protocol}//${url.hostname}:5000`;
+        }
+    } catch (_e) {}
+    return origin;
+}
+const API_BASE_URL = `${getBackendOrigin()}/api`;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -162,7 +173,7 @@ function initializeForm() {
         }
         
         try {
-            const response = await fetch('/api/support/tickets', {
+            const response = await fetch(`${API_BASE_URL}/support/tickets`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)

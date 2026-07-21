@@ -1,5 +1,16 @@
 // ==================== API CONFIGURATION ====================
-const API_BASE_URL = '/api';
+function getBackendOrigin() {
+    const origin = window.location.origin || 'http://localhost:5000';
+    try {
+        const url = new URL(origin);
+        if ((url.hostname === 'localhost' || url.hostname === '127.0.0.1') && url.port && url.port !== '5000') {
+            return `${url.protocol}//${url.hostname}:5000`;
+        }
+    } catch (_e) {}
+    return origin;
+}
+
+const API_BASE_URL = `${getBackendOrigin()}/api`;
 
 // ==================== VALIDATION UTILITIES ====================
 function showValidationError(fieldId, message) {
@@ -90,12 +101,20 @@ if (loginForm) {
             const data = await response.json();
 
             if (response.ok) {
+                // Wipe ALL avatar/photo keys from every previous session so no
+                // photo from any prior account can bleed into the new login.
+                try {
+                    const keysToRemove = Object.keys(localStorage).filter(
+                        k => k.startsWith('patientAvatarDataUrl') || k.startsWith('doctorAvatarDataUrl') || k.startsWith('clinixpro_user_name_')
+                    );
+                    keysToRemove.forEach(k => localStorage.removeItem(k));
+                } catch (_e) {}
                 // Store token
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('userType', data.user_type);
                 localStorage.setItem('userId', data.user_id);
                 localStorage.setItem('userName', data.name);
-                localStorage.setItem('userEmail', email);
+                localStorage.setItem('userEmail', email.toLowerCase());
                 
                 if (rememberMe) {
                     localStorage.setItem('rememberedEmail', email);
@@ -113,6 +132,20 @@ if (loginForm) {
                 } else {
                     window.location.href = 'dashboard.html';
                 }
+            } else if (data.application_status === 'pending' || data.application_status === 'rejected') {
+                // Doctor whose application is not yet approved — route to the
+                // in-app status page instead of showing a bare error.
+                try {
+                    sessionStorage.setItem('doctorApplicationStatus', JSON.stringify({
+                        status: data.application_status,
+                        rejection_reason: data.rejection_reason || '',
+                        application: data.doctor_application || {},
+                        // Keep the just-entered password ONLY for rejected applicants
+                        // so they can re-apply without retyping it.
+                        password: data.application_status === 'rejected' ? password : ''
+                    }));
+                } catch (_e) {}
+                window.location.href = 'doctor-status.html';
             } else {
                 showValidationError('email', data.error || 'Login failed. Please check your credentials.');
             }
@@ -157,7 +190,18 @@ if (registerForm) {
     const userTypeInput = document.getElementById('userType');
     const feedbackBox = document.getElementById('registerFeedback');
 
+    // Names: 2–20 chars, letters plus spaces/hyphens/apostrophes/periods.
+    // Prevents unbounded "essay" input that could break layout/storage.
+    const NAME_PATTERN = /^[A-Za-z][A-Za-z .'-]{0,19}$/;
     const registerValidators = {
+        firstName: {
+            test: (value) => NAME_PATTERN.test(value.trim()) && value.trim().length >= 2,
+            message: 'First name: 2–20 letters (spaces, - . \' allowed).'
+        },
+        lastName: {
+            test: (value) => NAME_PATTERN.test(value.trim()) && value.trim().length >= 2,
+            message: 'Last name: 2–20 letters (spaces, - . \' allowed).'
+        },
         regEmail: {
             test: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()),
             message: 'Enter a valid email (must include @ and .).'
@@ -214,7 +258,7 @@ if (registerForm) {
         return true;
     }
 
-    [emailInput, phoneInput, passwordInput, confirmPasswordInput].forEach((inputEl) => {
+    [firstNameInput, lastNameInput, emailInput, phoneInput, passwordInput, confirmPasswordInput].forEach((inputEl) => {
         if (!inputEl) return;
         inputEl.addEventListener('input', () => {
             clearRegisterFeedback();
@@ -238,6 +282,8 @@ if (registerForm) {
         const password = passwordInput.value;
         const userType = userTypeInput.value;
 
+        const firstNameOk = validateRegisterField('firstName');
+        const lastNameOk = validateRegisterField('lastName');
         const emailOk = validateRegisterField('regEmail');
         const phoneOk = validateRegisterField('phone');
         const passwordOk = validateRegisterField('regPassword');
@@ -249,7 +295,7 @@ if (registerForm) {
             else userTypeInput.focus();
             return;
         }
-        if (!(emailOk && phoneOk && passwordOk && confirmOk)) {
+        if (!(firstNameOk && lastNameOk && emailOk && phoneOk && passwordOk && confirmOk)) {
             showRegisterFeedback('Please correct the highlighted fields.');
             const firstInvalid = registerForm.querySelector('.field-error');
             if (firstInvalid) firstInvalid.focus();
@@ -488,10 +534,51 @@ if (doctorRegisterForm) {
         window.location.href = 'register.html';
     }
 
+    // Pre-fill fields for a rejected doctor re-applying (document must be fresh).
+    try {
+        const prefillRaw = sessionStorage.getItem('doctorReapplyPrefill');
+        if (prefillRaw) {
+            const prefill = JSON.parse(prefillRaw);
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el && val != null && String(val) !== '') el.value = val;
+            };
+            setVal('specialization', prefill.specialization);
+            setVal('clinicName', prefill.clinic_name);
+            setVal('city', prefill.city);
+            setVal('experienceYears', prefill.experience_years);
+            setVal('doctorBio', prefill.bio);
+            sessionStorage.removeItem('doctorReapplyPrefill');
+        }
+    } catch (_e) {}
+
+    // Document upload + disclaimer gating.
+    const documentInput = document.getElementById('verificationDocument');
+    const disclaimerCheckbox = document.getElementById('disclaimerCheckbox');
+    const submitButton = doctorRegisterForm.querySelector('button[type="submit"]');
+    const MAX_DOC_BYTES = 5 * 1024 * 1024; // 5MB
+    const ALLOWED_DOC_EXT = ['pdf', 'jpg', 'jpeg', 'png'];
+
+    // Enable the submit button only once the disclaimer is acknowledged.
+    const syncSubmitState = () => {
+        if (submitButton) submitButton.disabled = !(disclaimerCheckbox && disclaimerCheckbox.checked);
+    };
+    if (disclaimerCheckbox) {
+        disclaimerCheckbox.addEventListener('change', syncSubmitState);
+        syncSubmitState();
+    }
+
+    const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Could not read the document file.'));
+        reader.readAsDataURL(file);
+    });
+
     doctorRegisterForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         clearFeedback();
-        const submitBtn = doctorRegisterForm.querySelector('button[type="submit"]');
+        const submitBtn = submitButton;
         const submitLabel = submitBtn ? submitBtn.innerHTML : '';
 
         const medicalLicenseNumber = document.getElementById('medicalLicenseNumber').value.trim();
@@ -519,6 +606,34 @@ if (doctorRegisterForm) {
             return;
         }
 
+        const documentFile = documentInput && documentInput.files && documentInput.files[0];
+        if (!documentFile) {
+            showFeedback('Please upload your verification document (PMDC certificate or medical license).');
+            if (documentInput) documentInput.focus();
+            return;
+        }
+        const ext = documentFile.name.split('.').pop().toLowerCase();
+        if (!ALLOWED_DOC_EXT.includes(ext)) {
+            showFeedback('Document must be a PDF, JPG, or PNG file.');
+            return;
+        }
+        if (documentFile.size > MAX_DOC_BYTES) {
+            showFeedback('Document is too large. Maximum file size is 5MB.');
+            return;
+        }
+        if (!disclaimerCheckbox || !disclaimerCheckbox.checked) {
+            showFeedback('Please confirm the declaration before submitting.');
+            return;
+        }
+
+        let documentData;
+        try {
+            documentData = await readFileAsDataUrl(documentFile);
+        } catch (readErr) {
+            showFeedback('Could not read the document file. Please try another file.');
+            return;
+        }
+
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
@@ -535,7 +650,9 @@ if (doctorRegisterForm) {
                     clinic_name: clinicName,
                     experience_years: experienceYears,
                     city: city,
-                    bio: bio
+                    bio: bio,
+                    license_document_name: documentFile.name,
+                    license_document_data: documentData
                 })
             });
             const data = await response.json();
@@ -597,10 +714,24 @@ function checkAuth() {
 
 // ==================== LOGOUT ====================
 function logout() {
+    try {
+        const keysToRemove = Object.keys(localStorage).filter(
+            k => k.startsWith('patientAvatarDataUrl') || k.startsWith('doctorAvatarDataUrl') || k.startsWith('clinixpro_user_name_')
+        );
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch (_e) {}
     localStorage.removeItem('token');
     localStorage.removeItem('userType');
     localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userData');
+    localStorage.removeItem('patientProfileLocal');
+    localStorage.removeItem('patientProfileExtras');
+    localStorage.removeItem('patientName');
+    localStorage.removeItem('doctorName');
     window.location.href = 'login.html';
+    window.location.reload(true);
 }
 
 // ==================== UTILITY FUNCTIONS ====================

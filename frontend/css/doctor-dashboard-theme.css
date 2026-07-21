@@ -262,3 +262,27 @@ h1, h2, h3, h4,
     font-family: "Fraunces", serif;
     color: var(--t-ink-900);
 }
+
+/* =====================================================================
+   10. Patient detail modal — match topbar ink→teal (no purple)
+   ===================================================================== */
+.patient-detail-hero {
+    background: linear-gradient(135deg, var(--t-ink-900) 0%, var(--t-teal-600) 100%) !important;
+    color: #fef9f4 !important;
+}
+.patient-detail-hero::before {
+    background: radial-gradient(circle at 90% 0%, rgba(45, 155, 131, 0.35), transparent 55%) !important;
+}
+.patient-hero-meta h3,
+.patient-hero-chip { color: #fef9f4 !important; }
+.patient-hero-meta p { color: rgba(254, 249, 244, 0.82) !important; }
+.patient-stat-num { color: var(--t-teal-800) !important; }
+.patient-detail-heading i { color: var(--t-teal-600) !important; }
+.patient-info-item { border-left-color: var(--t-teal-600) !important; }
+.patient-stat-tile {
+    background: linear-gradient(135deg, #f8fafc, #eef7f5) !important;
+    border-color: #d8ebe6 !important;
+}
+.modal-head {
+    background: linear-gradient(135deg, var(--t-ink-900) 0%, var(--t-teal-800) 100%) !important;
+}

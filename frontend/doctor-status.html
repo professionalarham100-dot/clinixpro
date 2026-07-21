@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Status - ClinixPro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <style>
+        :root {
+            --cp-ink-900: #0a1f24;
+            --cp-teal-700: #0a4f49;
+            --cp-teal-600: #0c635c;
+            --cp-teal-500: #0f766e;
+            --cp-cream-50: #fef9f4;
+            --cp-cream-100: #faf2e8;
+            --cp-cream-200: #f1e4d2;
+            --cp-ink-500: #4a5d63;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Sora", "Segoe UI", system-ui, sans-serif;
+            color: var(--cp-ink-900);
+            background:
+                radial-gradient(120% 120% at 10% 0%, #ffffff 0%, var(--cp-cream-100) 60%),
+                var(--cp-cream-50);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .status-card {
+            width: 100%;
+            max-width: 560px;
+            background: var(--cp-cream-50);
+            border: 1px solid var(--cp-cream-200);
+            border-radius: 20px;
+            box-shadow: 0 24px 60px rgba(10, 31, 36, 0.14);
+            overflow: hidden;
+        }
+        .status-header {
+            background: linear-gradient(135deg, var(--cp-ink-900) 0%, var(--cp-teal-700) 100%);
+            color: var(--cp-cream-50);
+            padding: 28px 34px;
+        }
+        .brand-line {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-family: "Fraunces", "Georgia", serif;
+            font-weight: 600;
+            font-size: 1.15rem;
+            margin-bottom: 16px;
+        }
+        .brand-line i { color: var(--cp-teal-500); }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 999px;
+            letter-spacing: 0.02em;
+        }
+        .status-badge.pending { background: rgba(251, 191, 36, 0.18); color: #fcd34d; }
+        .status-badge.rejected { background: rgba(248, 113, 113, 0.18); color: #fca5a5; }
+        .status-body { padding: 30px 34px 34px; }
+        .status-body h1 {
+            font-family: "Fraunces", "Georgia", serif;
+            font-weight: 600;
+            font-size: 1.55rem;
+            letter-spacing: -0.02em;
+            margin: 0 0 12px;
+        }
+        .status-body p {
+            font-size: 0.96rem;
+            line-height: 1.6;
+            color: var(--cp-ink-500);
+            margin: 0 0 16px;
+        }
+        .reason-box {
+            margin: 4px 0 20px;
+            padding: 14px 16px;
+            background: var(--cp-cream-100);
+            border-left: 4px solid var(--cp-teal-600);
+            border-radius: 8px;
+            font-size: 0.92rem;
+            color: var(--cp-ink-900);
+            line-height: 1.5;
+        }
+        .reason-box strong { color: var(--cp-teal-700); }
+        .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+            font-size: 0.92rem;
+            font-weight: 600;
+            padding: 12px 22px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cp-teal-500), var(--cp-teal-700));
+            color: #fff;
+            box-shadow: 0 10px 24px rgba(15, 118, 110, 0.28);
+        }
+        .btn-primary:hover { filter: brightness(1.06); }
+        .btn-ghost {
+            background: transparent;
+            color: var(--cp-teal-700);
+            border: 1px solid var(--cp-cream-200);
+        }
+        .btn-ghost:hover { background: var(--cp-cream-100); }
+    </style>
+</head>
+<body>
+    <div class="status-card">
+        <div class="status-header">
+            <div class="brand-line"><i class="fa-solid fa-heart-pulse"></i> ClinixPro</div>
+            <span class="status-badge" id="statusBadge"></span>
+        </div>
+        <div class="status-body" id="statusBody">
+            <h1>Loading…</h1>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            let stored = null;
+            try {
+                stored = JSON.parse(sessionStorage.getItem('doctorApplicationStatus') || 'null');
+            } catch (e) {
+                stored = null;
+            }
+            if (!stored || !stored.status) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const badge = document.getElementById('statusBadge');
+            const body = document.getElementById('statusBody');
+            const app = stored.application || {};
+
+            function esc(v) {
+                return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            if (stored.status === 'pending') {
+                badge.className = 'status-badge pending';
+                badge.innerHTML = '<i class="fas fa-hourglass-half"></i> Under Review';
+                body.innerHTML =
+                    '<h1>Your application is under review</h1>' +
+                    '<p>Thank you for applying to join ClinixPro. Our team is reviewing your credentials and ' +
+                    'verification document. You will receive an email notification once a decision has been made. ' +
+                    'Thank you for your patience.</p>' +
+                    '<div class="actions">' +
+                    '<a class="btn btn-ghost" href="login.html"><i class="fas fa-arrow-left"></i> Back to Login</a>' +
+                    '</div>';
+            } else if (stored.status === 'rejected') {
+                badge.className = 'status-badge rejected';
+                badge.innerHTML = '<i class="fas fa-circle-xmark"></i> Not Approved';
+                const reason = stored.rejection_reason || 'No specific reason was provided.';
+                body.innerHTML =
+                    '<h1>Your application was not approved</h1>' +
+                    '<div class="reason-box"><strong>Reason:</strong> ' + esc(reason) + '</div>' +
+                    '<p>You may re-apply with updated information, or contact support if you believe this was made ' +
+                    'in error. Re-applying will reuse your previous details — you will only need to upload a fresh ' +
+                    'verification document.</p>' +
+                    '<div class="actions">' +
+                    '<button class="btn btn-primary" id="reapplyBtn"><i class="fas fa-rotate-right"></i> Re-apply</button>' +
+                    '<a class="btn btn-ghost" href="login.html"><i class="fas fa-arrow-left"></i> Back to Login</a>' +
+                    '</div>';
+
+                document.getElementById('reapplyBtn').addEventListener('click', function () {
+                    // Seed the registration basics the doctor verification form expects.
+                    sessionStorage.setItem('doctorRegistrationBasic', JSON.stringify({
+                        first_name: app.first_name || '',
+                        last_name: app.last_name || '',
+                        email: app.email || '',
+                        phone: app.phone || '',
+                        password: stored.password || ''
+                    }));
+                    // Seed prefill for the extra verification fields (NOT the document).
+                    sessionStorage.setItem('doctorReapplyPrefill', JSON.stringify({
+                        specialization: app.specialization || '',
+                        clinic_name: app.clinic_name || '',
+                        city: app.city || '',
+                        experience_years: app.experience_years || '',
+                        bio: app.bio || ''
+                    }));
+                    window.location.href = 'register-doctor.html';
+                });
+            } else {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</body>
+</html>

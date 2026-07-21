@@ -1,5 +1,15 @@
 // ==================== CONFIGURATION ====================
-const API_BASE_URL = '/api';
+function getBackendOrigin() {
+    const origin = window.location.origin || 'http://localhost:5000';
+    try {
+        const url = new URL(origin);
+        if ((url.hostname === 'localhost' || url.hostname === '127.0.0.1') && url.port && url.port !== '5000') {
+            return `${url.protocol}//${url.hostname}:5000`;
+        }
+    } catch (_e) {}
+    return origin;
+}
+const API_BASE_URL = `${getBackendOrigin()}/api`;
 
 // ==================== UTILITIES ====================
 function escapeHtml(text) {

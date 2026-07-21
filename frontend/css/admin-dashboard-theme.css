@@ -235,7 +235,255 @@ h1, h2, h3, h4,
 }
 
 /* =====================================================================
-   8. Notification / toast — keep the existing dark-slate style. The
+   8. Rich patient profile modal (admin)
+   ===================================================================== */
+.detail-modal.is-rich-profile {
+    width: min(720px, 94vw) !important;
+    max-height: min(90vh, calc(100vh - 40px)) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    border-radius: 16px !important;
+    background: #fef9f4 !important;
+    box-shadow: 0 24px 48px rgba(10, 31, 36, 0.28) !important;
+}
+.detail-modal.is-rich-profile .detail-modal-header {
+    display: none !important;
+}
+.detail-modal.is-rich-profile .detail-modal-body {
+    padding: 0 !important;
+    overflow-y: auto !important;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.adm-patient-profile {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+.adm-patient-hero {
+    position: relative;
+    padding: 26px 56px 24px 28px;
+    color: #fef9f4;
+    background: linear-gradient(135deg, #0a1f24 0%, #1a6b5a 100%);
+    overflow: hidden;
+}
+.adm-patient-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 90% 0%, rgba(45, 155, 131, 0.35), transparent 55%);
+    pointer-events: none;
+}
+.adm-patient-close {
+    position: absolute;
+    z-index: 2;
+    top: 14px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(254, 249, 244, 0.24);
+    background: rgba(254, 249, 244, 0.14);
+    color: #fef9f4;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+.adm-patient-close:hover {
+    background: rgba(254, 249, 244, 0.26);
+    transform: scale(1.05);
+}
+.adm-patient-hero-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.adm-patient-avatar {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.22);
+    border: 3px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.adm-patient-meta { flex: 1; min-width: 200px; }
+.adm-patient-kicker {
+    margin: 0 0 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(254, 249, 244, 0.72);
+}
+.adm-patient-meta h3 {
+    margin: 0 0 4px;
+    font-family: "Fraunces", serif;
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #fef9f4;
+}
+.adm-patient-sub {
+    margin: 0 0 12px;
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: rgba(254, 249, 244, 0.82);
+}
+.adm-patient-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.adm-patient-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #fef9f4;
+    background: rgba(254, 249, 244, 0.14);
+    border: 1px solid rgba(254, 249, 244, 0.22);
+}
+.adm-patient-chip i { font-size: 0.7rem; opacity: 0.9; }
+.adm-patient-chip.is-active {
+    background: rgba(52, 211, 153, 0.22);
+    border-color: rgba(110, 231, 183, 0.45);
+}
+.adm-patient-chip.is-inactive {
+    background: rgba(248, 113, 113, 0.2);
+    border-color: rgba(252, 165, 165, 0.4);
+}
+.adm-patient-chip.is-active i,
+.adm-patient-chip.is-inactive i { font-size: 0.45rem; }
+
+.adm-patient-body {
+    padding: 22px 28px 8px;
+}
+.adm-patient-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 22px;
+}
+.adm-patient-stat {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(45, 155, 131, 0.08), transparent 55%), #fff;
+    border: 1px solid #d8ebe6;
+}
+.adm-patient-stat i {
+    margin-top: 2px;
+    color: #1a6b5a;
+    font-size: 0.95rem;
+}
+.adm-patient-stat small {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b756f;
+    margin-bottom: 2px;
+}
+.adm-patient-stat strong {
+    display: block;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #0a1f24;
+    word-break: break-word;
+}
+.adm-patient-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #0a1f24;
+}
+.adm-patient-section-title i { color: #1a6b5a; }
+.adm-patient-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.adm-patient-info {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e4ebe7;
+}
+.adm-patient-info-wide { grid-column: 1 / -1; }
+.adm-patient-info small {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b756f;
+    margin-bottom: 4px;
+}
+.adm-patient-info span {
+    display: block;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #0a1f24;
+    word-break: break-word;
+}
+.adm-patient-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 28px 20px;
+    border-top: 1px solid #e4ebe7;
+    background: rgba(245, 240, 232, 0.55);
+}
+.adm-patient-btn {
+    appearance: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #fef9f4;
+    background: linear-gradient(135deg, #1a6b5a, #0d3d38);
+    box-shadow: 0 6px 16px rgba(13, 61, 56, 0.22);
+}
+.adm-patient-btn:hover { filter: brightness(1.06); }
+
+@media (max-width: 640px) {
+    .adm-patient-stats,
+    .adm-patient-info-grid { grid-template-columns: 1fr; }
+    .adm-patient-hero { padding: 22px 52px 20px 20px; }
+    .adm-patient-body { padding: 18px 20px 8px; }
+    .adm-patient-actions { padding: 14px 20px 18px; }
+}
+
+/* =====================================================================
+   9. Notification / toast — keep the existing dark-slate style. The
    teal palette would clash with the red `.toast.error` variant, so we
    leave that subsystem alone. Same goes for badge-inline pills, which
    carry their own semantic colors (active/inactive/paid/pending).

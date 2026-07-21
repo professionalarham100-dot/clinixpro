@@ -27,7 +27,7 @@ def main():
         return False
     
     # Check if frontend files exist
-    frontend_files = ["index.html", "support.html", "tickets.html", "tutorials.html"]
+    frontend_files = ["index.html", "support.html", "tickets.html", "login.html", "register.html"]
     for file in frontend_files:
         if not (frontend_path / file).exists():
             print(f"⚠️  Warning: {file} not found in frontend/")
@@ -86,7 +86,7 @@ def main():
     print(f"📱 Main Application:     file:///{frontend_path.absolute()}/index.html".replace("\\", "/"))
     print(f"💬 Support Center:       file:///{frontend_path.absolute()}/support.html".replace("\\", "/"))
     print(f"🎫 Ticket Dashboard:     file:///{frontend_path.absolute()}/tickets.html".replace("\\", "/"))
-    print(f"📚 Video Tutorials:      file:///{frontend_path.absolute()}/tutorials.html".replace("\\", "/"))
+    print(f"🔐 Login:                file:///{frontend_path.absolute()}/login.html".replace("\\", "/"))
     print(f"\n🔌 Backend API:          http://127.0.0.1:5000/api/")
     print(f"📊 Support Tickets API:  http://127.0.0.1:5000/api/support/tickets")
     print(f"💬 Chat API:             http://127.0.0.1:5000/api/support/chat")

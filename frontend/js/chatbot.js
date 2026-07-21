@@ -6,17 +6,53 @@
     }
 
     function detectUserType() {
-        const role = safeText(localStorage.getItem("userRole") || localStorage.getItem("userType"), "").toLowerCase();
-        if (role === "doctor" || role === "admin" || role === "patient") return role;
-        const page = window.location.pathname.toLowerCase();
-        if (page.includes("index.html") || page.endsWith("/") || page.includes("login.html")) return "visitor";
+        // Prefer the page the user is actually on — prevents patient replies
+        // on the doctor/admin portals if localStorage is stale or mismatched.
+        const page = String(window.location.pathname || window.location.href || "").toLowerCase();
         if (page.includes("doctor-dashboard")) return "doctor";
-        if (page.includes("dashboard.html") && !page.includes("doctor") && !page.includes("patient")) return "admin";
-        return "patient";
+        if (page.includes("patient-dashboard")) return "patient";
+        if (
+            (page.includes("/dashboard.html") || page.endsWith("dashboard.html")) &&
+            !page.includes("doctor") &&
+            !page.includes("patient")
+        ) return "admin";
+
+        const role = safeText(
+            localStorage.getItem("userRole") || localStorage.getItem("userType"),
+            ""
+        ).toLowerCase();
+        if (role === "doctor" || role === "admin" || role === "patient") return role;
+
+        try {
+            const ud = JSON.parse(localStorage.getItem("userData") || "{}");
+            const fromData = String((ud && (ud.user_type || ud.role || ud.userType)) || "").toLowerCase();
+            if (fromData === "doctor" || fromData === "admin" || fromData === "patient") return fromData;
+        } catch (_e) {}
+
+        if (
+            page.includes("index.html") ||
+            page.endsWith("/") ||
+            page.includes("login.html") ||
+            page.includes("register.html") ||
+            page.includes("about.html")
+        ) return "visitor";
+
+        return "visitor";
+    }
+
+    function currentUserType() {
+        return detectUserType();
     }
 
     function getApiBase() {
-        return "";
+        const origin = window.location.origin || "http://localhost:5000";
+        try {
+            const url = new URL(origin);
+            if ((url.hostname === "localhost" || url.hostname === "127.0.0.1") && url.port && url.port !== "5000") {
+                return `${url.protocol}//${url.hostname}:5000`;
+            }
+        } catch (_e) {}
+        return origin;
     }
 
     function formatTime(dateObj) {
@@ -58,11 +94,58 @@
         return 0;
     }
 
+    // ── Name memory (survives page refresh within the same user session) ──
+    const userNameKey = `clinixpro_user_name_${(function(){return Number(localStorage.getItem("userId")||0)||0;})()||"guest"}`;
+    let sessionUserName = "";
+    try { sessionUserName = localStorage.getItem(userNameKey) || ""; } catch(_e){}
+
+    // Collapse elongated letter runs so casual/typo input still matches
+    // intents: "whatssss" → "whats", "nameeeeee" → "name", "heyyyy" → "hey".
+    // A run of the same letter 3+ times is reduced to a single letter; normal
+    // double letters ("well", "hello") are left untouched.
+    function collapseRepeats(text) {
+        return String(text || "").replace(/([a-z])\1{2,}/g, "$1");
+    }
+
+    function tryHandleNameLocally(rawText) {
+        // Match against BOTH the plain normalized text and an
+        // elongation-collapsed version so playful input like
+        // "whatssss my nameeeeee" is handled just like "whats my name".
+        const normalized = normalizeText(rawText);
+        const text = collapseRepeats(normalized);
+        // "my name is X" or "call me X" → store and acknowledge.
+        // Allow a flexible connector ("is"/"s"/none) after "my name".
+        const setMatch = text.match(/\bmy\s+name(?:\s+is|\s*s)?\s+([a-z][a-z\s]{0,28}[a-z]|[a-z])\b/) ||
+                         text.match(/\bcall\s+me\s+([a-z][a-z\s]{0,28}[a-z]|[a-z])\b/) ||
+                         text.match(/\bi\s+am\s+([a-z][a-z\s]{0,28}[a-z])\b/) ||
+                         text.match(/\bi'?m\s+([a-z][a-z\s]{0,28}[a-z])\b/);
+        // Guard: don't treat "my name?" / "what is my name" as a set command.
+        const isQuestion = /\b(what|whats|who|do|does|know|remember|tell)\b/.test(text);
+        if (setMatch && !isQuestion) {
+            const raw = setMatch[1].trim();
+            const name = raw.split(" ").map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
+            sessionUserName = name;
+            try { localStorage.setItem(userNameKey, name); } catch(_e){}
+            return `Nice to meet you, ${name}! I'll remember your name for this session. How can I help you today?`;
+        }
+        // "what's my name", "do you know my name", "whats my name",
+        // "tell me my name", or simply "my name?" — all tolerant of typos
+        // and elongated spellings via the collapsed text above.
+        const asksName =
+            /\b(what(?:\s*s|\s+is)?\s+my\s+name)\b/.test(text) ||
+            /\b(do\s+you\s+know|know|remember|tell\s+me)\s+my\s+name\b/.test(text) ||
+            /^my\s+name\s*$/.test(text) ||
+            /\bwho\s+am\s+i\b/.test(text);
+        if (asksName) {
+            if (sessionUserName) return `Your name is ${sessionUserName}! How can I help you today?`;
+            return "I don't know your name yet — tell me by saying 'My name is [name]' and I'll remember it for this session!";
+        }
+        return null;
+    }
+
     function getLocalFallback(_normalizedText) {
-        // Intentionally empty: greetings, generic help, and free-form
-        // conversation must fall through to the Groq API so it can answer
-        // with conversation history context. The knowledge base still
-        // handles ClinixPro-specific intents above.
+        // Return empty so unmatched queries fall through to Groq.
+        // The offline catch block handles the no-Groq case separately.
         return "";
     }
 
@@ -93,10 +176,35 @@
     }
 
     function getContextualFollowUp(intent) {
+        const role = currentUserType();
         if (intent === "account") return "Next best step: verify credentials, then use password reset if needed. If it still fails, I can generate a support ticket draft.";
-        if (intent === "appointment") return "Next, verify appointment status in history and enable reminders. If no slots appear, try another date or provider.";
-        if (intent === "clinical") return "Next, verify prescription/record fields are complete, then save and reopen once to confirm details are stored.";
-        if (intent === "billing") return "Next, verify service entries, regenerate invoice, and confirm payment sync. If mismatch remains, escalate via ticket.";
+        if (intent === "appointment") {
+            if (role === "doctor") {
+                return "Next, open My Appointments, confirm each patient's time/status, then open the chart for notes or prescriptions.";
+            }
+            if (role === "admin") {
+                return "Next, review the clinic Appointments panel for conflicts, cancellations, and volume trends.";
+            }
+            return "Next, verify appointment status in history and enable reminders. If no slots appear, try another date or provider.";
+        }
+        if (intent === "clinical") {
+            if (role === "doctor") {
+                return "Next, verify diagnosis/prescription fields are complete, save, then reopen the patient chart to confirm details stored.";
+            }
+            return "Next, verify prescription/record fields are complete, then save and reopen once to confirm details are stored.";
+        }
+        if (intent === "billing") {
+            if (role === "patient") {
+                return "Next, open Billing, preview the invoice, pay with Cash/Card/Online, then keep the receipt.";
+            }
+            if (role === "doctor") {
+                return "Next, confirm your consultation fee on Profile; patient invoices are created when appointments are booked.";
+            }
+            if (role === "admin") {
+                return "Next, open Admin → Billing, compare Total Revenue vs Pending Amount, then mark confirmed invoices as Paid.";
+            }
+            return "Next, open Billing in your dashboard for invoices and payment status.";
+        }
         if (intent === "support") return "Next, include role, module name, exact error text, and screenshot in your support ticket for faster resolution.";
         if (intent === "reporting") return "Next, focus on no-show rate, turnaround time, and payment lag first for fastest operational gains.";
         return "";
@@ -159,6 +267,14 @@
                     "If you share the exact error shown on screen, I can guide you step-by-step."
             },
             {
+                keywords: ["clinic hours", "opening hours", "working hours", "open time", "what time", "clinic open", "clinic close", "operation hours"],
+                reply:
+                    "ClinixPro clinic hours (standard):\n" +
+                    "• Monday – Saturday: 9:00 AM – 6:00 PM\n" +
+                    "• Sunday: Closed\n\n" +
+                    "For the latest schedule, check the clinic footer or contact supportclinixpro@gmail.com."
+            },
+            {
                 keywords: ["support", "contact", "helpdesk", "ticket", "whatsapp", "email"],
                 reply:
                     "Support options:\n" +
@@ -219,6 +335,101 @@
             {
                 keywords: ["demo", "trial", "watch demo"],
                 reply: "Use the demo/watch flow on the homepage CTA to explore the platform quickly. If you want, I can also explain each core module before you register."
+            }
+        ];
+
+        // ── Health & symptom entries (patient + visitor) ─────────────────
+        const healthSymptoms = [
+            {
+                keywords: ["headache", "head pain", "migraine", "head hurts", "head ache"],
+                reply:
+                    "For headaches, common first steps:\n" +
+                    "• Rest in a quiet, dark room and stay hydrated.\n" +
+                    "• Over-the-counter paracetamol or ibuprofen may help.\n" +
+                    "• Avoid screens if light sensitivity is present.\n" +
+                    "⚠️ Seek immediate care if the headache is sudden and severe, or accompanied by fever, stiff neck, or vision changes.\n\n" +
+                    "Would you like to book an appointment with a doctor?"
+            },
+            {
+                keywords: ["fever", "high temperature", "feeling hot", "temperature", "sweating"],
+                reply:
+                    "For managing fever:\n" +
+                    "• Stay hydrated — drink water, juices, or ORS.\n" +
+                    "• Rest and avoid exertion.\n" +
+                    "• Paracetamol (500mg) every 6 hrs can help reduce temperature.\n" +
+                    "⚠️ See a doctor if fever exceeds 39°C (102°F) or lasts more than 2 days.\n\n" +
+                    "I can help you book an appointment — just go to your dashboard and click 'Book New Appointment'."
+            },
+            {
+                keywords: ["cough", "cold", "runny nose", "flu", "sneezing", "sore throat", "throat pain"],
+                reply:
+                    "For cold/flu symptoms:\n" +
+                    "• Rest and drink warm fluids (honey+ginger tea helps).\n" +
+                    "• Antihistamines or decongestants can ease congestion.\n" +
+                    "• Gargle with warm salt water for sore throat.\n" +
+                    "⚠️ If symptoms worsen, breathing becomes difficult, or you have a high fever — see a doctor.\n\n" +
+                    "Would you like to book an appointment?"
+            },
+            {
+                keywords: ["stomach pain", "stomach ache", "abdominal pain", "nausea", "vomiting", "diarrhea", "loose motion"],
+                reply:
+                    "For stomach issues:\n" +
+                    "• Avoid solid food temporarily; try clear fluids or ORS.\n" +
+                    "• Avoid dairy, spicy or fatty foods until symptoms ease.\n" +
+                    "• Rest and keep hydrated.\n" +
+                    "⚠️ Seek care if pain is severe, persistent (>24hrs), or accompanied by blood.\n\n" +
+                    "I recommend booking an appointment for a proper diagnosis."
+            },
+            {
+                keywords: ["chest pain", "chest tightness", "heart pain", "shortness of breath", "breathing difficulty"],
+                reply:
+                    "⚠️ IMPORTANT: Chest pain or difficulty breathing can be serious.\n" +
+                    "Please seek immediate medical attention or call emergency services.\n\n" +
+                    "Do not wait — go to the nearest emergency room or call an ambulance if symptoms are severe."
+            },
+            {
+                keywords: ["back pain", "back ache", "lower back", "spine pain"],
+                reply:
+                    "For back pain:\n" +
+                    "• Apply heat or ice to the affected area (20 mins, 3x/day).\n" +
+                    "• Gentle stretching and avoiding prolonged sitting helps.\n" +
+                    "• Ibuprofen or paracetamol can reduce pain/inflammation.\n" +
+                    "⚠️ See a doctor if pain is severe, radiates to legs, or persists beyond a week."
+            },
+            {
+                keywords: ["feeling unwell", "feeling sick", "not feeling well", "general pain", "body ache", "fatigue", "tired", "weakness"],
+                reply:
+                    "I'm sorry to hear you're not feeling well. Here's what I suggest:\n" +
+                    "• Rest and stay hydrated.\n" +
+                    "• Monitor your temperature and symptoms.\n" +
+                    "• If symptoms persist or worsen, see a doctor promptly.\n\n" +
+                    "I can help you book an appointment with a doctor on ClinixPro. Go to your dashboard and click 'Book New Appointment'."
+            },
+            {
+                keywords: ["how many doctors", "available doctors", "doctors available", "which doctors", "doctor list", "how many doctor"],
+                reply:
+                    "I don't have live doctor availability data right now.\n\n" +
+                    "Please open your patient dashboard and use 'Book New Appointment' to see current available doctors."
+            },
+            {
+                keywords: ["blood pressure", "bp", "hypertension", "high blood pressure", "low blood pressure"],
+                reply:
+                    "Blood pressure tips:\n" +
+                    "• Normal range: 90/60 – 120/80 mmHg.\n" +
+                    "• For high BP: reduce salt, exercise regularly, avoid stress.\n" +
+                    "• For low BP: increase fluid intake, avoid sudden position changes.\n" +
+                    "⚠️ Always follow your doctor's prescribed medication and check-up schedule.\n\n" +
+                    "Book a check-up via your patient dashboard."
+            },
+            {
+                keywords: ["diabetes", "blood sugar", "sugar level", "insulin"],
+                reply:
+                    "Diabetes management tips:\n" +
+                    "• Monitor blood sugar regularly as advised by your doctor.\n" +
+                    "• Follow a low-sugar, balanced diet.\n" +
+                    "• Exercise regularly and maintain a healthy weight.\n" +
+                    "• Take medications/insulin as prescribed — never skip doses.\n" +
+                    "⚠️ Always consult your doctor for dosage adjustments."
             }
         ];
 
@@ -285,13 +496,23 @@
                 reply: "Update availability from your schedule/settings area. Keep slots accurate to reduce booking conflicts and no-shows."
             },
             {
-                keywords: ["today appointments", "view appointments", "appointment list", "upcoming patients"],
+                keywords: [
+                    "today appointments", "view appointments", "appointment list", "upcoming patients",
+                    "my appointment", "appointment with patient", "when is my appointment",
+                    "schedule today", "my schedule", "upcoming appointment"
+                ],
                 reply:
-                    "To review today's appointments:\n" +
-                    "1) Open your doctor dashboard.\n" +
-                    "2) Go to the Appointments section.\n" +
-                    "3) Review the patient list, times, and status.\n" +
-                    "4) Open a patient to start their record or prescription."
+                    "To review your appointments with patients:\n" +
+                    "1) Open Doctor Dashboard → My Appointments.\n" +
+                    "2) Switch between Today and All to see upcoming visits.\n" +
+                    "3) Open a patient to view records, create a clinical note, or write a prescription.\n" +
+                    "Ask me “What are my appointments today?” for a live schedule summary."
+            },
+            {
+                keywords: ["book appointment", "schedule visit", "new booking"],
+                reply:
+                    "Patients book visits from their own dashboard. As a doctor, you manage those bookings in My Appointments — you do not book like a patient.\n" +
+                    "Open My Appointments to see who is scheduled with you, then open the patient chart as needed."
             },
             {
                 keywords: ["view patient", "patient list", "assigned patients", "my patients"],
@@ -305,33 +526,39 @@
 
         const admin = [
             {
-                keywords: ["user management", "add doctor", "staff", "roles", "permissions"],
+                keywords: ["user management", "add doctor", "staff", "roles", "permissions", "approve doctor", "pending doctor"],
                 reply:
-                    "Admin role management tips:\n" +
-                    "1) Assign least-privilege access by role.\n" +
-                    "2) Review active users periodically.\n" +
-                    "3) Disable stale/inactive accounts.\n" +
-                    "4) Audit access changes for accountability."
+                    "Admin user management:\n" +
+                    "1) Open Admin Dashboard → Doctors / Patients.\n" +
+                    "2) Approve pending doctor applications from Pending Reviews.\n" +
+                    "3) Deactivate stale accounts from the user tables.\n" +
+                    "Ask “How many doctors are pending?” for live counts."
             },
             {
-                keywords: ["billing", "invoice", "payment tracking", "revenue"],
+                keywords: ["track billing", "mark paid", "billing status", "invoice status", "reconcile"],
                 reply:
-                    "For billing operations:\n" +
-                    "1) Verify service entries are complete.\n" +
-                    "2) Generate invoices with correct patient and service details.\n" +
-                    "3) Track paid/unpaid states.\n" +
-                    "4) Reconcile records regularly for clean reporting."
+                    "Admin billing:\n" +
+                    "1) Open Admin → Billing.\n" +
+                    "2) Use Total Revenue / Pending Amount cards for overview.\n" +
+                    "3) Mark invoices Paid when payment is confirmed.\n" +
+                    "Ask “How much revenue is generated?” for live totals from the database."
             },
             {
-                keywords: ["report", "dashboard metrics", "analytics", "kpi"],
-                reply: "Use dashboard reporting to monitor appointment volume, utilization, follow-ups, and billing status. Focus first on no-show rate, turnaround time, and payment lag for operational improvement."
+                keywords: ["report", "dashboard metrics", "analytics", "kpi", "what should i monitor"],
+                reply:
+                    "Monitor these admin KPIs first:\n" +
+                    "1) Appointment volume & no-shows (Appointments).\n" +
+                    "2) Revenue collected vs pending bills (Billing).\n" +
+                    "3) Pending doctor applications (Dashboard).\n" +
+                    "4) Open support tickets.\n" +
+                    "Ask me for live revenue or pending bills anytime."
             }
         ];
 
-        if (currentUserType === "patient") return common.concat(patient);
-        if (currentUserType === "doctor") return common.concat(doctor);
+        if (currentUserType === "patient") return common.concat(healthSymptoms, patient);
+        if (currentUserType === "doctor") return common.concat(healthSymptoms, doctor);
         if (currentUserType === "admin") return common.concat(admin);
-        return common.concat(visitor);
+        return common.concat(healthSymptoms, visitor);
     }
 
     // Patterns that are clearly personal/general conversation and must NEVER
@@ -342,12 +569,15 @@
     // "what s my name".
     function isPersonalConversation(text) {
         if (!text) return false;
+        // Collapse elongated spellings first so "my nameeeee" is still caught.
+        const t = collapseRepeats(text);
         // Anything mentioning "my name" — handles "my name is X",
         // "what's my name", "do you know/remember my name", etc.
-        if (/\bmy\s+name\b/.test(text)) return true;
+        if (/\bmy\s+name\b/.test(t)) return true;
         // Asking the bot to remember something about the user.
-        if (/\bremember\s+me\b/.test(text)) return true;
-        if (/\bcall\s+me\b/.test(text)) return true;
+        if (/\bremember\s+me\b/.test(t)) return true;
+        if (/\bcall\s+me\b/.test(t)) return true;
+        if (/\bwho\s+am\s+i\b/.test(t)) return true;
         return false;
     }
 
@@ -358,6 +588,12 @@
         const text = normalizeText(message);
         if (!text) return "";
 
+        // Live clinic data must reach the API (role-aware numbers).
+        if (isLiveDataQuery(text)) {
+            lastIntentContext = detectGeneralIntent(text) || lastIntentContext;
+            return "";
+        }
+
         // Greetings: clear any leftover intent context from a previous chat
         // turn and let Groq generate a contextual welcome. Without this,
         // typing "hello" after a login-troubleshooting flow replays the
@@ -367,8 +603,11 @@
             return "";
         }
 
-        // Hard short-circuit for personal/general talk — these must reach Groq
-        // with conversation history so the model can remember the user's name.
+        // Name memory: handle locally before sending to Groq.
+        const nameReply = tryHandleNameLocally(message);
+        if (nameReply !== null) return nameReply;
+
+        // Other personal/general talk — let Groq handle with conversation history.
         if (isPersonalConversation(text)) return "";
 
         const textTokens = getTextTokens(text);
@@ -379,7 +618,7 @@
             if (contextual) return contextual;
         }
 
-        const knowledgeBase = buildKnowledgeBase(userType);
+        const knowledgeBase = buildKnowledgeBase(currentUserType());
         let bestMatch = "";
         let bestScore = 0;
         let bestStrongMatches = 0;
@@ -430,14 +669,13 @@
     // first load after the fix, wipe any conversation that mentions the old
     // name so users see the clean "I'm Clio..." greeting again.
     const CHAT_MIGRATION_KEY = "clinixpro_chat_migration";
-    const CHAT_MIGRATION_VERSION = "2026-05-clio-rename";
+    const CHAT_MIGRATION_VERSION = "2026-07-role-data-clio-v2";
     try {
         if (localStorage.getItem(CHAT_MIGRATION_KEY) !== CHAT_MIGRATION_VERSION) {
-            const stalePattern = /\b(name is nav|i'?m nav|i am nav|call me nav)\b/i;
             Object.keys(localStorage).forEach((key) => {
-                if (!key.startsWith("clinixpro_chat_history_")) return;
-                const raw = localStorage.getItem(key) || "";
-                if (stalePattern.test(raw)) localStorage.removeItem(key);
+                if (key.startsWith("clinixpro_chat_history_")) {
+                    localStorage.removeItem(key);
+                }
             });
             localStorage.setItem(CHAT_MIGRATION_KEY, CHAT_MIGRATION_VERSION);
         }
@@ -463,18 +701,17 @@
         ];
     } else if (pagePath.includes("doctor-dashboard")) {
         suggestions = [
-            "How do I complete a patient record?",
+            "What are my appointments today?",
+            "Who are my patients?",
             "How do I create a prescription?",
-            "How do I view today's appointments?",
-            "How do I update my availability?",
-            "Best practices for clinical notes"
+            "How do I complete a patient record?"
         ];
     } else if (pagePath.includes("dashboard.html")) {
         suggestions = [
-            "How do I manage user roles?",
-            "How do I track billing status?",
-            "What reports should I monitor?",
-            "How do I contact support quickly?"
+            "How much revenue is generated?",
+            "How much is pending in bills?",
+            "How many appointments today?",
+            "How do I approve pending doctors?"
         ];
     }
 
@@ -594,11 +831,29 @@
         return /\b(no|n|not|still|unable|cant|failed|error|problem|issue)\b/.test(text);
     }
 
+    function isLiveDataQuery(text) {
+        // Questions that must hit the backend for real clinic numbers / lists.
+        // Never answer these with canned local "how-to" scripts.
+        const t = collapseRepeats(normalizeText(text));
+        if (!t) return false;
+        return (
+            /\b(how much|revenue|generated|collected|earnings|income|total (paid|revenue)|money)\b/.test(t) ||
+            /\b(pending (amount|bill|payment|invoice)|unpaid|outstanding)\b/.test(t) ||
+            /\b(clinic (stat|overview|metric)|kpi|how many (patient|doctor|appointment|bill))\b/.test(t) ||
+            /\b(my (patient|patients|schedule|appointment|appointments)|appointments today|today'?s appointment)\b/.test(t) ||
+            /\b(available doctor|which doctor|doctor list|consultation fee)\b/.test(t) ||
+            /\b(pending doctor|doctor application)\b/.test(t)
+        );
+    }
+
     function detectFlowIntent(text) {
+        // Data questions are never troubleshooting flows.
+        if (isLiveDataQuery(text)) return "";
         if (/\b(login|sign in|password|cannot login|cant login|forgot)\b/.test(text)) return "login";
         if (/\b(book|booking|appointment|schedule|slot)\b/.test(text)) return "booking";
         if (/\b(prescription|medicine|medication|rx)\b/.test(text)) return "prescription";
-        if (/\b(billing|invoice|payment|charges|revenue)\b/.test(text)) return "billing";
+        // Keep "revenue" out — that is a live admin stats question.
+        if (/\b(billing|invoice|payment|charges|pay now|mark paid)\b/.test(text)) return "billing";
         if (/\b(support|ticket|contact|helpdesk|complaint)\b/.test(text)) return "support";
         return "";
     }
@@ -694,6 +949,10 @@
     function getGuidedFlowReply(rawMessage) {
         const text = normalizeText(rawMessage);
         if (!text) return "";
+        const role = currentUserType();
+
+        // Live data (revenue, schedules, patients…) always goes to the API.
+        if (!activeFlow && isLiveDataQuery(text)) return "";
 
         if (!activeFlow) {
             const intent = detectFlowIntent(text);
@@ -714,6 +973,26 @@
                 );
             }
             if (intent === "booking") {
+                if (role === "doctor") {
+                    return (
+                        "Doctor appointment flow:\n" +
+                        "1) Doctor Dashboard → My Appointments\n" +
+                        "2) Review today / upcoming visits with patients\n" +
+                        "3) Open a patient to view records or write a prescription\n" +
+                        "Ask “What are my appointments today?” for a live list.\n" +
+                        "Did this help? Reply yes/no."
+                    );
+                }
+                if (role === "admin") {
+                    return (
+                        "Admin appointments flow:\n" +
+                        "1) Admin Dashboard → Appointments\n" +
+                        "2) Monitor clinic-wide bookings and statuses\n" +
+                        "3) Check conflicts, cancellations, and volume\n" +
+                        "Ask “How many appointments today?” for live counts.\n" +
+                        "Did this help? Reply yes/no."
+                    );
+                }
                 return (
                     "Appointment booking flow:\n" +
                     "1) Dashboard -> Appointments -> Book Appointment\n" +
@@ -723,6 +1002,22 @@
                 );
             }
             if (intent === "prescription") {
+                if (role === "doctor") {
+                    return (
+                        "Doctor prescription flow:\n" +
+                        "1) Open the patient from My Patients or Appointments\n" +
+                        "2) Choose Write Prescription\n" +
+                        "3) Add medicine, dose, frequency, duration, and save\n" +
+                        "Did this solve your issue? Reply yes/no."
+                    );
+                }
+                if (role === "admin") {
+                    return (
+                        "Admins can monitor prescription activity from clinic reports, " +
+                        "but prescriptions are created by doctors in the patient chart.\n" +
+                        "Did this help? Reply yes/no."
+                    );
+                }
                 return (
                     "Prescription flow:\n" +
                     "- Patient: Dashboard -> Prescriptions\n" +
@@ -731,12 +1026,37 @@
                 );
             }
             if (intent === "billing") {
+                if (role === "doctor") {
+                    return (
+                        "Doctor billing tip:\n" +
+                        "Consultation fees are set on your Profile. Patient invoices are generated when appointments are booked.\n" +
+                        "Patients pay from their Billing section. Admins reconcile clinic-wide billing.\n" +
+                        "Still facing an issue? Reply yes/no."
+                    );
+                }
+                if (role === "patient") {
+                    return (
+                        "Billing flow:\n" +
+                        "1) Open Billing in your patient dashboard\n" +
+                        "2) Preview or Pay Now on a pending invoice\n" +
+                        "3) Choose Cash, Card, or Online and confirm\n" +
+                        "4) Open the receipt for payment details\n" +
+                        "Still facing an issue? Reply yes/no."
+                    );
+                }
+                if (role === "admin") {
+                    return (
+                        "Admin billing flow:\n" +
+                        "1) Open Admin → Billing\n" +
+                        "2) Review Total Revenue vs Pending Amount cards\n" +
+                        "3) Mark pending invoices as Paid when payment is confirmed\n" +
+                        "Ask “How much revenue is generated?” for live totals.\n" +
+                        "Still facing an issue? Reply yes/no."
+                    );
+                }
                 return (
-                    "Billing flow:\n" +
-                    "1) Verify service entries\n" +
-                    "2) Generate invoice\n" +
-                    "3) Track paid/unpaid status\n" +
-                    "4) Reconcile records\n" +
+                    "Billing help depends on your role. Open Billing in your dashboard, " +
+                    "or ask about revenue / pending bills for live numbers.\n" +
                     "Still facing an issue? Reply yes/no."
                 );
             }
@@ -809,19 +1129,19 @@
         }
         if (currentUserType === "doctor") {
             return [
+                { label: "Today's Schedule", prompt: "What are my appointments today?" },
+                { label: "My Patients", prompt: "Who are my patients?" },
                 { label: "Open Appointments", action: "navigate", target: { page: "doctor-dashboard.html", section: "appointments" }, prompt: "How do I view today's appointments?" },
-                { label: "Open Records", action: "navigate", target: { page: "doctor-dashboard.html", section: "records" }, prompt: "How do I complete a patient record?" },
                 { label: "Create Rx", action: "navigate", target: { page: "doctor-dashboard.html", section: "prescriptions" }, prompt: "How do I create a prescription?" },
-                { label: "Open Profile", action: "navigate", target: { page: "doctor-dashboard.html", section: "profile" }, prompt: "How do I update my availability?" },
                 { label: "Create Ticket", action: "open-ticket-form" }
             ];
         }
         if (currentUserType === "admin") {
             return [
-                { label: "Open Dashboard", action: "navigate", target: { page: "dashboard.html" }, prompt: "What reports should I monitor?" },
-                { label: "Open Pending Reviews", action: "navigate", target: { page: "dashboard.html#pending-doctors" }, prompt: "How do I manage user roles?" },
-                { label: "Billing Help", prompt: "How do I track billing status?" },
-                { label: "Support", prompt: "How do I contact support quickly?" },
+                { label: "Revenue Now", prompt: "How much revenue is generated?" },
+                { label: "Pending Bills", prompt: "How much is pending in bills?" },
+                { label: "Open Billing", action: "navigate", target: { page: "dashboard.html", section: "billing" }, prompt: "How do I track billing status?" },
+                { label: "Pending Doctors", action: "navigate", target: { page: "dashboard.html", section: "dashboard" }, prompt: "How do I approve pending doctors?" },
                 { label: "Create Ticket", action: "open-ticket-form" }
             ];
         }
@@ -834,10 +1154,78 @@
         ];
     }
 
+    // ── Live doctor availability from backend ─────────────────────────
+    function isDoctorAvailabilityQuery(text) {
+        const t = normalizeText(text);
+        // Match any message containing both "doctor" (or "dr") and
+        // availability-related words, in any order.
+        const hasDoctor = /\b(doctor|doctors|dr)\b/.test(t);
+        const hasAvail  = /\b(available|availability|rightnow|right now|online|free|open|who|which|list|show|see|any|how many|current)\b/.test(t);
+        if (hasDoctor && hasAvail) return true;
+        // Also catch standalone "available doctor" style phrases
+        return /\b(available\s+doctor|doctor\s+available|which\s+doctor|how\s+many\s+doctor|doctor\s+list|show\s+doctor|see\s+a\s+doctor|doctors\s+available|who\s+is\s+available|who\s+can\s+i\s+see)\b/.test(t);
+    }
+
+    async function fetchAndShowDoctors() {
+        const token = localStorage.getItem("token") || "";
+        let doctors = [];
+        try {
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+            const res = await fetch(`${API_BASE}/api/doctors`, { headers });
+            if (res.ok) {
+                const raw = await res.json();
+                doctors = Array.isArray(raw) ? raw : [];
+            }
+        } catch (_e) { /* network error — fall through to fallback */ }
+
+        let reply = "";
+        if (doctors.length === 0) {
+            reply = "I couldn't fetch live doctor data right now.\n\nYou can view available doctors directly in your dashboard under 'Book New Appointment'.";
+        } else {
+            const available = doctors.filter(d =>
+                String(d.status || "active").toLowerCase() !== "inactive" &&
+                d.is_available !== false
+            );
+            if (available.length === 0) {
+                reply = "No doctors are currently marked as available. Please check back soon or contact the clinic.";
+            } else {
+                const lines = available.map(d => {
+                    const name = d.name || "Unknown Doctor";
+                    const spec = d.specialty || d.specialization || d.department || "General";
+                    const fee  = d.consultation_fee ? ` — Fee: Rs. ${d.consultation_fee}` : "";
+                    return `• ${name} (${spec})${fee}`;
+                });
+                reply =
+                    `✅ ${available.length} doctor${available.length > 1 ? "s are" : " is"} currently available:\n\n` +
+                    lines.join("\n") +
+                    "\n\nClick the button below to book an appointment right now!";
+            }
+        }
+
+        const botNow = formatTime(new Date());
+        const updated = readHistory();
+        updated.push({ role: "bot", text: reply, timestamp: botNow });
+        writeHistory(updated);
+        appendMessage("bot", reply, botNow);
+        pushHistory("assistant", reply);
+
+        // Show a direct "Book Appointment" action button
+        const bookBtn = document.createElement("button");
+        bookBtn.type = "button";
+        bookBtn.textContent = "⚡ Book Appointment Now";
+        bookBtn.style.cssText = "margin:6px 0 4px 0;padding:8px 16px;background:#0f766e;color:#fff;border:none;border-radius:20px;font-size:0.85rem;font-weight:600;cursor:pointer;";
+        bookBtn.addEventListener("click", () => openShortcut({ page: "patient-dashboard.html", section: "appointments" }));
+        chatBody.appendChild(bookBtn);
+        chatBody.scrollTop = chatBody.scrollHeight;
+
+        return true;
+    }
+
     function renderQuickActions() {
         if (!quickActionsWrap) return;
         quickActionsWrap.innerHTML = "";
-        const actions = getQuickActionsForRole(userType);
+        const actions = getQuickActionsForRole(currentUserType());
         actions.forEach((action) => {
             const btn = document.createElement("button");
             btn.type = "button";
@@ -881,7 +1269,7 @@
         chatBody.innerHTML = "";
         const history = readHistory();
         if (!history.length) {
-            const disclaimer = getDisclaimer(userType);
+            const disclaimer = getDisclaimer(currentUserType());
             const now = formatTime(new Date());
             const seed = [{ role: "bot", text: disclaimer, timestamp: now }];
             writeHistory(seed);
@@ -919,31 +1307,46 @@
 
         typing.classList.add("show");
         sendBtn.disabled = true;
+        const activeRole = currentUserType();
         try {
-            const localReply = getLocalReply(message);
-            // Debug aid: log whether the local handler matched. An empty string
-            // means the message will be sent to Groq with conversation history.
-            console.log("[chatbot] Local reply:", localReply ? localReply.slice(0, 80) + (localReply.length > 80 ? "…" : "") : "(none — sending to Groq)");
-            if (localReply) {
-                const lastBotText = getLastBotMessage();
-                const finalLocalReply = lastBotText === localReply
-                    ? "Looks like this is similar to your previous question. Share your current exact issue/error and I will give the next specific step."
-                    : localReply;
-                const botNowLocal = formatTime(new Date());
-                const updatedLocal = readHistory();
-                updatedLocal.push({ role: "bot", text: finalLocalReply, timestamp: botNowLocal });
-                writeHistory(updatedLocal);
-                appendMessage("bot", finalLocalReply, botNowLocal);
-                pushHistory("assistant", finalLocalReply);
+            // ── Live doctor availability: patients only ──
+            if (activeRole === "patient" && isDoctorAvailabilityQuery(message)) {
+                await fetchAndShowDoctors();
+                typing.classList.remove("show");
+                sendBtn.disabled = false;
                 return;
             }
 
+            const localReply = getLocalReply(message);
+            // Debug aid: log whether the local handler matched. An empty string
+            // means the message will be sent to Groq with conversation history.
+            console.log("[chatbot] role=", activeRole, "Local reply:", localReply ? localReply.slice(0, 80) + (localReply.length > 80 ? "…" : "") : "(none — sending to Groq)");
+            if (localReply) {
+                const lastBotText = getLastBotMessage();
+                // If same answer would repeat, fall through to Groq for a
+                // richer, context-aware follow-up instead of a confusing message.
+                if (lastBotText === localReply) {
+                    // intentional fall-through to Groq below
+                } else {
+                    const botNowLocal = formatTime(new Date());
+                    const updatedLocal = readHistory();
+                    updatedLocal.push({ role: "bot", text: localReply, timestamp: botNowLocal });
+                    writeHistory(updatedLocal);
+                    appendMessage("bot", localReply, botNowLocal);
+                    pushHistory("assistant", localReply);
+                    return;
+                }
+            }
+
+            const token = localStorage.getItem("token") || "";
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers.Authorization = `Bearer ${token}`;
             const res = await fetch(`${API_BASE}/api/chat`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers,
                 body: JSON.stringify({
                     message,
-                    user_type: userType,
+                    user_type: activeRole,
                     user_id: userId,
                     history: priorHistory
                 })
@@ -961,11 +1364,29 @@
             pushHistory("assistant", botText);
         } catch (err) {
             console.error("Unable to reach AI assistant:", err);
-            // Offline/Groq-failure fallback. Any knowledge-base match is already
-            // served before the network call (see getLocalReply above), so by the
-            // time we reach here the message had no local answer. Show a clean,
-            // friendly notice instead of a raw error string.
-            const errorText = "Unable to reach assistant right now. Try again in a moment.";
+            // Network / Groq failure — try the local knowledge base one more
+            // time before showing the offline banner. The first getLocalReply()
+            // call (above) skips greetings & personal-conversation so they can
+            // reach Groq; on network failure we want ANY useful reply.
+            // For offline fallback, bypass the Groq-only guards so greetings
+            // and personal messages also get a useful local answer.
+            let offlineLocal = getLocalReply(message);
+            if (!offlineLocal) {
+                const nameReplyOffline = tryHandleNameLocally(message);
+                if (nameReplyOffline !== null) offlineLocal = nameReplyOffline;
+            }
+            if (!offlineLocal && isGreeting(normalizeText(message))) {
+                offlineLocal = getDisclaimer(activeRole);
+            }
+            const name = sessionUserName ? `, ${sessionUserName}` : "";
+            const roleHelp = {
+                doctor: "appointments with your patients, prescriptions, medical records, and schedule settings",
+                admin: "users, appointments, billing, and clinic analytics",
+                patient: "booking appointments, prescriptions, medical records, billing, and health questions",
+                visitor: "login, registration, and ClinixPro features"
+            };
+            const errorText = offlineLocal ||
+                `Hi${name}! I'm Clio, your ClinixPro AI Health Assistant. I can help with ${roleHelp[activeRole] || roleHelp.visitor}. What would you like help with?`;
             const botNow = formatTime(new Date());
             const updated = readHistory();
             updated.push({ role: "bot", text: errorText, timestamp: botNow });
@@ -1009,6 +1430,8 @@
     });
     clearBtn.addEventListener("click", function () {
         localStorage.removeItem(storageKey);
+        localStorage.removeItem(userNameKey);
+        sessionUserName = "";
         conversationHistory.length = 0;
         lastIntentContext = "";
         renderHistory();

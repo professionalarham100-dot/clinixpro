@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doctor Verification - ClinixPro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="css/design-tokens.css">
     <link rel="stylesheet" href="css/accessibility.css">
@@ -12,20 +15,200 @@
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/auth-modern.css">
     <style>
+        /* ---- ClinixPro teal/cream design system (scoped to this page) ---- */
+        :root {
+            --cp-ink-900: #0a1f24;
+            --cp-ink-700: #1e3a40;
+            --cp-cream-50: #fef9f4;
+            --cp-cream-100: #faf2e8;
+            --cp-cream-200: #f1e4d2;
+            --cp-teal-500: #0f766e;
+            --cp-teal-600: #0c635c;
+            --cp-teal-700: #0a4f49;
+        }
+        body {
+            font-family: "Sora", "Segoe UI", system-ui, sans-serif;
+            color: var(--cp-ink-700);
+            background:
+                radial-gradient(120% 120% at 10% 0%, #ffffff 0%, var(--cp-cream-100) 60%),
+                var(--cp-cream-50);
+            min-height: 100vh;
+        }
         .back-home-link {
             position: fixed;
             top: 16px;
             left: 16px;
             z-index: 20;
             text-decoration: none;
-            color: #1e3a8a;
-            font-weight: 700;
-            background: rgba(255,255,255,0.95);
-            border: 1px solid #dbe4ef;
+            color: var(--cp-cream-50);
+            font-weight: 600;
+            background: rgba(10, 79, 73, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.18);
             border-radius: 999px;
-            padding: 8px 12px;
-            box-shadow: 0 6px 18px rgba(15,23,42,0.08);
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            box-shadow: 0 6px 18px rgba(10, 31, 36, 0.18);
         }
+        .back-home-link:hover { background: var(--cp-teal-700); }
+
+        .auth-box.auth-box-large {
+            background: var(--cp-cream-50);
+            border: 1px solid var(--cp-cream-200);
+            border-radius: 20px;
+            box-shadow: 0 24px 60px rgba(10, 31, 36, 0.14);
+            overflow: hidden;
+            padding: 0;
+        }
+
+        /* Dark teal branded header/banner */
+        .auth-header {
+            background: linear-gradient(135deg, var(--cp-ink-900) 0%, var(--cp-teal-700) 100%);
+            color: var(--cp-cream-50);
+            margin: 0;
+            padding: 30px 34px 26px;
+            text-align: left;
+        }
+        .brand-line {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-family: "Fraunces", "Georgia", serif;
+            font-weight: 600;
+            font-size: 1.15rem;
+            letter-spacing: -0.01em;
+            margin-bottom: 14px;
+        }
+        .brand-line i { color: var(--cp-teal-500); }
+        .auth-header .auth-icon {
+            display: none;
+        }
+        .auth-header h1 {
+            font-family: "Fraunces", "Georgia", serif;
+            font-weight: 600;
+            font-size: 1.7rem;
+            letter-spacing: -0.02em;
+            color: var(--cp-cream-50);
+            margin: 0 0 6px;
+        }
+        .auth-header p {
+            color: rgba(254, 249, 244, 0.82);
+            font-size: 0.92rem;
+            margin: 0;
+        }
+
+        .auth-form { padding: 26px 34px 32px; }
+
+        .auth-form label {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--cp-ink-700);
+        }
+        .auth-form label i { color: var(--cp-teal-600); }
+
+        .auth-form input[type="text"],
+        .auth-form input[type="number"],
+        .auth-form select,
+        .auth-form textarea {
+            font-family: inherit;
+            border: 1px solid var(--cp-cream-200);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--cp-ink-900);
+        }
+        .auth-form input:focus,
+        .auth-form select:focus,
+        .auth-form textarea:focus {
+            outline: none;
+            border-color: var(--cp-teal-500);
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+        }
+
+        /* Fix: vertical-only resize so the textarea can't break the layout */
+        #doctorBio {
+            resize: vertical;
+            min-height: 96px;
+            max-height: 260px;
+        }
+
+        /* Document upload */
+        .upload-field input[type="file"] {
+            width: 100%;
+            font-family: inherit;
+            font-size: 0.86rem;
+            border: 1px dashed var(--cp-teal-500);
+            border-radius: 10px;
+            background: var(--cp-teal-50, #ecfdf5);
+            padding: 12px;
+            cursor: pointer;
+        }
+        .upload-field input[type="file"]::file-selector-button {
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.82rem;
+            color: #fff;
+            background: var(--cp-teal-600);
+            border: none;
+            border-radius: 8px;
+            padding: 7px 12px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+        .upload-field input[type="file"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+        }
+        .field-help {
+            display: block;
+            margin-top: 6px;
+            font-size: 0.8rem;
+            color: var(--cp-ink-500, #4a5d63);
+        }
+
+        /* Disclaimer checkbox */
+        .disclaimer-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 6px 0 4px;
+            padding: 12px 14px;
+            background: var(--cp-cream-100);
+            border: 1px solid var(--cp-cream-200);
+            border-radius: 10px;
+        }
+        .disclaimer-group input[type="checkbox"] {
+            margin-top: 3px;
+            width: 17px;
+            height: 17px;
+            accent-color: var(--cp-teal-600);
+            flex: 0 0 auto;
+            cursor: pointer;
+        }
+        .disclaimer-group label {
+            font-size: 0.85rem;
+            font-weight: 400;
+            line-height: 1.45;
+            color: var(--cp-ink-500, #4a5d63);
+            cursor: pointer;
+        }
+
+        /* Submit button */
+        .btn-login {
+            font-family: inherit;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--cp-teal-500), var(--cp-teal-700));
+            border: none;
+            color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 24px rgba(15, 118, 110, 0.28);
+            transition: filter .15s ease, opacity .15s ease;
+        }
+        .btn-login:hover:not(:disabled) { filter: brightness(1.06); }
+        .btn-login:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
         .feedback {
             display: none;
             margin: 12px 0 6px;
@@ -36,12 +219,12 @@
         .feedback.show { display: block; }
         .pending-message {
             display: none;
-            margin-top: 14px;
-            border-radius: 10px;
+            margin: 20px 34px 32px;
+            border-radius: 12px;
             border: 1px solid #86efac;
             background: #f0fdf4;
             color: #166534;
-            padding: 12px;
+            padding: 14px 16px;
             font-size: 0.92rem;
             font-weight: 600;
             line-height: 1.4;
@@ -54,9 +237,10 @@
     <div class="auth-container">
         <div class="auth-box auth-box-large">
             <div class="auth-header">
+                <div class="brand-line"><i class="fa-solid fa-heart-pulse"></i> ClinixPro</div>
                 <i class="fas fa-user-shield auth-icon"></i>
                 <h1>Doctor Verification</h1>
-                <p>Submit your details for account verification</p>
+                <p>Submit your details and license for account verification</p>
             </div>
 
             <form id="doctorRegisterForm" class="auth-form">
@@ -99,8 +283,19 @@
                     <textarea id="doctorBio" rows="4" placeholder="Brief professional background (min. 20 characters)" required></textarea>
                 </div>
 
+                <div class="form-group upload-field">
+                    <label for="verificationDocument"><i class="fas fa-file-medical"></i> Upload Verification Document</label>
+                    <input type="file" id="verificationDocument" accept=".pdf,.jpg,.jpeg,.png" required>
+                    <small class="field-help">Upload your PMDC certificate or relevant medical license (PDF, JPG, PNG — max 5MB)</small>
+                </div>
+
+                <div class="disclaimer-group">
+                    <input type="checkbox" id="disclaimerCheckbox">
+                    <label for="disclaimerCheckbox">I hereby declare that all information provided is true and accurate to the best of my knowledge. I understand that providing false or misleading information may result in rejection of my application or termination of my account.</label>
+                </div>
+
                 <div class="feedback" id="doctorRegisterFeedback"></div>
-                <button type="submit" class="btn-login"><i class="fas fa-paper-plane"></i> Submit for Verification</button>
+                <button type="submit" class="btn-login" disabled><i class="fas fa-paper-plane"></i> Submit for Verification</button>
             </form>
             <div class="pending-message" id="doctorPendingMessage">
                 Application submitted! We will review within 24 hours.

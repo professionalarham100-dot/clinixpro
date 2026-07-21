@@ -93,7 +93,7 @@
                     </article>
                     <article class="stat-card c-orange" data-jump-section="billing">
                         <div>
-                            <div class="stat-title">💰 Bills</div>
+                            <div class="stat-title">💰 Unpaid Bills</div>
                             <div id="statBills" class="stat-value">0</div>
                         </div>
                         <i class="fa-solid fa-file-invoice-dollar"></i>
@@ -128,6 +128,7 @@
                                 <th>Time</th>
                                 <th>Reason</th>
                                 <th>Status</th>
+                                <th>Payment</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -189,8 +190,12 @@
                 <article class="panel">
                     <div class="panel-head">
                         <h2><i class="fa-solid fa-credit-card"></i> Billing</h2>
+                        <span id="billingUnpaidHint" class="panel-subtitle" style="margin:0;"></span>
                     </div>
-                    <div id="billingList" class="record-list" style="display:none;"></div>
+                    <p class="panel-subtitle">
+                        Every booked appointment creates an invoice for the doctor&rsquo;s consultation fee. Pay here — your doctor sees the payment status on their schedule.
+                    </p>
+                    <div id="billingList" class="billing-list" style="display:none;"></div>
                     <div id="billingEmpty" class="empty-state">
                         <i class="fa-regular fa-file-lines"></i>
                         No billing records yet
@@ -248,19 +253,22 @@
             </div>
             <form id="appointmentForm">
                 <div class="form-grid">
-                    <div class="form-group">
+                    <div class="form-group full">
                         <label for="doctorSelect">Select Doctor</label>
                         <select id="doctorSelect" required>
                             <option value="">Select doctor</option>
                         </select>
+                        <div id="doctorFeeNote" class="hint-note doctor-fee-note" hidden></div>
                     </div>
                     <div class="form-group">
                         <label for="appointmentDate">Date</label>
                         <input id="appointmentDate" type="date" required>
                     </div>
-                    <div class="form-group">
-                        <label for="appointmentTime">Time</label>
-                        <input id="appointmentTime" type="time" required>
+                    <div class="form-group full">
+                        <label>Available Time Slots</label>
+                        <div id="slotGridMessage" class="hint-note">Select a doctor and date to view available times.</div>
+                        <div id="slotGrid" class="slot-grid"></div>
+                        <input id="selectedAppointmentDateTime" type="hidden" name="selected_appointment_datetime">
                     </div>
                     <div class="form-group full">
                         <label for="appointmentReason">Reason for visit</label>
@@ -293,7 +301,17 @@
                     </div>
                     <div class="form-group">
                         <label for="editBlood">Blood Group</label>
-                        <input id="editBlood" type="text" required>
+                        <select id="editBlood" required>
+                            <option value="">Select blood group</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="editDob">Date of Birth</label>
@@ -327,14 +345,136 @@
     </div>
 
     <div id="recordModalBackdrop" class="modal-backdrop" aria-hidden="true">
-        <div class="modal">
-            <div class="modal-head">
-                <h3>Medical Record Details</h3>
-                <button type="button" class="close-btn" data-close-modal="recordModalBackdrop">&times;</button>
+        <div class="modal record-view-modal">
+            <div class="record-view-hero">
+                <button type="button" class="close-btn record-view-close" data-close-modal="recordModalBackdrop">&times;</button>
+                <div class="record-view-hero-top">
+                    <div class="record-view-hero-icon" aria-hidden="true"><i class="fa-solid fa-notes-medical"></i></div>
+                    <div class="record-view-hero-copy">
+                        <p class="record-view-kicker">Your clinical encounter note</p>
+                        <h3 id="prvHeroTitle">Medical Record</h3>
+                        <p id="prvHeroSubtitle" class="record-view-hero-sub">Visit summary from your care team</p>
+                    </div>
+                    <div class="record-view-hero-badges">
+                        <span id="prvStatusBadge" class="record-view-pill">On file</span>
+                        <span id="prvRecordIdBadge" class="record-view-pill is-muted">Record</span>
+                    </div>
+                </div>
+                <div class="record-view-meta-strip" id="prvMetaStrip"></div>
             </div>
-            <div id="recordDetailContent" class="record-detail-grid"></div>
-            <div class="modal-actions">
+            <div class="record-view-body" id="recordDetailContent">
+                <div class="record-view-summary">
+                    <div class="record-view-patient-card">
+                        <div id="prvDoctorAvatar" class="record-view-avatar">DR</div>
+                        <div>
+                            <small>Documented by</small>
+                            <strong id="prvDoctor">Not available</strong>
+                            <span id="prvDoctorLine" class="record-view-muted">Your consulting clinician</span>
+                        </div>
+                    </div>
+                    <div class="record-view-summary-grid">
+                        <div class="record-view-stat">
+                            <i class="fa-regular fa-calendar"></i>
+                            <div>
+                                <small>Visit date</small>
+                                <strong id="prvDate">Not available</strong>
+                            </div>
+                        </div>
+                        <div class="record-view-stat">
+                            <i class="fa-solid fa-user-injured"></i>
+                            <div>
+                                <small>Patient</small>
+                                <strong id="prvPatient">You</strong>
+                            </div>
+                        </div>
+                        <div class="record-view-stat">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            <div>
+                                <small>Follow-up</small>
+                                <strong id="prvFollowUp">Not set</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="record-view-section is-diagnosis">
+                    <div class="record-view-section-head">
+                        <span class="record-view-section-icon"><i class="fa-solid fa-stethoscope"></i></span>
+                        <div>
+                            <h4>Diagnosis</h4>
+                            <p>What your doctor assessed</p>
+                        </div>
+                    </div>
+                    <div id="prvDiagnosis" class="record-view-section-body">Not available</div>
+                </section>
+
+                <div class="record-view-split">
+                    <section class="record-view-section is-symptoms">
+                        <div class="record-view-section-head">
+                            <span class="record-view-section-icon"><i class="fa-solid fa-heart-pulse"></i></span>
+                            <div>
+                                <h4>Symptoms / Presentation</h4>
+                                <p>What was noted for this visit</p>
+                            </div>
+                        </div>
+                        <div id="prvSymptoms" class="record-view-section-body">Not available</div>
+                    </section>
+                    <section class="record-view-section is-treatment">
+                        <div class="record-view-section-head">
+                            <span class="record-view-section-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+                            <div>
+                                <h4>Treatment Plan</h4>
+                                <p>Care instructions &amp; next steps</p>
+                            </div>
+                        </div>
+                        <div id="prvTreatment" class="record-view-section-body">Not available</div>
+                    </section>
+                </div>
+
+                <div class="record-view-footer-note">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>This note was written by your clinician in ClinixPro. If anything looks unclear, message your doctor from Messages or bring it up at your next visit.</span>
+                </div>
+            </div>
+            <div class="modal-actions record-view-actions">
                 <button type="button" class="btn btn-soft" data-close-modal="recordModalBackdrop">Close</button>
+                <button type="button" class="btn btn-primary" id="prvGoMessagesBtn"><i class="fa-solid fa-comments"></i> Messages</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="prescriptionViewModalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal rx-view-modal">
+            <div class="rx-view-hero">
+                <button type="button" class="close-btn rx-view-close" data-close-modal="prescriptionViewModalBackdrop">&times;</button>
+                <div class="rx-view-hero-top">
+                    <div class="rx-view-hero-icon" aria-hidden="true"><i class="fa-solid fa-prescription"></i></div>
+                    <div class="rx-view-hero-copy">
+                        <p class="rx-view-kicker">Your prescription</p>
+                        <h3 id="prxvMedicine">Medicine</h3>
+                        <p id="prxvSubtitle" class="rx-view-sub">Doctor · date</p>
+                    </div>
+                    <span id="prxvStatus" class="rx-view-pill">Active</span>
+                </div>
+            </div>
+            <div class="rx-view-body">
+                <div class="rx-view-grid">
+                    <div class="rx-view-card"><small>Prescribed by</small><span id="prxvDoctor">—</span></div>
+                    <div class="rx-view-card"><small>Issued</small><span id="prxvDate">—</span></div>
+                    <div class="rx-view-card"><small>Dosage</small><span id="prxvDosage">—</span></div>
+                    <div class="rx-view-card"><small>Duration</small><span id="prxvDuration">—</span></div>
+                    <div class="rx-view-card rx-view-wide"><small>Instructions</small><span id="prxvInstructions">—</span></div>
+                    <div class="rx-view-card"><small>Prescription ID</small><span id="prxvId">—</span></div>
+                    <div class="rx-view-card"><small>Expiry</small><span id="prxvExpiry">—</span></div>
+                </div>
+                <p class="rx-view-note">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Take medicines exactly as prescribed. Contact your doctor via Messages if anything is unclear.
+                </p>
+            </div>
+            <div class="rx-view-actions">
+                <button type="button" class="btn btn-soft" data-close-modal="prescriptionViewModalBackdrop">Close</button>
+                <button type="button" class="btn btn-primary" id="prxvGoMessagesBtn"><i class="fa-solid fa-comments"></i> Messages</button>
             </div>
         </div>
     </div>
@@ -452,9 +592,78 @@
         </div>
     </div>
 
+    <div id="filePreviewModalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal file-preview-modal">
+            <div class="modal-head">
+                <h3 id="filePreviewTitle"><i class="fa-solid fa-file"></i> File Preview</h3>
+                <button type="button" class="close-btn" data-close-modal="filePreviewModalBackdrop">&times;</button>
+            </div>
+            <div id="filePreviewMeta" class="file-preview-meta"></div>
+            <div id="filePreviewBody" class="file-preview-body"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-soft" data-close-modal="filePreviewModalBackdrop">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="payBillModalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal pay-bill-modal">
+            <div class="modal-head">
+                <h3><i class="fa-solid fa-wallet"></i> Pay Invoice</h3>
+                <button type="button" class="close-btn" data-close-modal="payBillModalBackdrop">&times;</button>
+            </div>
+            <div class="pay-bill-body">
+                <div id="payBillSummary" class="pay-bill-summary"></div>
+                <p class="pay-bill-label">How are you paying? <span>(required)</span></p>
+                <div class="pay-method-grid" role="radiogroup" aria-label="Payment method" id="payMethodGroup">
+                    <label class="pay-method-card" data-pay-method="cash">
+                        <input type="radio" name="clinixPayMethod" value="cash">
+                        <i class="fa-solid fa-money-bill-wave"></i>
+                        <strong>Cash</strong>
+                        <span>Pay at the clinic desk</span>
+                    </label>
+                    <label class="pay-method-card" data-pay-method="card">
+                        <input type="radio" name="clinixPayMethod" value="card">
+                        <i class="fa-solid fa-credit-card"></i>
+                        <strong>Card</strong>
+                        <span>Debit / credit terminal</span>
+                    </label>
+                    <label class="pay-method-card" data-pay-method="online">
+                        <input type="radio" name="clinixPayMethod" value="online">
+                        <i class="fa-solid fa-globe"></i>
+                        <strong>Online</strong>
+                        <span>Bank transfer / digital wallet</span>
+                    </label>
+                </div>
+                <p id="payMethodError" class="pay-method-error" hidden>Please select Cash, Card, or Online before confirming.</p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-soft" data-close-modal="payBillModalBackdrop">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmPayBillBtn"><i class="fa-solid fa-check"></i> Confirm Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="receiptModalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal receipt-modal">
+            <div class="receipt-toolbar no-print">
+                <h3 id="receiptModalTitle"><i class="fa-solid fa-receipt"></i> Official Receipt</h3>
+                <div class="receipt-toolbar-actions">
+                    <button type="button" class="btn btn-soft" id="printReceiptBtn"><i class="fa-solid fa-print"></i> Print</button>
+                    <button type="button" class="close-btn" data-close-modal="receiptModalBackdrop">&times;</button>
+                </div>
+            </div>
+            <div id="receiptSheet" class="receipt-sheet"></div>
+            <div class="modal-actions no-print">
+                <button type="button" class="btn btn-primary" data-close-modal="receiptModalBackdrop">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toastWrap" class="toast-wrap"></div>
 
     <script src="js/dashboard-polish.js"></script>
+    <script src="vendor/mammoth/mammoth.browser.min.js"></script>
     <script>
         (function () {
             function clearSession() {
@@ -463,6 +672,12 @@
                     "patientId","patientName","doctorId","doctorName",
                     "patientProfileLocal","patientProfileExtras"
                 ].forEach((k) => localStorage.removeItem(k));
+                try {
+                    const avatarKeys = Object.keys(localStorage).filter(
+                        k => k.startsWith('patientAvatarDataUrl') || k.startsWith('doctorAvatarDataUrl') || k.startsWith('clinixpro_user_name_')
+                    );
+                    avatarKeys.forEach((k) => localStorage.removeItem(k));
+                } catch (_e) {}
             }
 
             function getStoredRole() {
@@ -475,7 +690,18 @@
                 return;
             }
 
-            const API_BASE = "/api";
+            function getBackendOrigin() {
+                const origin = window.location.origin || "http://localhost:5000";
+                try {
+                    const url = new URL(origin);
+                    if ((url.hostname === "localhost" || url.hostname === "127.0.0.1") && url.port && url.port !== "5000") {
+                        return `${url.protocol}//${url.hostname}:5000`;
+                    }
+                } catch (_e) {}
+                return origin;
+            }
+
+            const API_BASE = `${getBackendOrigin()}/api`;
 
             const state = {
                 stats: { upcoming: 0, records: 0, prescriptions: 0, bills: 0 },
@@ -488,19 +714,17 @@
                 notifications: [],
                 doctors: [],
                 myUploads: [],
+                filePreviewObjectUrl: null,
+                pendingPayBillId: null,
+                selectedPayMethod: "",
                 resolvedPatientId: "",
                 currentUserId: "",
                 currentUserName: "",
                 activeMessage: null,
-                uploadFile: null
+                uploadFile: null,
+                selectedSlot: null,
+                slotGridLoading: false
             };
-            state.profile = Object.assign(
-                {},
-                parseJsonSafe(localStorage.getItem("patientProfileLocal")),
-                parseJsonSafe(localStorage.getItem("patientProfileExtras")),
-                parseJsonSafe(localStorage.getItem("userData")),
-                { name: localStorage.getItem("userName") || localStorage.getItem("patientName") || "" }
-            );
 
             const sidebar = document.getElementById("sidebar");
             const sideLinks = document.querySelectorAll(".side-link");
@@ -584,10 +808,8 @@
             }
 
             function getUser() {
-                const legacyUser = parseJsonSafe(localStorage.getItem("user"));
                 const loginUser = parseJsonSafe(localStorage.getItem("userData"));
-                const merged = Object.assign({}, legacyUser, loginUser);
-                return merged && typeof merged === "object" ? merged : {};
+                return loginUser && typeof loginUser === "object" ? loginUser : {};
             }
 
             function currentPatientName() {
@@ -596,9 +818,6 @@
                     state.currentUserName ||
                     state.profile.name ||
                     state.profile.full_name ||
-                    localStorage.getItem("patientName") ||
-                    localStorage.getItem("name") ||
-                    localStorage.getItem("userName") ||
                     user.full_name ||
                     user.name,
                     "Patient"
@@ -612,16 +831,13 @@
                     user.id ||
                     user.user_id ||
                     user.patient_id ||
-                    user.patientId ||
-                    localStorage.getItem("patientId") ||
-                    localStorage.getItem("userId") ||
                     ""
                 );
             }
 
             function currentPatientEmail() {
                 const user = getUser();
-                return safeText(state.profile.email || localStorage.getItem("userEmail") || user.email, "");
+                return safeText(state.profile.email || user.email, "");
             }
 
             function normalizeProfile(rawProfile) {
@@ -635,7 +851,8 @@
                     dob: raw.dob || raw.date_of_birth || raw.birth_date || "",
                     address: raw.address || raw.home_address || "",
                     emergency_contact_phone: raw.emergency_contact_phone || raw.emergency_contact || "",
-                    gender: raw.gender || ""
+                    gender: raw.gender || "",
+                    photo_data: raw.photo_data || ""
                 };
             }
 
@@ -660,8 +877,7 @@
 
             function buildApiUrl(url) {
                 const path = String(url || "");
-                // Always use absolute URL to Flask backend
-                const base = "/api";
+                const base = API_BASE;
                 // Strip any leading /api or api/ prefix from path to avoid doubling
                 let clean = path;
                 if (clean.startsWith("/api/")) clean = clean.slice(4);
@@ -720,6 +936,23 @@
                 sections.forEach((section) => section.classList.toggle("active", section.id === sectionId));
                 sideLinks.forEach((link) => link.classList.toggle("active", link.dataset.section === sectionId));
                 if (window.innerWidth <= 900) sidebar.classList.remove("open");
+                // Re-paint the destination so freshly booked invoices / appointments
+                // appear without requiring a hard refresh.
+                if (sectionId === "billing") renderBilling();
+                else if (sectionId === "appointments") renderAppointments();
+                else if (sectionId === "overview") {
+                    renderStats();
+                    renderQuickBook();
+                }
+            }
+
+            function paymentStatusMeta(rawStatus) {
+                const key = String(rawStatus || "").trim().toLowerCase();
+                if (key === "paid") return { label: "Paid", cls: "badge-green", icon: "fa-circle-check" };
+                if (key === "refunded") return { label: "Voided", cls: "badge-gray", icon: "fa-ban" };
+                if (key === "partial") return { label: "Partial", cls: "badge-yellow", icon: "fa-coins" };
+                if (key === "pending") return { label: "Unpaid", cls: "badge-yellow", icon: "fa-hourglass-half" };
+                return { label: "No invoice", cls: "badge-gray", icon: "fa-minus" };
             }
 
             function renderTopInfo() {
@@ -774,7 +1007,12 @@
                     localStorage.removeItem("patientAvatarDataUrl");
                 }
                 const key = avatarStorageKey();
-                const photo = key ? localStorage.getItem(key) : "";
+                const cached = key ? localStorage.getItem(key) : "";
+                // The server-stored photo (loaded via /api/auth/me) is the source
+                // of truth — it survives logout and other devices. localStorage
+                // is only a same-session cache.
+                const serverPhoto = state.profile && state.profile.photo_data;
+                const photo = isValidPhotoSrc(serverPhoto) ? serverPhoto : cached;
 
                 if (isValidPhotoSrc(photo)) {
                     // Real photo — paint it with !important so it wins over
@@ -789,7 +1027,7 @@
 
                 // No photo (or corrupt value) — clean up + show initials on
                 // the teal background supplied by the theme stylesheet.
-                if (photo && key) localStorage.removeItem(key);
+                if (cached && key) localStorage.removeItem(key);
                 avatar.style.removeProperty("background-image");
                 avatar.style.removeProperty("background-size");
                 avatar.style.removeProperty("background-position");
@@ -810,9 +1048,11 @@
                 body.innerHTML = "";
                 if (!state.appointments.length) {
                     empty.style.display = "block";
+                    empty.classList.remove("is-hidden");
                     return;
                 }
                 empty.style.display = "none";
+                empty.classList.add("is-hidden");
                 state.appointments.forEach((appointment) => {
                     const doctor = safeText(
                         appointment.doctor_name || appointment.doctor || appointment.physician,
@@ -825,6 +1065,12 @@
                     const appointmentId = appointment.appointment_id || appointment.id || "";
                     const normalizedStatus = status.toLowerCase();
                     const canCancel = Boolean(appointmentId) && !["cancelled", "completed"].includes(normalizedStatus);
+                    const pay = paymentStatusMeta(appointment.payment_status);
+                    const feeNum = Number(appointment.consultation_fee_charged ?? appointment.consultation_fee);
+                    const feeText = Number.isFinite(feeNum) && feeNum > 0 ? moneyPKR(feeNum) : "";
+                    const payCell = appointment.bill_id || appointment.payment_status
+                        ? `<span class="badge ${pay.cls}"><i class="fa-solid ${pay.icon}"></i> ${escapeHtml(pay.label)}${feeText ? ` · ${escapeHtml(feeText)}` : ""}</span>`
+                        : `<span class="badge badge-gray">No invoice</span>`;
                     const row = document.createElement("tr");
                     row.innerHTML = `
                         <td>${escapeHtml(doctor)}</td>
@@ -832,6 +1078,7 @@
                         <td>${escapeHtml(formatTime(dateTime))}</td>
                         <td>${escapeHtml(reason)}</td>
                         <td><span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(statusLabel)}</span></td>
+                        <td>${payCell}</td>
                         <td>
                             ${canCancel
                                 ? `<button type="button" class="btn btn-danger-soft cancel-appointment-btn" data-appointment-id="${escapeHtml(appointmentId)}"><i class="fa-solid fa-xmark"></i> Cancel</button>`
@@ -921,9 +1168,11 @@
                 list.innerHTML = "";
                 if (!state.myUploads.length) {
                     list.style.display = "none";
-                    empty.style.display = "block";
+                    empty.classList.remove("is-hidden");
+                    empty.style.display = "";
                     return;
                 }
+                empty.classList.add("is-hidden");
                 empty.style.display = "none";
                 list.style.display = "grid";
                 state.myUploads.forEach((rec) => {
@@ -958,9 +1207,12 @@
             async function loadMyUploads() {
                 try {
                     const data = await apiGet("/api/patient/records");
-                    state.myUploads = Array.isArray(data) ? data : [];
-                } catch (_err) {
-                    state.myUploads = [];
+                    state.myUploads = toArray(data);
+                } catch (err) {
+                    console.warn("loadMyUploads failed:", err);
+                    // Keep whatever we already have so a transient GET failure
+                    // does not wipe a record that just saved successfully.
+                    if (!Array.isArray(state.myUploads)) state.myUploads = [];
                 }
                 renderMyUploads();
             }
@@ -975,24 +1227,121 @@
                     const payload = await response.json().catch(() => ({}));
                     throw new Error(safeText(payload.error, "Could not load file."));
                 }
-                const blob = await response.blob();
-                return blob;
+                return await response.blob();
+            }
+
+            function getUploadPreviewKind(mime, filename) {
+                const t = String(mime || "").toLowerCase();
+                const name = String(filename || "").toLowerCase();
+                if (t.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name)) return "image";
+                if (t.includes("pdf") || name.endsWith(".pdf")) return "pdf";
+                if (t.startsWith("text/") || /\.(txt|csv|log|md)$/i.test(name)) return "text";
+                if (
+                    name.endsWith(".docx") ||
+                    t.includes("wordprocessingml") ||
+                    t === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                ) return "docx";
+                return "unsupported";
+            }
+
+            async function renderDocxPreview(blob, container) {
+                if (typeof mammoth === "undefined" || !mammoth.convertToHtml) {
+                    throw new Error("Document viewer failed to load. Please refresh the page.");
+                }
+                const arrayBuffer = await blob.arrayBuffer();
+                const result = await mammoth.convertToHtml({ arrayBuffer });
+                const html = result.value || "<p><em>(This document has no readable text.)</em></p>";
+                container.innerHTML = `
+                    <div class="file-preview-privacy"><i class="fa-solid fa-shield-halved"></i> Secure in-browser preview — file is not saved to your device</div>
+                    <div class="file-preview-docx">${html}</div>
+                `;
+            }
+
+            function revokeFilePreviewUrl() {
+                if (state.filePreviewObjectUrl) {
+                    try { URL.revokeObjectURL(state.filePreviewObjectUrl); } catch (_e) {}
+                    state.filePreviewObjectUrl = null;
+                }
+            }
+
+            function closeFilePreviewModal() {
+                revokeFilePreviewUrl();
+                const body = document.getElementById("filePreviewBody");
+                if (body) body.innerHTML = "";
+                closeModal("filePreviewModalBackdrop");
             }
 
             async function viewUploadedRecord(recordId) {
                 try {
-                    const blob = await fetchUploadFileBlob(recordId);
-                    const url = URL.createObjectURL(blob);
-                    const win = window.open(url, "_blank", "noopener");
-                    if (!win) {
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.target = "_blank";
-                        a.rel = "noopener";
-                        a.click();
+                    const rec = (state.myUploads || []).find((r) => Number(r.id) === Number(recordId)) || {};
+                    const title = safeText(rec.title, "Uploaded record");
+                    const filename = safeText(rec.file_name, `record-${recordId}`);
+                    const mime = safeText(rec.file_type, "");
+                    const kind = getUploadPreviewKind(mime, filename);
+
+                    document.getElementById("filePreviewTitle").innerHTML =
+                        `<i class="fa-solid ${recordFileIcon(mime)}"></i> ${escapeHtml(title)}`;
+                    document.getElementById("filePreviewMeta").innerHTML = `
+                        <span><strong>File:</strong> ${escapeHtml(filename)}</span>
+                        <span><strong>Type:</strong> ${escapeHtml(kind === "docx" ? "Word Document" : (mime || "Unknown"))}</span>
+                        <span><strong>Size:</strong> ${escapeHtml(formatFileSize(rec.file_size))}</span>
+                    `;
+
+                    const body = document.getElementById("filePreviewBody");
+                    body.innerHTML = `<div class="file-preview-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading secure preview…</div>`;
+                    openModal("filePreviewModalBackdrop");
+
+                    if (kind === "unsupported") {
+                        body.innerHTML = `
+                            <div class="file-preview-unsupported">
+                                <i class="fa-solid ${recordFileIcon(mime)}"></i>
+                                <h4>Preview not available for this file type</h4>
+                                <p>This format cannot be shown safely in the browser. Prefer PDF, image, or Word (.docx).</p>
+                            </div>
+                        `;
+                        return;
                     }
-                    setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+                    const blob = await fetchUploadFileBlob(recordId);
+
+                    if (kind === "docx") {
+                        try {
+                            await renderDocxPreview(blob, body);
+                        } catch (docxErr) {
+                            body.innerHTML = `
+                                <div class="file-preview-unsupported">
+                                    <i class="fa-solid fa-file-word"></i>
+                                    <h4>Could not render this Word file</h4>
+                                    <p>${escapeHtml(safeText(docxErr.message, "The document may be corrupted or password-protected."))}</p>
+                                </div>
+                            `;
+                        }
+                        return;
+                    }
+
+                    revokeFilePreviewUrl();
+                    const objectUrl = URL.createObjectURL(blob);
+                    state.filePreviewObjectUrl = objectUrl;
+
+                    if (kind === "image") {
+                        body.innerHTML = `
+                            <div class="file-preview-privacy"><i class="fa-solid fa-shield-halved"></i> Secure in-browser preview — file is not saved to your device</div>
+                            <img class="file-preview-image" src="${objectUrl}" alt="${escapeHtml(title)}">
+                        `;
+                    } else if (kind === "pdf") {
+                        body.innerHTML = `
+                            <div class="file-preview-privacy"><i class="fa-solid fa-shield-halved"></i> Secure in-browser preview — file is not saved to your device</div>
+                            <iframe class="file-preview-frame" title="PDF preview" src="${objectUrl}"></iframe>
+                        `;
+                    } else if (kind === "text") {
+                        const text = await blob.text();
+                        body.innerHTML = `
+                            <div class="file-preview-privacy"><i class="fa-solid fa-shield-halved"></i> Secure in-browser preview — file is not saved to your device</div>
+                            <pre class="file-preview-text">${escapeHtml(text)}</pre>
+                        `;
+                    }
                 } catch (err) {
+                    closeFilePreviewModal();
                     notify(safeText(err.message, "Could not open file."));
                 }
             }
@@ -1039,10 +1388,16 @@
                 state.uploadFile = null;
                 const form = document.getElementById("uploadRecordForm");
                 if (form) form.reset();
+                const fileInput = document.getElementById("uploadRecordFile");
+                if (fileInput) fileInput.value = "";
                 const empty = document.querySelector("#uploadDropZone .upload-empty");
                 const preview = document.querySelector("#uploadDropZone .upload-preview");
                 if (empty) empty.hidden = false;
                 if (preview) preview.hidden = true;
+                const nameEl = document.getElementById("uploadFileName");
+                const sizeEl = document.getElementById("uploadFileSize");
+                if (nameEl) nameEl.textContent = "file.pdf";
+                if (sizeEl) sizeEl.textContent = "0 KB";
             }
 
             function applyFileToUploadForm(file) {
@@ -1055,18 +1410,28 @@
                     || file.type === "application/pdf"
                     || file.type === "text/plain"
                     || file.type.includes("word")
-                    || file.type.includes("document");
-                if (file.type && !okType) {
+                    || file.type.includes("document")
+                    || /\.(png|jpe?g|gif|webp|bmp|pdf|docx?|txt)$/i.test(file.name || "");
+                if (file.type && !okType && !/\.(png|jpe?g|gif|webp|bmp|pdf|docx?|txt)$/i.test(file.name || "")) {
                     notify("Only images, PDFs, and document files are supported.");
                     return;
                 }
                 state.uploadFile = file;
+                const fileInput = document.getElementById("uploadRecordFile");
+                // Keep the input in sync when the file came from drag-and-drop.
+                if (fileInput && (!fileInput.files || !fileInput.files.length || fileInput.files[0] !== file)) {
+                    try {
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        fileInput.files = dt.files;
+                    } catch (_err) { /* older browsers: state.uploadFile is enough */ }
+                }
                 document.getElementById("uploadFileName").textContent = file.name;
                 document.getElementById("uploadFileSize").textContent = formatFileSize(file.size);
                 document.querySelector("#uploadDropZone .upload-empty").hidden = true;
                 document.querySelector("#uploadDropZone .upload-preview").hidden = false;
                 const icon = document.querySelector("#uploadDropZone .upload-preview-icon i");
-                if (icon) icon.className = `fa-solid ${recordFileIcon(file.type || "")}`;
+                if (icon) icon.className = `fa-solid ${recordFileIcon(file.type || file.name || "")}`;
             }
 
             function readFileAsDataUrl(file) {
@@ -1078,6 +1443,40 @@
                 });
             }
 
+            function openPrescriptionView(rx) {
+                if (!rx) return;
+                const medicine = safeText(rx.medicine_name || rx.medicine || rx.medication, "Medicine");
+                const doctor = safeText(rx.doctor_name || rx.doctor, findDoctorNameById(rx.doctor_id));
+                const date = formatDate(rx.date_issued || rx.created_at || rx.date);
+                const status = safeText(rx.status, "active");
+                const dosage = safeText(rx.dosage, "—");
+                const duration = safeText(rx.duration || rx.notes, "—");
+                const instructions = safeText(rx.instructions || rx.frequency || rx.instruction, "—");
+                const rxId = safeText(rx.prescription_id || rx.id, "—");
+                const expiry = rx.expiry_date ? formatDate(rx.expiry_date) : "Not set";
+
+                document.getElementById("prxvMedicine").textContent = medicine;
+                document.getElementById("prxvSubtitle").textContent = `${doctor} · ${date}`;
+                const statusEl = document.getElementById("prxvStatus");
+                statusEl.textContent = status;
+                statusEl.className = `rx-view-pill ${getStatusBadgeClass(status)}`;
+                document.getElementById("prxvDoctor").textContent = doctor;
+                document.getElementById("prxvDate").textContent = date;
+                document.getElementById("prxvDosage").textContent = dosage;
+                document.getElementById("prxvDuration").textContent = duration;
+                document.getElementById("prxvInstructions").textContent = instructions;
+                document.getElementById("prxvId").textContent = `#${rxId}`;
+                document.getElementById("prxvExpiry").textContent = expiry;
+                const msgBtn = document.getElementById("prxvGoMessagesBtn");
+                if (msgBtn) {
+                    msgBtn.onclick = () => {
+                        closeModal("prescriptionViewModalBackdrop");
+                        switchSection("messages");
+                    };
+                }
+                openModal("prescriptionViewModalBackdrop");
+            }
+
             function renderPrescriptions() {
                 const list = document.getElementById("prescriptionsList");
                 const empty = document.getElementById("prescriptionsEmpty");
@@ -1087,14 +1486,15 @@
                     return;
                 }
                 empty.style.display = "none";
-                state.prescriptions.forEach((rx) => {
-                    const medicine = safeText(rx.medicine_name || rx.medicine, "Medicine");
+                state.prescriptions.forEach((rx, index) => {
+                    const medicine = safeText(rx.medicine_name || rx.medicine || rx.medication, "Medicine");
                     const dosage = safeText(rx.dosage, "Not available");
                     const doctor = safeText(
                         rx.doctor_name || rx.doctor,
                         findDoctorNameById(rx.doctor_id)
                     );
                     const status = safeText(rx.status, "active");
+                    const rxKey = String(rx.prescription_id || rx.id || index);
                     const row = document.createElement("div");
                     row.className = "rx-item";
                     row.innerHTML = `
@@ -1102,10 +1502,325 @@
                             <h3>${escapeHtml(medicine)}</h3>
                             <p>Dosage: ${escapeHtml(dosage)} | ${escapeHtml(doctor)}</p>
                         </div>
-                        <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                        <div class="rx-item-actions">
+                            <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                            <button type="button" class="btn btn-soft btn-sm view-rx-btn" data-rx-id="${escapeHtml(rxKey)}">
+                                <i class="fa-solid fa-eye"></i> View
+                            </button>
+                        </div>
                     `;
                     list.appendChild(row);
                 });
+                list.querySelectorAll(".view-rx-btn").forEach((btn) => {
+                    btn.addEventListener("click", () => {
+                        const id = btn.getAttribute("data-rx-id");
+                        const found = state.prescriptions.find((r, i) =>
+                            String(r.prescription_id || r.id || i) === String(id)
+                        );
+                        openPrescriptionView(found);
+                    });
+                });
+            }
+
+            function moneyPKR(value) {
+                const amount = Number(value);
+                if (!Number.isFinite(amount)) return "PKR 0";
+                return `PKR ${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+            }
+
+            function paymentMethodLabel(method) {
+                const key = String(method || "").toLowerCase();
+                if (key === "cash") return "Cash";
+                if (key === "card") return "Card";
+                if (key === "online") return "Online";
+                if (key === "check") return "Check";
+                return "Not recorded";
+            }
+
+            function paymentMethodIcon(method) {
+                const key = String(method || "").toLowerCase();
+                if (key === "cash") return "fa-money-bill-wave";
+                if (key === "card") return "fa-credit-card";
+                if (key === "online") return "fa-globe";
+                if (key === "check") return "fa-money-check";
+                return "fa-wallet";
+            }
+
+            function findBillById(billId) {
+                return (state.billing || []).find((b) =>
+                    String(b.billing_id || b.bill_id) === String(billId)
+                ) || null;
+            }
+
+            function doctorDisplayName(bill) {
+                const raw = safeText(bill && bill.doctor_name, "");
+                if (!raw) return "Clinic Doctor";
+                return raw.replace(/^dr\.?\s*/i, "");
+            }
+
+            function buildReceiptHtml(bill) {
+                const status = safeText(bill.status || bill.payment_status, "pending").toLowerCase();
+                const invoice = safeText(bill.invoice_number || bill.description, `INV-${bill.billing_id || bill.bill_id || "—"}`);
+                const apptWhen = bill.appointment_date || null;
+                const apptDate = apptWhen ? formatDate(apptWhen) : formatDate(bill.date || bill.created_at);
+                const apptTime = apptWhen ? formatTime(apptWhen) : "—";
+                const paidAt = bill.payment_date ? `${formatDate(bill.payment_date)} · ${formatTime(bill.payment_date)}` : "—";
+                const issuedAt = `${formatDate(bill.date || bill.created_at)} · ${formatTime(bill.date || bill.created_at)}`;
+                const consult = Number(bill.consultation_fee);
+                const meds = Number(bill.medicines_cost);
+                const tests = Number(bill.tests_cost);
+                const other = Number(bill.other_charges);
+                const total = Number(bill.amount !== undefined ? bill.amount : bill.total_amount);
+                const lines = [];
+                if (Number.isFinite(consult) && consult > 0) {
+                    lines.push({ label: "Consultation fee", amount: consult });
+                }
+                if (Number.isFinite(meds) && meds > 0) {
+                    lines.push({ label: "Medicines", amount: meds });
+                }
+                if (Number.isFinite(tests) && tests > 0) {
+                    lines.push({ label: "Lab / tests", amount: tests });
+                }
+                if (Number.isFinite(other) && other > 0) {
+                    lines.push({ label: "Other charges", amount: other });
+                }
+                if (!lines.length) {
+                    lines.push({ label: "Consultation / clinic services", amount: Number.isFinite(total) ? total : 0 });
+                }
+                const lineRows = lines.map((line) => `
+                    <div class="receipt-line">
+                        <span>${escapeHtml(line.label)}</span>
+                        <strong>${escapeHtml(moneyPKR(line.amount))}</strong>
+                    </div>
+                `).join("");
+                const specialization = safeText(bill.doctor_specialization || bill.doctor_department, "");
+                const reason = safeText(bill.appointment_reason || bill.notes, "General consultation");
+                const patientName = safeText(bill.patient_name, currentPatientName() || "Patient");
+                const patientEmail = safeText(bill.patient_email, safeText(getUser().email, "—"));
+                const patientPhone = safeText(bill.patient_phone, "—");
+                const method = status === "paid"
+                    ? safeText(bill.payment_method, "cash")
+                    : "";
+                const methodDisplay = status === "paid"
+                    ? paymentMethodLabel(method)
+                    : "Select when paying";
+                const stampClass = status === "paid" ? "is-paid" : (status === "pending" ? "is-pending" : "is-other");
+                const stampLabel = status === "paid" ? "PAID" : status.toUpperCase();
+
+                return `
+                    <div class="receipt-brand">
+                        <div class="receipt-brand-mark"><i class="fa-solid fa-heart-pulse"></i></div>
+                        <div>
+                            <h2>ClinixPro</h2>
+                            <p>Official Payment Receipt</p>
+                        </div>
+                        <div class="receipt-stamp ${stampClass}">${escapeHtml(stampLabel)}</div>
+                    </div>
+                    <div class="receipt-meta-bar">
+                        <div>
+                            <small>Invoice</small>
+                            <strong>${escapeHtml(invoice)}</strong>
+                        </div>
+                        <div>
+                            <small>Issued</small>
+                            <strong>${escapeHtml(issuedAt)}</strong>
+                        </div>
+                        <div>
+                            <small>Receipt #</small>
+                            <strong>RCP-${escapeHtml(String(bill.billing_id || bill.bill_id || "0"))}</strong>
+                        </div>
+                    </div>
+                    <div class="receipt-parties">
+                        <div class="receipt-party">
+                            <h4>Billed to</h4>
+                            <strong>${escapeHtml(patientName)}</strong>
+                            <span>${escapeHtml(patientEmail)}</span>
+                            <span>${escapeHtml(patientPhone)}</span>
+                        </div>
+                        <div class="receipt-party">
+                            <h4>Attending doctor</h4>
+                            <strong>Dr. ${escapeHtml(doctorDisplayName(bill))}</strong>
+                            <span>${escapeHtml(specialization || "General Practice")}</span>
+                            <span>ClinixPro Clinic</span>
+                        </div>
+                    </div>
+                    <div class="receipt-appt">
+                        <div>
+                            <i class="fa-solid fa-calendar-day"></i>
+                            <div>
+                                <small>Appointment date</small>
+                                <strong>${escapeHtml(apptDate)}</strong>
+                            </div>
+                        </div>
+                        <div>
+                            <i class="fa-solid fa-clock"></i>
+                            <div>
+                                <small>Appointment time</small>
+                                <strong>${escapeHtml(apptTime)}</strong>
+                            </div>
+                        </div>
+                        <div class="receipt-appt-reason">
+                            <i class="fa-solid fa-stethoscope"></i>
+                            <div>
+                                <small>Visit reason</small>
+                                <strong>${escapeHtml(reason)}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="receipt-lines">
+                        <div class="receipt-lines-head">
+                            <span>Description</span>
+                            <span>Amount</span>
+                        </div>
+                        ${lineRows}
+                        <div class="receipt-total">
+                            <span>Total due</span>
+                            <strong>${escapeHtml(moneyPKR(total))}</strong>
+                        </div>
+                    </div>
+                    <div class="receipt-payment">
+                        <div>
+                            <small>Payment method</small>
+                            <strong><i class="fa-solid ${paymentMethodIcon(method)}"></i> ${escapeHtml(methodDisplay)}</strong>
+                        </div>
+                        <div>
+                            <small>Payment date</small>
+                            <strong>${escapeHtml(status === "paid" ? paidAt : "Awaiting payment")}</strong>
+                        </div>
+                        <div>
+                            <small>Amount paid</small>
+                            <strong>${escapeHtml(status === "paid" ? moneyPKR(bill.paid_amount !== undefined ? bill.paid_amount : total) : moneyPKR(0))}</strong>
+                        </div>
+                    </div>
+                    <p class="receipt-footer-note">Thank you for choosing ClinixPro. Keep this receipt for your records. This document is generated securely from your clinic account.</p>
+                `;
+            }
+
+            function openReceiptModal(bill) {
+                if (!bill) return;
+                const status = safeText(bill.status || bill.payment_status, "pending").toLowerCase();
+                document.getElementById("receiptModalTitle").innerHTML =
+                    status === "paid"
+                        ? `<i class="fa-solid fa-receipt"></i> Payment Receipt`
+                        : `<i class="fa-solid fa-file-invoice"></i> Invoice Preview`;
+                document.getElementById("receiptSheet").innerHTML = buildReceiptHtml(bill);
+                openModal("receiptModalBackdrop");
+            }
+
+            function syncPayMethodCards() {
+                const checked = document.querySelector('input[name="clinixPayMethod"]:checked');
+                const method = checked ? String(checked.value || "").toLowerCase() : "";
+                state.selectedPayMethod = method;
+                document.querySelectorAll("#payMethodGroup .pay-method-card").forEach((card) => {
+                    const value = String(card.getAttribute("data-pay-method") || "").toLowerCase();
+                    card.classList.toggle("is-selected", Boolean(method) && value === method);
+                });
+                const err = document.getElementById("payMethodError");
+                if (err && method) err.hidden = true;
+                return method;
+            }
+
+            function getSelectedPayMethod() {
+                const checked = document.querySelector("#payBillModalBackdrop input[name='clinixPayMethod']:checked");
+                if (checked && checked.value) return String(checked.value).toLowerCase().trim();
+                return String(state.selectedPayMethod || "").toLowerCase().trim();
+            }
+
+            function openPayBillModal(billId) {
+                const bill = findBillById(billId);
+                if (!bill) {
+                    notify("Bill not found.");
+                    return;
+                }
+                state.pendingPayBillId = String(billId);
+                state.selectedPayMethod = "";
+                document.querySelectorAll("input[name='clinixPayMethod']").forEach((input) => {
+                    input.checked = false;
+                });
+                document.querySelectorAll("#payMethodGroup .pay-method-card").forEach((card) => {
+                    card.classList.remove("is-selected");
+                });
+                const err = document.getElementById("payMethodError");
+                if (err) err.hidden = true;
+                const amount = moneyPKR(bill.amount !== undefined ? bill.amount : bill.total_amount);
+                const invoice = safeText(bill.invoice_number || bill.description, `Bill #${billId}`);
+                const apptWhen = bill.appointment_date;
+                const whenLine = apptWhen
+                    ? `${formatDate(apptWhen)} at ${formatTime(apptWhen)}`
+                    : formatDate(bill.date || bill.created_at);
+                document.getElementById("payBillSummary").innerHTML = `
+                    <div class="pay-bill-amount">${escapeHtml(amount)}</div>
+                    <strong>${escapeHtml(invoice)}</strong>
+                    <p>Dr. ${escapeHtml(doctorDisplayName(bill))} · ${escapeHtml(whenLine)}</p>
+                `;
+                openModal("payBillModalBackdrop");
+            }
+
+            async function confirmPayBill() {
+                const billId = state.pendingPayBillId;
+                const method = getSelectedPayMethod();
+                const err = document.getElementById("payMethodError");
+                if (!billId) return;
+                if (!["cash", "card", "online", "check"].includes(method)) {
+                    if (err) err.hidden = false;
+                    notify("Select a payment method first (Cash, Card, or Online).");
+                    return;
+                }
+                if (err) err.hidden = true;
+                const btn = document.getElementById("confirmPayBillBtn");
+                if (btn) btn.disabled = true;
+                try {
+                    const result = await apiPut(`/api/billing/${billId}`, {
+                        payment_status: "paid",
+                        payment_method: method
+                    });
+                    const updated = result && result.billing;
+                    const bill = findBillById(billId);
+                    if (bill) {
+                        if (updated) Object.assign(bill, updated);
+                        // Chosen method always wins over any stale API/default value.
+                        bill.payment_method = method;
+                        bill.status = "paid";
+                        bill.payment_status = "paid";
+                        if (!bill.payment_date) bill.payment_date = new Date().toISOString();
+                        if (bill.paid_amount === undefined || bill.paid_amount === null) {
+                            bill.paid_amount = bill.amount !== undefined ? bill.amount : bill.total_amount;
+                        }
+                    }
+                    closeModal("payBillModalBackdrop");
+                    state.pendingPayBillId = null;
+                    state.selectedPayMethod = "";
+                    // Mirror payment onto the matching appointment so the
+                    // Appointments Payment column updates without a reload.
+                    const apptId = bill && (bill.appointment_id || (updated && updated.appointment_id));
+                    if (apptId) {
+                        state.appointments.forEach((a) => {
+                            if (Number(a.appointment_id || a.id) === Number(apptId)) {
+                                a.payment_status = "paid";
+                                a.payment_method = method;
+                                a.bill_id = billId;
+                            }
+                        });
+                    }
+                    state.stats.bills = state.billing.filter((b) => {
+                        const s = String(b.status || b.payment_status || "").toLowerCase();
+                        return s === "pending" || s === "partial";
+                    }).length;
+                    renderBilling();
+                    renderAppointments();
+                    renderStats();
+                    notify(`Payment recorded via ${paymentMethodLabel(method)}. Your doctor can see this as Paid.`);
+                    const receiptBill = Object.assign({}, findBillById(billId) || bill || {}, {
+                        payment_method: method,
+                        status: "paid",
+                        payment_status: "paid"
+                    });
+                    openReceiptModal(receiptBill);
+                } catch (errPay) {
+                    notify(safeText(errPay.message, "Unable to complete payment."));
+                } finally {
+                    if (btn) btn.disabled = false;
+                }
             }
 
             function renderBilling() {
@@ -1116,7 +1831,7 @@
                 if (!list) {
                     list = document.createElement("div");
                     list.id = "billingList";
-                    list.className = "record-list";
+                    list.className = "billing-list";
                     panel.appendChild(list);
                 }
                 if (!empty) {
@@ -1128,33 +1843,83 @@
                     panel.appendChild(empty);
                 }
                 list.innerHTML = "";
+                const unpaidHint = document.getElementById("billingUnpaidHint");
+                const unpaidCount = state.billing.filter((b) => {
+                    const s = String(b.status || b.payment_status || "").toLowerCase();
+                    return s === "pending" || s === "partial";
+                }).length;
+                if (unpaidHint) {
+                    unpaidHint.textContent = unpaidCount
+                        ? `${unpaidCount} unpaid invoice${unpaidCount === 1 ? "" : "s"}`
+                        : (state.billing.length ? "All invoices paid" : "");
+                }
                 if (!state.billing.length) {
                     list.style.display = "none";
-                    empty.style.display = "block";
+                    empty.classList.remove("is-hidden");
+                    empty.style.display = "";
                     return;
                 }
                 list.style.display = "grid";
+                empty.classList.add("is-hidden");
                 empty.style.display = "none";
                 state.billing.forEach((bill) => {
-                    const item = document.createElement("div");
-                    item.className = "record-item";
-                    const amount = Number(bill.amount);
-                    const amountText = Number.isFinite(amount) ? `PKR ${amount.toLocaleString()}` : "PKR 0";
-                    const description = safeText(bill.description || bill.title, "Billing item");
-                    const date = formatDate(bill.date || bill.created_at);
-                    const status = safeText(bill.status || bill.payment_status, "pending");
+                    const item = document.createElement("article");
+                    item.className = "billing-card";
+                    const amountText = moneyPKR(bill.amount !== undefined ? bill.amount : bill.total_amount);
+                    const invoice = safeText(bill.invoice_number || bill.description, "Invoice");
+                    const status = safeText(bill.status || bill.payment_status, "pending").toLowerCase();
+                    const billId = safeText(bill.billing_id || bill.bill_id, "");
+                    const apptWhen = bill.appointment_date;
+                    const whenLine = apptWhen
+                        ? `${formatDate(apptWhen)} · ${formatTime(apptWhen)}`
+                        : formatDate(bill.date || bill.created_at);
+                    const methodChip = status === "paid"
+                        ? `<span class="billing-method-chip"><i class="fa-solid ${paymentMethodIcon(bill.payment_method)}"></i> ${escapeHtml(paymentMethodLabel(bill.payment_method))}</span>`
+                        : `<span class="billing-method-chip is-due"><i class="fa-solid fa-hourglass-half"></i> Payment due</span>`;
+                    const primaryAction = (status === "pending" && billId)
+                        ? `<button type="button" class="btn btn-primary" data-billing-action="pay" data-bill-id="${escapeHtml(billId)}"><i class="fa-solid fa-wallet"></i> Pay Now</button>`
+                        : `<button type="button" class="btn btn-primary" data-billing-action="receipt" data-bill-id="${escapeHtml(billId)}"><i class="fa-solid fa-receipt"></i> View Receipt</button>`;
+                    const secondaryAction = (status === "pending" && billId)
+                        ? `<button type="button" class="btn btn-soft" data-billing-action="receipt" data-bill-id="${escapeHtml(billId)}"><i class="fa-solid fa-eye"></i> Preview</button>`
+                        : "";
+
                     item.innerHTML = `
-                        <div class="item-meta">
-                            <h3>${escapeHtml(description)}</h3>
-                            <p>${escapeHtml(date)}</p>
+                        <div class="billing-card-main">
+                            <div class="billing-card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                            <div class="billing-card-meta">
+                                <h3>${escapeHtml(invoice)}</h3>
+                                <p>Dr. ${escapeHtml(doctorDisplayName(bill))} · ${escapeHtml(whenLine)}</p>
+                                <div class="billing-card-chips">
+                                    <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                                    ${methodChip}
+                                </div>
+                            </div>
                         </div>
-                        <div class="panel-actions">
-                            <strong>${escapeHtml(amountText)}</strong>
-                            <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                        <div class="billing-card-side">
+                            <strong class="billing-card-amount">${escapeHtml(amountText)}</strong>
+                            <div class="billing-card-actions">
+                                ${secondaryAction}
+                                ${primaryAction}
+                            </div>
                         </div>
                     `;
                     list.appendChild(item);
                 });
+
+                if (!list.dataset.billingBound) {
+                    list.dataset.billingBound = "true";
+                    list.addEventListener("click", (event) => {
+                        const target = event.target;
+                        if (!(target instanceof Element)) return;
+                        const btn = target.closest("[data-billing-action]");
+                        if (!btn) return;
+                        const billId = btn.getAttribute("data-bill-id");
+                        const action = btn.getAttribute("data-billing-action");
+                        if (!billId) return;
+                        if (action === "pay") openPayBillModal(billId);
+                        else if (action === "receipt") openReceiptModal(findBillById(billId));
+                    });
+                }
             }
 
             const PATIENT_DOB_SENTINEL = "2000-01-01";
@@ -1315,10 +2080,12 @@
                 const select = document.getElementById("messageToSelect");
                 if (!select) return;
                 select.innerHTML = `<option value="">Select doctor</option>`;
-                // Restrict to doctors the patient has booked appointments with
-                // (cancelled appointments still count — once you've seen them, you can talk to them).
+                // Only allow messaging doctors with a scheduled or completed appointment.
+                // Cancelled appointments do NOT grant messaging access.
+                const eligibleStatuses = new Set(["scheduled", "completed"]);
                 const apptDoctorIds = new Set(
                     state.appointments
+                        .filter((a) => eligibleStatuses.has(String(a.status || "").toLowerCase()))
                         .map((a) => a.doctor_id)
                         .filter((id) => id !== undefined && id !== null && String(id).trim() !== "")
                         .map((id) => String(id))
@@ -1430,7 +2197,7 @@
             (function upgradeLegacyEmptyStates() {
                 if (!polish) return;
                 const upgrades = [
-                    { id: "appointmentsEmpty", kind: "appointments", cta: "Book an appointment", section: "appointments" },
+                    { id: "appointmentsEmpty", kind: "appointments", cta: "Book an appointment", action: () => { const b = document.getElementById("openAppointmentModalBtn"); if (b) b.click(); } },
                     { id: "recordsEmpty",      kind: "records" },
                     { id: "myUploadsEmpty",    kind: "records",       title: "No personal records yet", hint: "Upload past lab reports, prescriptions, x-rays or vaccination cards so any doctor you book can see them.", cta: "Add Record", action: () => { const b = document.getElementById("openUploadRecordBtn"); if (b) b.click(); } },
                     { id: "prescriptionsEmpty",kind: "prescriptions" },
@@ -1452,6 +2219,13 @@
                 });
             })();
 
+            function setPatientRecordBody(el, value, emptyLabel) {
+                if (!el) return;
+                const text = safeText(value, "");
+                el.classList.toggle("is-empty", !text);
+                el.textContent = text || (emptyLabel || "Not documented");
+            }
+
             function openRecordDetails(recordId) {
                 const target = state.records.find((record, index) => String(record.record_id || record.id || index) === String(recordId));
                 if (!target) {
@@ -1459,18 +2233,73 @@
                     return;
                 }
                 const doctor = safeText(target.doctor_name || target.doctor, findDoctorNameById(target.doctor_id));
-                const date = formatDate(target.record_date || target.date_created || target.created_at || target.date);
-                const diagnosis = safeText(target.diagnosis || target.summary || target.notes, "Not available");
-                const symptoms = safeText(target.symptoms, "Not available");
-                const treatment = safeText(target.treatment_plan || target.treatment || target.plan, "Not available");
-                const content = document.getElementById("recordDetailContent");
-                content.innerHTML = `
-                    <div class="record-detail-item"><small>Diagnosis</small><p>${escapeHtml(diagnosis)}</p></div>
-                    <div class="record-detail-item"><small>Doctor</small><p>${escapeHtml(doctor)}</p></div>
-                    <div class="record-detail-item"><small>Date</small><p>${escapeHtml(date)}</p></div>
-                    <div class="record-detail-item"><small>Symptoms</small><p>${escapeHtml(symptoms)}</p></div>
-                    <div class="record-detail-item"><small>Treatment Plan</small><p>${escapeHtml(treatment)}</p></div>
-                `;
+                const dateRaw = target.record_date || target.date_created || target.created_at || target.date;
+                const date = formatDate(dateRaw);
+                const diagnosis = safeText(target.diagnosis || target.summary || target.notes, "Clinical note");
+                const followRaw = target.follow_up_date || target.followUpDate;
+                const recordKey = safeText(target.record_id || target.id, recordId);
+                const status = safeText(target.status, "on file");
+                const patientName = currentPatientName();
+
+                const heroTitle = document.getElementById("prvHeroTitle");
+                const heroSub = document.getElementById("prvHeroSubtitle");
+                if (heroTitle) {
+                    heroTitle.textContent = diagnosis.length > 64 ? `${diagnosis.slice(0, 64)}…` : diagnosis;
+                }
+                if (heroSub) {
+                    heroSub.textContent = `With ${doctor} · ${date}`;
+                }
+
+                const statusBadge = document.getElementById("prvStatusBadge");
+                if (statusBadge) {
+                    statusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                    statusBadge.className = "record-view-pill" + (status.toLowerCase() === "pending" ? " is-warn" : "");
+                }
+                const idBadge = document.getElementById("prvRecordIdBadge");
+                if (idBadge) idBadge.textContent = `Record #${recordKey}`;
+
+                const avatar = document.getElementById("prvDoctorAvatar");
+                if (avatar) {
+                    const cleaned = doctor.replace(/^\s*(dr\.?|doctor)\s+/i, "").trim() || doctor;
+                    const parts = cleaned.split(/\s+/).filter(Boolean);
+                    avatar.textContent = parts.length >= 2
+                        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                        : (cleaned.slice(0, 2) || "DR").toUpperCase();
+                }
+
+                document.getElementById("prvDoctor").textContent = doctor;
+                const doctorLine = document.getElementById("prvDoctorLine");
+                if (doctorLine) doctorLine.textContent = "Consulting clinician";
+                document.getElementById("prvDate").textContent = date;
+                document.getElementById("prvPatient").textContent = patientName || "You";
+                document.getElementById("prvFollowUp").textContent = followRaw ? formatDate(followRaw) : "Not scheduled";
+
+                setPatientRecordBody(document.getElementById("prvDiagnosis"), target.diagnosis || target.summary || target.notes, "No diagnosis documented");
+                setPatientRecordBody(document.getElementById("prvSymptoms"), target.symptoms, "No symptoms documented for this visit");
+                setPatientRecordBody(
+                    document.getElementById("prvTreatment"),
+                    target.treatment_plan || target.treatment || target.plan,
+                    "No treatment plan documented"
+                );
+
+                const strip = document.getElementById("prvMetaStrip");
+                if (strip) {
+                    strip.innerHTML = `
+                        <span><i class="fa-regular fa-calendar"></i> ${escapeHtml(date)}</span>
+                        <span><i class="fa-solid fa-user-doctor"></i> ${escapeHtml(doctor)}</span>
+                        <span><i class="fa-solid fa-hashtag"></i> Record ${escapeHtml(recordKey)}</span>
+                        ${followRaw ? `<span><i class="fa-solid fa-clock-rotate-left"></i> Follow-up ${escapeHtml(formatDate(followRaw))}</span>` : ""}
+                    `;
+                }
+
+                const msgBtn = document.getElementById("prvGoMessagesBtn");
+                if (msgBtn) {
+                    msgBtn.onclick = () => {
+                        closeModal("recordModalBackdrop");
+                        switchSection("messages");
+                    };
+                }
+
                 openModal("recordModalBackdrop");
             }
 
@@ -1486,6 +2315,24 @@
                 modal.setAttribute("aria-hidden", "true");
             }
 
+            function formatDoctorFee(doctor) {
+                const feeRaw = (doctor.consultation_fee !== undefined && doctor.consultation_fee !== null)
+                    ? doctor.consultation_fee : doctor.consultationFee;
+                const feeNum = Number(feeRaw);
+                if (feeRaw === undefined || feeRaw === null || feeRaw === "" || !Number.isFinite(feeNum) || feeNum <= 0) {
+                    return "";
+                }
+                return `PKR ${feeNum.toLocaleString()}`;
+            }
+
+            function cleanDoctorLabel(value) {
+                return safeText(value, "")
+                    .replace(/\s*[-–—]\s*$/, "")
+                    .replace(/^\s*[-–—]\s*/, "")
+                    .replace(/\s{2,}/g, " ")
+                    .trim();
+            }
+
             function seedDoctors() {
                 const doctorSelect = document.getElementById("doctorSelect");
                 doctorSelect.innerHTML = `<option value="">Select doctor</option>`;
@@ -1493,11 +2340,119 @@
                 doctors.forEach((doctor) => {
                     const opt = document.createElement("option");
                     opt.value = String(doctor.doctor_id || doctor.id);
-                    const doctorName = safeText(doctor.name || doctor.full_name, "Doctor");
-                    const specialty = safeText(doctor.specialization || doctor.specialty, "General");
-                    opt.textContent = `${doctorName} — ${specialty}`;
+                    const doctorName = cleanDoctorLabel(doctor.name || doctor.full_name) || "Doctor";
+                    const specialty = cleanDoctorLabel(doctor.specialization || doctor.specialty) || "General";
+                    const feeText = formatDoctorFee(doctor);
+                    opt.textContent = feeText
+                        ? `${doctorName} — ${specialty} (${feeText})`
+                        : `${doctorName} — ${specialty}`;
                     doctorSelect.appendChild(opt);
                 });
+                updateDoctorFeeNote();
+            }
+
+            function updateDoctorFeeNote() {
+                const note = document.getElementById("doctorFeeNote");
+                if (!note) return;
+                const doctorId = document.getElementById("doctorSelect").value;
+                const doctors = state.doctors || [];
+                const doctor = doctors.find((d) => String(d.doctor_id || d.id) === String(doctorId));
+                const feeText = doctor ? formatDoctorFee(doctor) : "";
+                if (doctor && feeText) {
+                    note.textContent = `Consultation fee: ${feeText}`;
+                    note.hidden = false;
+                } else if (doctor) {
+                    note.textContent = "Consultation fee: not set by this doctor.";
+                    note.hidden = false;
+                } else {
+                    note.textContent = "";
+                    note.hidden = true;
+                }
+            }
+
+            function formatTimeLabel(timeValue) {
+                if (!timeValue) return "";
+                const [hours, minutes] = String(timeValue).split(":").map((part) => Number(part));
+                if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeValue;
+                const suffix = hours >= 12 ? "PM" : "AM";
+                const adjusted = hours % 12 || 12;
+                return `${adjusted}:${String(minutes).padStart(2, "0")} ${suffix}`;
+            }
+
+            function resetSlotSelection() {
+                state.selectedSlot = null;
+                const hidden = document.getElementById("selectedAppointmentDateTime");
+                if (hidden) hidden.value = "";
+                const slotGrid = document.getElementById("slotGrid");
+                if (slotGrid) slotGrid.innerHTML = "";
+                const message = document.getElementById("slotGridMessage");
+                if (message) message.textContent = "Select a doctor and date to view available times.";
+            }
+
+            function renderSlotGrid(payload) {
+                const slotGrid = document.getElementById("slotGrid");
+                const message = document.getElementById("slotGridMessage");
+                if (!slotGrid || !message) return;
+                slotGrid.innerHTML = "";
+                if (!payload || !Array.isArray(payload.slots)) {
+                    message.textContent = "No time slots available for this date.";
+                    return;
+                }
+                const slots = payload.slots || [];
+                if (!slots.length) {
+                    message.textContent = safeText(payload.reason, "No time slots available for this date.");
+                    return;
+                }
+                message.textContent = `Available ${safeText(payload.slot_duration_minutes, "30")} minute slots for ${safeText(payload.date, "this date")}.`;
+                const fragment = document.createDocumentFragment();
+                slots.forEach((slot) => {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "slot-chip";
+                    button.setAttribute("data-datetime", safeText(slot.datetime, ""));
+                    button.textContent = formatTimeLabel(slot.time);
+                    if (!slot.available) {
+                        button.classList.add("slot-chip-disabled");
+                        button.disabled = true;
+                        button.textContent = slot.reason === "past" ? "Past" : "Already Booked";
+                    } else {
+                        button.addEventListener("click", () => {
+                            state.selectedSlot = slot;
+                            document.getElementById("selectedAppointmentDateTime").value = safeText(slot.datetime, "");
+                            document.querySelectorAll(".slot-chip").forEach((chip) => chip.classList.remove("slot-chip-selected"));
+                            button.classList.add("slot-chip-selected");
+                        });
+                    }
+                    fragment.appendChild(button);
+                });
+                slotGrid.appendChild(fragment);
+            }
+
+            async function refreshAppointmentSlots() {
+                const doctorId = document.getElementById("doctorSelect").value;
+                const date = document.getElementById("appointmentDate").value;
+                const hidden = document.getElementById("selectedAppointmentDateTime");
+                if (!doctorId || !date) {
+                    resetSlotSelection();
+                    return;
+                }
+                state.selectedSlot = null;
+                if (hidden) hidden.value = "";
+                if (state.slotGridLoading) return;
+                state.slotGridLoading = true;
+                const message = document.getElementById("slotGridMessage");
+                if (message) message.textContent = "Loading available times…";
+                try {
+                    const payload = await apiGet(`/api/doctors/${encodeURIComponent(doctorId)}/slots?date=${encodeURIComponent(date)}`);
+                    renderSlotGrid(payload);
+                    if (hidden && state.selectedSlot && state.selectedSlot.datetime) {
+                        hidden.value = state.selectedSlot.datetime;
+                    }
+                } catch (err) {
+                    if (message) message.textContent = safeText(err.message, "Unable to load time slots.");
+                } finally {
+                    state.slotGridLoading = false;
+                }
             }
 
             async function ensureDoctorsLoaded() {
@@ -1522,8 +2477,17 @@
 
                 fillEl("editName",      p.name);
                 fillEl("editPhone",     p.phone);
-                fillEl("editBlood",     p.blood_group);
                 fillEl("editDob",       dobValue);
+                // Canonical ABO options only — reject free-text leftovers like "Z" / "A".
+                (function setBloodSelect() {
+                    const el = document.getElementById("editBlood");
+                    if (!el) return;
+                    const allowed = new Set(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]);
+                    let raw = String(p.blood_group || "").trim().toUpperCase().replace(/\s+/g, "");
+                    raw = raw.replace("POSITIVE", "+").replace("NEGATIVE", "-");
+                    if (raw === "0+" || raw === "0-") raw = "O" + raw.slice(1);
+                    el.value = allowed.has(raw) ? raw : "";
+                })();
                 // Normalize stored gender to the canonical option values
                 // ("Male" / "Female" / "Other") so the <select> picks the
                 // right entry regardless of case used in the database.
@@ -1614,7 +2578,17 @@
                     if (recordsRes.status === "fulfilled") state.records = toArray(recordsRes.value);
                     if (prescriptionsRes.status === "fulfilled") state.prescriptions = toArray(prescriptionsRes.value);
                     if (doctorsRes.status === "fulfilled") state.doctors = toArray(doctorsRes.value);
-                    if (billingRes.status === "fulfilled") state.billing = toArray(billingRes.value);
+                    if (billingRes.status === "fulfilled") {
+                        state.billing = toArray(billingRes.value);
+                    } else if (billingRes.status === "rejected") {
+                        console.warn("Billing load failed:", billingRes.reason);
+                        // Fall back to JWT-scoped list with no patient_id query.
+                        try {
+                            state.billing = toArray(await apiGet("/api/billing"));
+                        } catch (_billErr) {
+                            state.billing = Array.isArray(state.billing) ? state.billing : [];
+                        }
+                    }
 
                     try {
                         const messagesRes = await apiGet("/api/messages");
@@ -1626,7 +2600,10 @@
                     state.stats.upcoming = state.appointments.filter((a) => safeText(a.status, "").toLowerCase() === "scheduled").length;
                     state.stats.records = state.records.length;
                     state.stats.prescriptions = state.prescriptions.length;
-                    state.stats.bills = state.billing.length;
+                    state.stats.bills = state.billing.filter((b) => {
+                        const s = String(b.status || b.payment_status || "").toLowerCase();
+                        return s === "pending" || s === "partial";
+                    }).length;
 
                     state.notifications = state.appointments.slice(0, 3).map((a) => {
                         const doctor = safeText(a.doctor_name || a.doctor, findDoctorNameById(a.doctor_id));
@@ -1647,6 +2624,10 @@
                     notifDropdown.classList.remove("open");
                 }
                 if (target.matches(".modal-backdrop")) {
+                    if (target.id === "filePreviewModalBackdrop") {
+                        closeFilePreviewModal();
+                        return;
+                    }
                     target.classList.remove("open");
                     target.setAttribute("aria-hidden", "true");
                 }
@@ -1679,7 +2660,16 @@
                 seedDoctors();
                 const today = new Date().toISOString().split('T')[0];
                 document.getElementById("appointmentDate").min = today;
+                resetSlotSelection();
                 openModal("appointmentModalBackdrop");
+            });
+
+            document.getElementById("doctorSelect").addEventListener("change", () => {
+                updateDoctorFeeNote();
+                refreshAppointmentSlots();
+            });
+            document.getElementById("appointmentDate").addEventListener("change", () => {
+                refreshAppointmentSlots();
             });
 
             document.getElementById("openProfileEditBtn").addEventListener("click", async () => {
@@ -1732,29 +2722,36 @@
                 const description = document.getElementById("uploadRecordDescription").value.trim();
                 const recordDate = document.getElementById("uploadRecordDate").value || null;
                 const category = document.getElementById("uploadRecordCategory").value;
+                const fileInput = document.getElementById("uploadRecordFile");
+                const file = state.uploadFile || (fileInput && fileInput.files && fileInput.files[0]) || null;
                 if (!title) {
                     notify("Please add a title for this record.");
                     return;
                 }
-                if (!state.uploadFile) {
+                if (!file) {
                     notify("Please attach a file (image or PDF).");
                     return;
                 }
+                state.uploadFile = file;
                 const submitBtn = document.getElementById("uploadRecordSubmit");
                 submitBtn.disabled = true;
                 submitBtn.querySelector(".label").hidden = true;
                 submitBtn.querySelector(".spinner").hidden = false;
                 try {
-                    const dataUrl = await readFileAsDataUrl(state.uploadFile);
-                    await apiPost("/api/patient/records", {
+                    const dataUrl = await readFileAsDataUrl(file);
+                    const created = await apiPost("/api/patient/records", {
                         title,
                         description,
                         record_date: recordDate,
                         category,
-                        file_name: state.uploadFile.name,
-                        file_type: state.uploadFile.type || "",
+                        file_name: file.name,
+                        file_type: file.type || "",
                         file_data: dataUrl
                     });
+                    if (created && created.id) {
+                        state.myUploads = [created, ...state.myUploads.filter((r) => Number(r.id) !== Number(created.id))];
+                        renderMyUploads();
+                    }
                     notify("Record saved.");
                     closeModal("uploadRecordModalBackdrop");
                     resetUploadForm();
@@ -1781,14 +2778,16 @@
 
             document.getElementById("openComposeMessageBtn").addEventListener("click", async () => {
                 await ensureDoctorsLoaded();
+                const eligibleStatuses = new Set(["scheduled", "completed"]);
                 const apptDoctorIds = new Set(
                     state.appointments
+                        .filter((a) => eligibleStatuses.has(String(a.status || "").toLowerCase()))
                         .map((a) => a.doctor_id)
                         .filter((id) => id !== undefined && id !== null && String(id).trim() !== "")
                         .map((id) => String(id))
                 );
                 if (!apptDoctorIds.size) {
-                    notify("Book an appointment first — you can only message doctors you have appointments with.");
+                    notify("Book an appointment first — you can only message doctors you have a scheduled appointment with.");
                     return;
                 }
                 seedMessageRecipients();
@@ -1830,40 +2829,78 @@
                 document.getElementById("profilePhotoInput").click();
             });
 
-            document.getElementById("removePhotoBtn").addEventListener("click", () => {
+            // Downscale to a small square JPEG so the stored data URL stays
+            // tiny (well under the server's 4MB photo cap).
+            function compressPhotoToDataUrl(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(new Error("Unable to read image."));
+                    reader.onload = () => {
+                        const img = new Image();
+                        img.onerror = () => reject(new Error("Unable to load image."));
+                        img.onload = () => {
+                            const MAX = 512;
+                            const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+                            const canvas = document.createElement("canvas");
+                            canvas.width = Math.max(1, Math.round(img.width * scale));
+                            canvas.height = Math.max(1, Math.round(img.height * scale));
+                            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+                            resolve(canvas.toDataURL("image/jpeg", 0.85));
+                        };
+                        img.src = String(reader.result || "");
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            function patientIdForProfile() {
+                return Number(state.profile.patient_id || state.resolvedPatientId || state.currentUserId || 0);
+            }
+
+            document.getElementById("removePhotoBtn").addEventListener("click", async () => {
                 const key = avatarStorageKey();
                 if (key) localStorage.removeItem(key);
                 localStorage.removeItem("patientAvatarDataUrl");
+                try {
+                    const pid = patientIdForProfile();
+                    if (pid) await apiPut(`/api/patients/${pid}`, { photo_data: "" });
+                    state.profile.photo_data = "";
+                    notify("Photo removed.");
+                } catch (err) {
+                    notify(safeText(err.message, "Unable to remove photo from your profile."));
+                }
                 renderTopInfo();
-                notify("Photo removed.");
             });
 
-            document.getElementById("profilePhotoInput").addEventListener("change", (event) => {
+            document.getElementById("profilePhotoInput").addEventListener("change", async (event) => {
                 const input = event.target;
                 if (!(input instanceof HTMLInputElement) || !input.files || !input.files[0]) return;
                 const file = input.files[0];
+                input.value = "";
                 if (!file.type.startsWith("image/")) {
                     notify("Please select an image file.");
                     return;
                 }
-                const reader = new FileReader();
-                reader.onload = function () {
-                    const result = typeof reader.result === "string" ? reader.result : "";
-                    if (!result) {
-                        notify("Unable to load selected image.");
-                        return;
-                    }
+                const pid = patientIdForProfile();
+                if (!pid) {
+                    notify("Profile not loaded yet. Please refresh and try again.");
+                    return;
+                }
+                try {
+                    const dataUrl = await compressPhotoToDataUrl(file);
+                    // Persist server-side first — that is what survives logout.
+                    await apiPut(`/api/patients/${pid}`, { photo_data: dataUrl });
+                    state.profile.photo_data = dataUrl;
                     const key = avatarStorageKey();
-                    if (!key) {
-                        notify("Profile not loaded yet. Please refresh and try again.");
-                        return;
-                    }
                     localStorage.removeItem("patientAvatarDataUrl");
-                    localStorage.setItem(key, result);
+                    if (key) {
+                        try { localStorage.setItem(key, dataUrl); } catch (_e) { /* cache only */ }
+                    }
                     renderTopInfo();
                     notify("Profile photo updated.");
-                };
-                reader.readAsDataURL(file);
+                } catch (err) {
+                    notify(safeText(err.message, "Unable to save profile photo."));
+                }
             });
 
             document.getElementById("recordsList").addEventListener("click", (event) => {
@@ -1913,18 +2950,57 @@
             });
 
             document.querySelectorAll("[data-close-modal]").forEach((btn) => {
-                btn.addEventListener("click", () => closeModal(btn.getAttribute("data-close-modal")));
+                btn.addEventListener("click", () => {
+                    const target = btn.getAttribute("data-close-modal");
+                    if (target === "filePreviewModalBackdrop") {
+                        closeFilePreviewModal();
+                        return;
+                    }
+                    closeModal(target);
+                });
             });
+
+            document.getElementById("payMethodGroup").addEventListener("change", (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLInputElement)) return;
+                if (target.name !== "clinixPayMethod") return;
+                syncPayMethodCards();
+            });
+
+            document.getElementById("payMethodGroup").addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                const card = target.closest(".pay-method-card");
+                if (!card) return;
+                const input = card.querySelector("input[name='clinixPayMethod']");
+                if (!input) return;
+                input.checked = true;
+                syncPayMethodCards();
+            });
+
+            const confirmPayBillBtn = document.getElementById("confirmPayBillBtn");
+            if (confirmPayBillBtn) {
+                confirmPayBillBtn.addEventListener("click", () => confirmPayBill());
+            }
+
+            const printReceiptBtn = document.getElementById("printReceiptBtn");
+            if (printReceiptBtn) {
+                printReceiptBtn.addEventListener("click", () => {
+                    document.body.classList.add("printing-receipt");
+                    window.print();
+                    setTimeout(() => document.body.classList.remove("printing-receipt"), 400);
+                });
+            }
 
             document.getElementById("appointmentForm").addEventListener("submit", async (event) => {
                 event.preventDefault();
                 const doctorId = document.getElementById("doctorSelect").value;
                 const date = document.getElementById("appointmentDate").value;
-                const time = document.getElementById("appointmentTime").value;
+                const selectedDateTime = document.getElementById("selectedAppointmentDateTime").value;
                 const reason = document.getElementById("appointmentReason").value.trim();
 
-                if (!doctorId || !date || !time || !reason) {
-                    notify("Please complete all appointment fields.");
+                if (!doctorId || !date || !selectedDateTime || !reason) {
+                    notify("Please select an available time slot.");
                     return;
                 }
 
@@ -1945,22 +3021,37 @@
                 const payload = {
                     patient_id: patientId,
                     doctor_id: Number(doctorId),
-                    appointment_date: `${date} ${time}:00`,
+                    appointment_date: selectedDateTime,
                     reason: reason
                 };
 
                 try {
-                    await apiPost("/api/appointments", payload);
+                    const booked = await apiPost("/api/appointments", payload);
                     closeModal("appointmentModalBackdrop");
                     document.getElementById("appointmentForm").reset();
-                    notify("Appointment booked successfully.");
+                    resetSlotSelection();
+                    const fee = Number(booked && booked.consultation_fee);
+                    const inv = safeText(booked && booked.invoice_number, "");
+                    if (booked && booked.bill_id && inv) {
+                        const feeLabel = Number.isFinite(fee) ? moneyPKR(fee) : "consultation fee";
+                        notify(`Booked. Invoice ${inv} (${feeLabel}) is ready in Billing.`);
+                    } else if (booked && booked.billing_error) {
+                        notify("Appointment booked, but the invoice could not be created. Contact support.");
+                    } else {
+                        notify("Appointment booked successfully.");
+                    }
                     await loadData();
-                    switchSection("appointments");
+                    await refreshAppointmentSlots();
                     renderAppointments();
+                    renderBilling();
                     renderStats();
                     renderNotifications();
+                    switchSection("appointments");
                 } catch (err) {
                     notify(safeText(err.message, "Unable to book appointment right now."));
+                    if (String(err.message || "").toLowerCase().includes("already booked") || String(err.message || "").toLowerCase().includes("slot")) {
+                        await refreshAppointmentSlots();
+                    }
                 }
             });
 
@@ -1982,10 +3073,16 @@
                     );
                     if (!ok) return;
                 }
+                const allowedBlood = new Set(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]);
+                const bloodGroup = String(document.getElementById("editBlood")?.value || "").trim().toUpperCase();
+                if (!allowedBlood.has(bloodGroup)) {
+                    notify("Please select a valid blood group.");
+                    return;
+                }
                 const payload = {
                     name:                    document.getElementById("editName")?.value.trim() || null,
                     phone:                   document.getElementById("editPhone")?.value.trim() || null,
-                    blood_group:             document.getElementById("editBlood")?.value.trim() || null,
+                    blood_group:             bloodGroup,
                     address:                 document.getElementById("editAddress")?.value.trim() || null,
                     emergency_contact_phone: document.getElementById("editEmergency")?.value.trim() || null,
                     gender:                  document.getElementById("editGender")?.value || null
@@ -1997,6 +3094,13 @@
                     await apiPut(`/api/patients/${patientId}`, payload);
                     closeModal("profileModalBackdrop");
                     await loadData();
+                    // Sync the new name to localStorage so the welcome header
+                    // and sidebar update immediately without a page refresh.
+                    if (payload.name) {
+                        localStorage.setItem("userName", payload.name);
+                        state.currentUserName = payload.name;
+                    }
+                    renderTopInfo();
                     renderProfile();
                     notify("Profile updated successfully.");
                 } catch (err) {

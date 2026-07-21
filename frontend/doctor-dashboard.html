@@ -16,7 +16,29 @@
     <link rel="stylesheet" href="css/doctor-dashboard.css">
     <link rel="stylesheet" href="css/dashboard-polish.css">
     <link rel="stylesheet" href="css/doctor-dashboard-theme.css">
-    <style>body.session-pending{visibility:hidden}</style>
+    <style>
+        body.session-pending{visibility:hidden}
+        .file-preview-modal{width:min(860px,96vw);max-height:90vh;display:flex;flex-direction:column}
+        .file-preview-meta{display:flex;flex-wrap:wrap;gap:10px 18px;padding:12px 22px;font-size:.82rem;color:#475569;border-bottom:1px solid #e2e8f0;background:#f8fafc}
+.file-preview-body{padding:16px 22px;min-height:220px;max-height:58vh;overflow:auto;background:#fff;position:relative}
+.file-preview-stage{position:relative;z-index:1}
+.file-preview-media{position:relative;display:block}
+.file-preview-loading{display:flex;align-items:center;justify-content:center;gap:10px;min-height:180px;color:#64748b;font-weight:600}
+.file-preview-image{display:block;max-width:100%;max-height:52vh;margin:0 auto;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.12)}
+.file-preview-frame{width:100%;height:52vh;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc}
+        .file-preview-text{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:.85rem;line-height:1.45;color:#0f172a}
+        .file-preview-unsupported{text-align:center;padding:36px 18px;color:#334155}
+        .file-preview-unsupported i{font-size:2.6rem;color:#0f766e;margin-bottom:12px}
+        .file-preview-unsupported h4{margin:0 0 8px;font-size:1.1rem}
+        .file-preview-unsupported p{margin:0 auto;max-width:420px;color:#64748b;line-height:1.5}
+        .file-preview-privacy{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 12px;border-radius:8px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;font-size:.8rem;font-weight:600}
+        .file-preview-docx{padding:8px 4px 18px;line-height:1.55;color:#0f172a;font-size:.95rem}
+        .file-preview-docx p{margin:0 0 .75em}
+        .file-preview-docx h1,.file-preview-docx h2,.file-preview-docx h3{margin:1em 0 .4em;font-family:inherit;color:#0f172a}
+        .file-preview-docx table{border-collapse:collapse;width:100%;margin:12px 0}
+        .file-preview-docx td,.file-preview-docx th{border:1px solid #cbd5e1;padding:6px 8px}
+        .file-preview-docx img{max-width:100%;height:auto}
+    </style>
 </head>
 <body class="session-pending">
     <aside id="sidebar" class="sidebar">
@@ -121,9 +143,10 @@
                     <thead>
                         <tr>
                             <th>Patient</th>
-                            <th>Time</th>
+                            <th>Date &amp; Time</th>
                             <th>Reason</th>
                             <th>Status</th>
+                            <th>Payment</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -235,13 +258,17 @@
                     <div class="profile-field"><small>Department</small><strong id="pfDepartment">Not available</strong></div>
                     <div class="profile-field"><small>Phone</small><strong id="pfPhone">Not available</strong></div>
                     <div class="profile-field"><small>Email</small><strong id="pfEmail">Not available</strong></div>
+                    <div class="profile-field profile-field-fee"><small>Consultation Fee (PKR)</small><strong id="pfConsultationFee">Not set</strong></div>
+                    <div class="profile-field"><small>Availability</small><strong id="pfAvailability">Not set</strong></div>
+                    <div class="profile-field"><small>Hours</small><strong id="pfHours">Not set</strong></div>
+                    <div class="profile-field"><small>Session Length</small><strong id="pfSlotDuration">30 min</strong></div>
                 </div>
             </article>
         </section>
     </main>
 
-    <div id="patientDetailModalBackdrop" class="modal-backdrop" aria-hidden="true">
-        <div class="modal patient-detail-modal">
+    <div id="patientDetailModalBackdrop" class="modal-backdrop" aria-hidden="true" data-secure-phi="1">
+        <div class="modal patient-detail-modal cp-secure-phi">
             <div class="patient-detail-hero">
                 <button type="button" class="close-btn patient-detail-close" data-close-modal="patientDetailModalBackdrop">&times;</button>
                 <div class="patient-detail-hero-inner">
@@ -252,6 +279,7 @@
                         <div id="patientHeroChips" class="patient-hero-chips"></div>
                     </div>
                 </div>
+                <div class="cp-phi-ribbon" id="patientPhiRibbon" aria-hidden="true"></div>
             </div>
             <div class="patient-detail-body">
                 <div id="patientQuickStats" class="patient-quick-stats"></div>
@@ -278,7 +306,7 @@
                         <i class="fa-solid fa-folder-open"></i> Patient Uploaded Records
                         <span class="patient-detail-heading-hint">(history shared by the patient)</span>
                     </h4>
-                    <div id="patientUploadedRecords" class="patient-uploads-grid"></div>
+                    <div id="patientUploadedRecords" class="patient-uploads-catalog"></div>
                 </div>
             </div>
             <div class="patient-detail-actions">
@@ -324,6 +352,154 @@
                     <button type="submit" class="btn btn-primary">Submit</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="recordViewModalBackdrop" class="modal-backdrop" aria-hidden="true" data-secure-phi="1">
+        <div class="modal record-view-modal cp-secure-phi">
+            <div class="record-view-hero">
+                <button type="button" class="close-btn record-view-close" data-close-modal="recordViewModalBackdrop">&times;</button>
+                <div class="record-view-hero-top">
+                    <div class="record-view-hero-icon" aria-hidden="true"><i class="fa-solid fa-notes-medical"></i></div>
+                    <div class="record-view-hero-copy">
+                        <p class="record-view-kicker">Clinical encounter note</p>
+                        <h3 id="rvHeroTitle">Medical Record</h3>
+                        <p id="rvHeroSubtitle" class="record-view-hero-sub">Patient clinical summary</p>
+                    </div>
+                    <div class="record-view-hero-badges">
+                        <span id="rvStatusBadge" class="record-view-pill">On file</span>
+                        <span id="rvRecordIdBadge" class="record-view-pill is-muted">Record</span>
+                    </div>
+                </div>
+                <div class="record-view-meta-strip" id="rvMetaStrip"></div>
+                <div class="cp-phi-ribbon" id="rvPhiRibbon" aria-hidden="true"></div>
+            </div>
+            <div class="record-view-body">
+                <div class="record-view-summary">
+                    <div class="record-view-patient-card">
+                        <div id="rvPatientAvatar" class="record-view-avatar">P</div>
+                        <div>
+                            <small>Patient</small>
+                            <strong id="rvPatient">Not available</strong>
+                            <span id="rvPatientIdLine" class="record-view-muted">—</span>
+                        </div>
+                    </div>
+                    <div class="record-view-summary-grid">
+                        <div class="record-view-stat">
+                            <i class="fa-regular fa-calendar"></i>
+                            <div>
+                                <small>Record date</small>
+                                <strong id="rvDate">Not available</strong>
+                            </div>
+                        </div>
+                        <div class="record-view-stat">
+                            <i class="fa-solid fa-user-doctor"></i>
+                            <div>
+                                <small>Documented by</small>
+                                <strong id="rvDoctor">Not available</strong>
+                            </div>
+                        </div>
+                        <div class="record-view-stat">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            <div>
+                                <small>Follow-up</small>
+                                <strong id="rvFollowUp">Not set</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="record-view-section is-diagnosis">
+                    <div class="record-view-section-head">
+                        <span class="record-view-section-icon"><i class="fa-solid fa-stethoscope"></i></span>
+                        <div>
+                            <h4>Diagnosis</h4>
+                            <p>Primary clinical assessment</p>
+                        </div>
+                    </div>
+                    <div id="rvDiagnosis" class="record-view-section-body">Not available</div>
+                </section>
+
+                <div class="record-view-split">
+                    <section class="record-view-section is-symptoms">
+                        <div class="record-view-section-head">
+                            <span class="record-view-section-icon"><i class="fa-solid fa-heart-pulse"></i></span>
+                            <div>
+                                <h4>Symptoms / Presentation</h4>
+                                <p>What the patient reported</p>
+                            </div>
+                        </div>
+                        <div id="rvSymptoms" class="record-view-section-body">Not available</div>
+                    </section>
+                    <section class="record-view-section is-treatment">
+                        <div class="record-view-section-head">
+                            <span class="record-view-section-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+                            <div>
+                                <h4>Treatment Plan</h4>
+                                <p>Care instructions &amp; next steps</p>
+                            </div>
+                        </div>
+                        <div id="rvTreatment" class="record-view-section-body">Not available</div>
+                    </section>
+                </div>
+
+                <div class="record-view-footer-note">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Protected health information — for authorized ClinixPro clinicians only. Do not screenshot or share outside the care team.</span>
+                </div>
+            </div>
+            <div class="modal-actions record-view-actions">
+                <button type="button" class="btn btn-soft" data-close-modal="recordViewModalBackdrop">Close</button>
+                <button type="button" class="btn btn-primary" id="rvViewPatientBtn"><i class="fa-solid fa-id-card"></i> Open patient</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="filePreviewModalBackdrop" class="modal-backdrop" aria-hidden="true" data-secure-phi="1">
+        <div class="modal file-preview-modal cp-secure-phi">
+            <div class="modal-head">
+                <h3 id="filePreviewTitle"><i class="fa-solid fa-file"></i> File Preview</h3>
+                <button type="button" class="close-btn" data-close-modal="filePreviewModalBackdrop" id="filePreviewCloseBtn">&times;</button>
+            </div>
+            <div id="filePreviewMeta" class="file-preview-meta"></div>
+            <div class="cp-phi-ribbon cp-phi-ribbon-light" id="filePreviewPhiRibbon" aria-hidden="true"></div>
+            <div id="filePreviewBody" class="file-preview-body">
+                <div id="filePreviewStage" class="file-preview-stage"></div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-soft" data-close-modal="filePreviewModalBackdrop">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="prescriptionViewModalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal rx-view-modal">
+            <div class="rx-view-hero">
+                <button type="button" class="close-btn rx-view-close" data-close-modal="prescriptionViewModalBackdrop">&times;</button>
+                <div class="rx-view-hero-top">
+                    <div class="rx-view-hero-icon" aria-hidden="true"><i class="fa-solid fa-prescription"></i></div>
+                    <div class="rx-view-hero-copy">
+                        <p class="rx-view-kicker">Prescription details</p>
+                        <h3 id="rxvMedicine">Medicine</h3>
+                        <p id="rxvSubtitle" class="rx-view-sub">Patient · date</p>
+                    </div>
+                    <span id="rxvStatus" class="rx-view-pill">Active</span>
+                </div>
+            </div>
+            <div class="rx-view-body">
+                <div class="rx-view-grid">
+                    <div class="rx-view-card"><small>Patient</small><span id="rxvPatient">—</span></div>
+                    <div class="rx-view-card"><small>Issued</small><span id="rxvDate">—</span></div>
+                    <div class="rx-view-card"><small>Dosage</small><span id="rxvDosage">—</span></div>
+                    <div class="rx-view-card"><small>Duration</small><span id="rxvDuration">—</span></div>
+                    <div class="rx-view-card rx-view-wide"><small>Instructions</small><span id="rxvInstructions">—</span></div>
+                    <div class="rx-view-card"><small>Prescription ID</small><span id="rxvId">—</span></div>
+                    <div class="rx-view-card"><small>Expiry</small><span id="rxvExpiry">—</span></div>
+                </div>
+            </div>
+            <div class="rx-view-actions">
+                <button type="button" class="btn btn-soft" data-close-modal="prescriptionViewModalBackdrop">Close</button>
+            </div>
         </div>
     </div>
 
@@ -400,6 +576,32 @@
                         <label for="editEmail">Email</label>
                         <input id="editEmail" type="email" required>
                     </div>
+                    <div class="form-group">
+                        <label for="editConsultationFee">Consultation Fee (PKR)</label>
+                        <input id="editConsultationFee" type="number" min="0" step="1" placeholder="e.g. 500" required>
+                    </div>
+                    <div class="form-group full">
+                        <label>Working Days</label>
+                        <div id="availabilityDaysGroup" class="availability-days-group"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="officeHoursStart">Office Hours Start</label>
+                        <input id="officeHoursStart" type="time" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="officeHoursEnd">Office Hours End</label>
+                        <input id="officeHoursEnd" type="time" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="slotDurationMinutes">Session Length</label>
+                        <select id="slotDurationMinutes">
+                            <option value="15">15 minutes</option>
+                            <option value="20">20 minutes</option>
+                            <option value="30" selected>30 minutes</option>
+                            <option value="45">45 minutes</option>
+                            <option value="60">60 minutes</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-soft" data-close-modal="profileModalBackdrop">Cancel</button>
@@ -460,6 +662,7 @@
     <div id="toastWrap" class="toast-wrap"></div>
 
     <script src="js/dashboard-polish.js"></script>
+    <script src="vendor/mammoth/mammoth.browser.min.js"></script>
     <script>
         (function () {
             function clearSession() {
@@ -481,7 +684,17 @@
                 return;
             }
 
-            const API_BASE = "";
+            function getBackendOrigin() {
+                const origin = window.location.origin || "http://localhost:5000";
+                try {
+                    const url = new URL(origin);
+                    if ((url.hostname === "localhost" || url.hostname === "127.0.0.1") && url.port && url.port !== "5000") {
+                        return `${url.protocol}//${url.hostname}:5000`;
+                    }
+                } catch (_e) {}
+                return origin;
+            }
+            const API_BASE = getBackendOrigin();
             const state = {
                 stats: { todayAppointments: 0, totalPatients: 0, pendingRecords: 0, completedToday: 0 },
                 appointments: [],
@@ -496,7 +709,10 @@
                 doctorName: "",
                 appointmentViewMode: "today",
                 activePatientId: null,
-                activeMessage: null
+                activeMessage: null,
+                patientUploads: [],
+                filePreviewObjectUrl: null,
+                filePreviewDownloadName: ""
             };
 
             const sidebar = document.getElementById("sidebar");
@@ -531,6 +747,30 @@
                 toast.textContent = message;
                 toastWrap.appendChild(toast);
                 setTimeout(() => toast.remove(), 2600);
+            }
+
+            function moneyPKR(value) {
+                const amount = Number(value);
+                if (!Number.isFinite(amount)) return "PKR 0";
+                return `PKR ${amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+            }
+
+            function paymentStatusMeta(rawStatus) {
+                const key = String(rawStatus || "").trim().toLowerCase();
+                if (key === "paid") return { label: "Paid", cls: "badge-green", icon: "fa-circle-check" };
+                if (key === "refunded") return { label: "Voided", cls: "badge-gray", icon: "fa-ban" };
+                if (key === "partial") return { label: "Partial", cls: "badge-yellow", icon: "fa-coins" };
+                if (key === "pending") return { label: "Unpaid", cls: "badge-yellow", icon: "fa-hourglass-half" };
+                return { label: "No invoice", cls: "badge-gray", icon: "fa-minus" };
+            }
+
+            function paymentMethodShort(method) {
+                const key = String(method || "").toLowerCase();
+                if (key === "cash") return "Cash";
+                if (key === "card") return "Card";
+                if (key === "online") return "Online";
+                if (key === "check") return "Cheque";
+                return "";
             }
 
             function getStatusBadgeClass(status) {
@@ -651,6 +891,176 @@
                 );
             }
 
+            function currentDoctorEmail() {
+                const user = getUser();
+                return safeText(
+                    (state.doctorProfile && state.doctorProfile.email) ||
+                    user.email ||
+                    localStorage.getItem("userEmail"),
+                    "unknown@clinixpro.com"
+                );
+            }
+
+            // ---------- PHI confidential watermark (patient record views) ----------
+            // Does not block OS screenshots — it attributes any leak to this doctor.
+            const PHI_WATERMARK_INTERVAL_MS = 30000;
+            let phiWatermarkTimer = null;
+
+            function formatPhiStamp(date) {
+                const d = date instanceof Date ? date : new Date();
+                try {
+                    return d.toLocaleString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit"
+                    });
+                } catch (_err) {
+                    return d.toISOString().replace("T", " ").slice(0, 19);
+                }
+            }
+
+            function buildPhiWatermarkPayload() {
+                const name = currentDoctorName();
+                const email = currentDoctorEmail();
+                const when = formatPhiStamp(new Date());
+                const session = String(currentDoctorId() || "session").slice(0, 12);
+                return {
+                    name,
+                    email,
+                    when,
+                    session,
+                    line: `${name} · ${email} · ${when}`,
+                    badgeTitle: "Confidential — ClinixPro",
+                    badgeBody: `${name}\n${email}\n${when} · ID ${session}`
+                };
+            }
+
+            function renderPhiRibbon(backdropEl, payload) {
+                if (!backdropEl || !payload) return;
+                const ribbon = backdropEl.querySelector(".cp-phi-ribbon");
+                if (!ribbon) return;
+                ribbon.innerHTML = `
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <div class="cp-phi-ribbon-text">
+                        <strong>${escapeHtml(payload.badgeTitle)}</strong>
+                        <span>${escapeHtml(payload.name)} · ${escapeHtml(payload.email)} · ${escapeHtml(payload.when)} · ID ${escapeHtml(payload.session)}</span>
+                    </div>
+                `;
+            }
+
+            function renderPhiWatermarkInto(host, payload) {
+                if (!host || !payload) return;
+                let root = host.querySelector(":scope > .cp-phi-watermark");
+                if (!root) {
+                    root = document.createElement("div");
+                    root.className = "cp-phi-watermark";
+                    root.setAttribute("aria-hidden", "true");
+                    host.appendChild(root);
+                }
+                const onMedia = host.classList.contains("file-preview-media");
+                const isFilePreview = onMedia || host.classList.contains("file-preview-body");
+                root.classList.toggle("is-file-preview", isFilePreview);
+                root.classList.toggle("is-media-frame", onMedia);
+
+                // Premium diagonal attribution — denser on photos so screenshots carry identity.
+                const tileCount = onMedia ? 28 : 12;
+                const tiles = Array.from({ length: tileCount }, (_, i) => {
+                    const line = i % 3 === 0
+                        ? `${payload.name} · ${payload.email}`
+                        : (i % 3 === 1 ? payload.when : `Session ${payload.session}`);
+                    return `
+                    <span class="cp-phi-wm-tile">
+                        <strong>Confidential — ClinixPro</strong>
+                        ${escapeHtml(line)}
+                    </span>`;
+                }).join("");
+                root.innerHTML = `
+                    <div class="cp-phi-watermark-layer">${tiles}</div>
+                    ${onMedia ? `
+                    <div class="cp-phi-wm-seal">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <div>
+                            <strong>Confidential</strong>
+                            <span>${escapeHtml(payload.name)}</span>
+                            <span>${escapeHtml(payload.when)}</span>
+                        </div>
+                    </div>` : ""}
+                `;
+            }
+
+            function refreshOpenPhiWatermarks() {
+                const payload = buildPhiWatermarkPayload();
+                document.querySelectorAll(".modal-backdrop.open[data-secure-phi='1']").forEach((backdrop) => {
+                    const host = phiWatermarkHost(backdrop);
+                    if (host) renderPhiWatermarkInto(host, payload);
+                    // Always stamp the media frame when an image/PDF is open.
+                    const media = backdrop.querySelector(".file-preview-media");
+                    if (media) renderPhiWatermarkInto(media, payload);
+                    renderPhiRibbon(backdrop, payload);
+                });
+            }
+
+            function ensurePhiWatermarkTimer() {
+                if (phiWatermarkTimer) return;
+                phiWatermarkTimer = setInterval(() => {
+                    const anyOpen = document.querySelector(".modal-backdrop.open[data-secure-phi='1']");
+                    if (!anyOpen) {
+                        clearInterval(phiWatermarkTimer);
+                        phiWatermarkTimer = null;
+                        return;
+                    }
+                    refreshOpenPhiWatermarks();
+                }, PHI_WATERMARK_INTERVAL_MS);
+            }
+
+            function phiWatermarkHost(backdropEl) {
+                if (!backdropEl) return null;
+                return backdropEl.querySelector(".file-preview-media")
+                    || backdropEl.querySelector(".record-view-body")
+                    || backdropEl.querySelector(".patient-detail-body")
+                    || backdropEl.querySelector(".file-preview-body")
+                    || backdropEl.querySelector(".cp-secure-phi")
+                    || backdropEl.querySelector(".modal");
+            }
+
+            function attachPhiWatermark(backdropEl) {
+                if (!backdropEl || backdropEl.getAttribute("data-secure-phi") !== "1") return;
+                const modalShell = backdropEl.querySelector(".cp-secure-phi") || backdropEl.querySelector(".modal");
+                if (modalShell) modalShell.classList.add("cp-secure-phi");
+                const payload = buildPhiWatermarkPayload();
+                const host = phiWatermarkHost(backdropEl);
+                if (host) {
+                    if (modalShell && modalShell !== host && !host.closest(".file-preview-body")) {
+                        modalShell.querySelectorAll(":scope > .cp-phi-watermark").forEach((node) => node.remove());
+                    }
+                    renderPhiWatermarkInto(host, payload);
+                }
+                const media = backdropEl.querySelector(".file-preview-media");
+                if (media && media !== host) renderPhiWatermarkInto(media, payload);
+                // Avoid double watermarks on the outer body when media is stamped.
+                if (media) {
+                    const body = backdropEl.querySelector(".file-preview-body");
+                    if (body) body.querySelectorAll(":scope > .cp-phi-watermark").forEach((node) => node.remove());
+                }
+                renderPhiRibbon(backdropEl, payload);
+                ensurePhiWatermarkTimer();
+            }
+
+            function detachPhiWatermark(backdropEl) {
+                if (!backdropEl) return;
+                backdropEl.querySelectorAll(".cp-phi-watermark").forEach((node) => node.remove());
+                backdropEl.querySelectorAll(".cp-phi-ribbon").forEach((ribbon) => { ribbon.innerHTML = ""; });
+                if (!document.querySelector(".modal-backdrop.open[data-secure-phi='1']")) {
+                    if (phiWatermarkTimer) {
+                        clearInterval(phiWatermarkTimer);
+                        phiWatermarkTimer = null;
+                    }
+                }
+            }
+
             function apiHeaders() {
                 return {
                     "Authorization": `Bearer ${token}`,
@@ -752,7 +1162,11 @@
                     localStorage.removeItem("doctorAvatarDataUrl");
                 }
                 const key = doctorAvatarKey();
-                const photo = key ? localStorage.getItem(key) : "";
+                const cached = key ? localStorage.getItem(key) : "";
+                // The server-stored photo (doctors.photo_data via /api/auth/me)
+                // is the source of truth; localStorage is a same-session cache.
+                const serverPhoto = state.doctorProfile && state.doctorProfile.photo_data;
+                const photo = isValidPhotoSrc(serverPhoto) ? serverPhoto : cached;
 
                 if (isValidPhotoSrc(photo)) {
                     // Real photo — paint with !important so it wins over
@@ -766,7 +1180,7 @@
                 }
 
                 // No photo (or corrupt value) — clean up + show initials.
-                if (photo && key) localStorage.removeItem(key);
+                if (cached && key) localStorage.removeItem(key);
                 avatar.style.removeProperty("background-image");
                 avatar.style.removeProperty("background-size");
                 avatar.style.removeProperty("background-position");
@@ -789,14 +1203,18 @@
 
             function openModal(backdropId) {
                 const modal = document.getElementById(backdropId);
+                if (!modal) return;
                 modal.classList.add("open");
                 modal.setAttribute("aria-hidden", "false");
+                attachPhiWatermark(modal);
             }
 
             function closeModal(backdropId) {
                 const modal = document.getElementById(backdropId);
+                if (!modal) return;
                 modal.classList.remove("open");
                 modal.setAttribute("aria-hidden", "true");
+                detachPhiWatermark(modal);
             }
 
             // Bell badge / dropdown now driven by /api/messages/inbox.
@@ -920,33 +1338,54 @@
                 try {
                     const data = await apiGet(`/api/patient/records?patient_id=${encodeURIComponent(patientId)}`);
                     const records = Array.isArray(data) ? data : [];
+                    state.patientUploads = records;
                     if (!records.length) {
                         container.innerHTML = `<div class="patient-activity-empty">Patient hasn't uploaded any records yet.</div>`;
                         return;
                     }
-                    container.innerHTML = records.map((rec) => {
+                    const rows = records.map((rec, index) => {
                         const meta = RECORD_CATEGORY_META_DOC[rec.category] || RECORD_CATEGORY_META_DOC.other;
                         const fileIcon = recordFileIconDoc(rec.file_type);
                         const dateRaw = rec.record_date || rec.created_at;
-                        const datePart = dateRaw ? formatDate(dateRaw) : "Date not set";
+                        const datePart = dateRaw ? formatDate(dateRaw) : "—";
                         const desc = safeText(rec.description, "");
+                        const fileName = safeText(rec.file_name, "Attachment");
+                        const title = safeText(rec.title, "Untitled");
                         return `
-                            <article class="patient-upload-card" style="--cat-color:${meta.color}">
-                                <div class="patient-upload-thumb"><i class="fa-solid ${fileIcon}"></i></div>
-                                <div class="patient-upload-body">
-                                    <span class="patient-upload-chip"><i class="fa-solid ${meta.icon}"></i> ${meta.label}</span>
-                                    <h5>${escapeHtml(safeText(rec.title, "Untitled"))}</h5>
-                                    <p class="patient-upload-meta"><i class="fa-regular fa-calendar"></i> ${escapeHtml(datePart)} • ${escapeHtml(formatFileSizeDoc(rec.file_size))}</p>
-                                    ${desc ? `<p class="patient-upload-desc">${escapeHtml(desc)}</p>` : ""}
+                            <article class="upload-catalog-row" style="--cat-color:${meta.color}">
+                                <div class="upload-catalog-index">${index + 1}</div>
+                                <div class="upload-catalog-file">
+                                    <span class="upload-catalog-icon"><i class="fa-solid ${fileIcon}"></i></span>
+                                    <div class="upload-catalog-copy">
+                                        <strong>${escapeHtml(title)}</strong>
+                                        <span>${escapeHtml(fileName)}</span>
+                                        ${desc ? `<em>${escapeHtml(desc)}</em>` : ""}
+                                    </div>
                                 </div>
-                                <div class="patient-upload-actions">
+                                <div class="upload-catalog-cat">
+                                    <span class="upload-catalog-chip"><i class="fa-solid ${meta.icon}"></i> ${meta.label}</span>
+                                </div>
+                                <div class="upload-catalog-date">${escapeHtml(datePart)}</div>
+                                <div class="upload-catalog-size">${escapeHtml(formatFileSizeDoc(rec.file_size))}</div>
+                                <div class="upload-catalog-action">
                                     <button type="button" class="btn btn-primary btn-sm" data-doc-upload-action="view" data-id="${escapeHtml(rec.id)}"><i class="fa-solid fa-eye"></i> View</button>
-                                    <button type="button" class="btn btn-soft btn-sm" data-doc-upload-action="download" data-id="${escapeHtml(rec.id)}" data-filename="${escapeHtml(safeText(rec.file_name, 'record'))}"><i class="fa-solid fa-download"></i></button>
                                 </div>
                             </article>
                         `;
                     }).join("");
+                    container.innerHTML = `
+                        <div class="upload-catalog-head" aria-hidden="true">
+                            <span>#</span>
+                            <span>Record</span>
+                            <span>Category</span>
+                            <span>Date</span>
+                            <span>Size</span>
+                            <span></span>
+                        </div>
+                        <div class="upload-catalog-body">${rows}</div>
+                    `;
                 } catch (err) {
+                    state.patientUploads = [];
                     container.innerHTML = `<div class="patient-activity-empty">Could not load uploads (${escapeHtml(safeText(err.message, "error"))}).</div>`;
                 }
             }
@@ -964,17 +1403,154 @@
                 return await response.blob();
             }
 
+            function getUploadPreviewKind(mime, filename) {
+                const t = String(mime || "").toLowerCase();
+                const name = String(filename || "").toLowerCase();
+                if (t.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name)) return "image";
+                if (t.includes("pdf") || name.endsWith(".pdf")) return "pdf";
+                if (t.startsWith("text/") || /\.(txt|csv|log|md)$/i.test(name)) return "text";
+                // DOCX can be rendered in-memory with mammoth (no disk download).
+                if (
+                    name.endsWith(".docx") ||
+                    t.includes("wordprocessingml") ||
+                    t === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                ) return "docx";
+                return "unsupported";
+            }
+
+            async function renderDocxPreview(blob, container) {
+                if (typeof mammoth === "undefined" || !mammoth.convertToHtml) {
+                    throw new Error("Document viewer failed to load. Please refresh the page.");
+                }
+                const arrayBuffer = await blob.arrayBuffer();
+                const result = await mammoth.convertToHtml({ arrayBuffer });
+                const html = result.value || "<p><em>(This document has no readable text.)</em></p>";
+                container.innerHTML = `
+                    <div class="file-preview-privacy"><i class="fa-solid fa-shield-halved"></i> Secure in-browser preview — file is not saved to your device</div>
+                    <div class="file-preview-docx">${html}</div>
+                `;
+            }
+
+            function revokeFilePreviewUrl() {
+                if (state.filePreviewObjectUrl) {
+                    try { URL.revokeObjectURL(state.filePreviewObjectUrl); } catch (_e) {}
+                    state.filePreviewObjectUrl = null;
+                }
+            }
+
+            function closeFilePreviewModal() {
+                revokeFilePreviewUrl();
+                const stage = document.getElementById("filePreviewStage");
+                if (stage) stage.innerHTML = "";
+                else {
+                    const body = document.getElementById("filePreviewBody");
+                    if (body) body.innerHTML = "";
+                }
+                closeModal("filePreviewModalBackdrop");
+            }
+
+            function filePreviewStageEl() {
+                let stage = document.getElementById("filePreviewStage");
+                const body = document.getElementById("filePreviewBody");
+                if (!stage && body) {
+                    stage = document.createElement("div");
+                    stage.id = "filePreviewStage";
+                    stage.className = "file-preview-stage";
+                    body.appendChild(stage);
+                }
+                return stage || body;
+            }
+
+            function setFilePreviewContent(html) {
+                const stage = filePreviewStageEl();
+                if (!stage) return;
+                stage.innerHTML = html;
+                // Content replace must not wipe the PHI overlay — re-stamp after each paint.
+                const backdrop = document.getElementById("filePreviewModalBackdrop");
+                if (backdrop && backdrop.classList.contains("open")) {
+                    attachPhiWatermark(backdrop);
+                }
+            }
+
             async function viewDoctorUploadedRecord(recordId) {
                 try {
-                    const blob = await fetchDoctorUploadFileBlob(recordId);
-                    const url = URL.createObjectURL(blob);
-                    const win = window.open(url, "_blank", "noopener");
-                    if (!win) {
-                        const a = document.createElement("a");
-                        a.href = url; a.target = "_blank"; a.rel = "noopener"; a.click();
+                    const rec = (state.patientUploads || []).find((r) => String(r.id) === String(recordId)) || {};
+                    const title = safeText(rec.title, "Uploaded record");
+                    const filename = safeText(rec.file_name, `record-${recordId}`);
+                    const mime = safeText(rec.file_type, "");
+                    const kind = getUploadPreviewKind(mime, filename);
+
+                    document.getElementById("filePreviewTitle").innerHTML =
+                        `<i class="fa-solid ${recordFileIconDoc(mime)}"></i> ${escapeHtml(title)}`;
+                    document.getElementById("filePreviewMeta").innerHTML = `
+                        <span><strong>File:</strong> ${escapeHtml(filename)}</span>
+                        <span><strong>Type:</strong> ${escapeHtml(kind === "docx" ? "Word Document" : (mime || "Unknown"))}</span>
+                        <span><strong>Size:</strong> ${escapeHtml(formatFileSizeDoc(rec.file_size))}</span>
+                    `;
+
+                    setFilePreviewContent(`<div class="file-preview-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading secure preview…</div>`);
+                    openModal("filePreviewModalBackdrop");
+                    attachPhiWatermark(document.getElementById("filePreviewModalBackdrop"));
+
+                    if (kind === "unsupported") {
+                        setFilePreviewContent(`
+                            <div class="file-preview-unsupported">
+                                <i class="fa-solid ${recordFileIconDoc(mime)}"></i>
+                                <h4>Preview not available for this file type</h4>
+                                <p>This format cannot be shown safely in the browser.
+                                   Ask the patient to re-upload as PDF, image, or Word (.docx) when possible.</p>
+                            </div>
+                        `);
+                        return;
                     }
-                    setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+                    const blob = await fetchDoctorUploadFileBlob(recordId);
+
+                    if (kind === "docx") {
+                        try {
+                            const stage = filePreviewStageEl();
+                            await renderDocxPreview(blob, stage);
+                            attachPhiWatermark(document.getElementById("filePreviewModalBackdrop"));
+                        } catch (docxErr) {
+                            setFilePreviewContent(`
+                                <div class="file-preview-unsupported">
+                                    <i class="fa-solid fa-file-word"></i>
+                                    <h4>Could not render this Word file</h4>
+                                    <p>${escapeHtml(safeText(docxErr.message, "The document may be corrupted or password-protected."))}</p>
+                                </div>
+                            `);
+                        }
+                        return;
+                    }
+
+                    revokeFilePreviewUrl();
+                    const objectUrl = URL.createObjectURL(blob);
+                    state.filePreviewObjectUrl = objectUrl;
+                    state.filePreviewDownloadName = filename;
+
+                    if (kind === "image") {
+                        setFilePreviewContent(`
+                            <div class="file-preview-privacy"><i class="fa-solid fa-shield-halved"></i> Secure in-browser preview — file is not saved to your device</div>
+                            <div class="file-preview-media">
+                                <img class="file-preview-image" src="${objectUrl}" alt="${escapeHtml(title)}">
+                            </div>
+                        `);
+                    } else if (kind === "pdf") {
+                        setFilePreviewContent(`
+                            <div class="file-preview-privacy"><i class="fa-solid fa-shield-halved"></i> Secure in-browser preview — file is not saved to your device</div>
+                            <div class="file-preview-media">
+                                <iframe class="file-preview-frame" title="PDF preview" src="${objectUrl}"></iframe>
+                            </div>
+                        `);
+                    } else if (kind === "text") {
+                        const text = await blob.text();
+                        setFilePreviewContent(`
+                            <div class="file-preview-privacy"><i class="fa-solid fa-shield-halved"></i> Secure in-browser preview — file is not saved to your device</div>
+                            <pre class="file-preview-text">${escapeHtml(text)}</pre>
+                        `);
+                    }
                 } catch (err) {
+                    closeFilePreviewModal();
                     notify(safeText(err.message, "Could not open file."));
                 }
             }
@@ -1038,11 +1614,19 @@
                     const isPast = !Number.isNaN(apptDate.getTime()) && apptDate.getTime() < todayDate.getTime();
                     const patient = safeText(appointment.patient_name || appointment.patient, patientNameById(appointment.patient_id));
                     const time = formatTime(dateRaw);
+                    const dateStr = formatDate(dateRaw);
                     const reason = safeText(appointment.reason, "Not available");
                     const status = safeText(appointment.status, "pending");
                     const id = appointment.appointment_id || appointment.id || "";
                     const canComplete = id && !["completed", "cancelled"].includes(status.toLowerCase());
                     const canCancel = id && !["cancelled", "completed"].includes(status.toLowerCase());
+                    const pay = paymentStatusMeta(appointment.payment_status);
+                    const feeNum = Number(appointment.consultation_fee_charged ?? appointment.consultation_fee);
+                    const feeText = Number.isFinite(feeNum) && feeNum > 0 ? moneyPKR(feeNum) : "";
+                    const method = paymentMethodShort(appointment.payment_method);
+                    const payDetail = pay.label === "Paid" && method
+                        ? `${pay.label} · ${method}`
+                        : (feeText ? `${pay.label} · ${feeText}` : pay.label);
                     const row = document.createElement("tr");
                     if (isToday) {
                         row.style.borderLeft = "4px solid #16a34a";
@@ -1051,9 +1635,10 @@
                     }
                     row.innerHTML = `
                         <td>${escapeHtml(patient)}</td>
-                        <td>${isToday ? '<span style="color:#16a34a;">●</span> ' : ''}${escapeHtml(time)}</td>
+                        <td>${isToday ? '<span style="color:#16a34a;">●</span> ' : ''}${escapeHtml(dateStr)} • ${escapeHtml(time)}</td>
                         <td>${escapeHtml(reason)}</td>
                         <td><span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span></td>
+                        <td><span class="badge ${pay.cls}" title="${escapeHtml(feeText || "Consultation fee")}"><i class="fa-solid ${pay.icon}"></i> ${escapeHtml(payDetail)}</span></td>
                         <td>
                             <div class="panel-actions">
                                 <button type="button" class="btn btn-soft view-patient-btn" data-patient-id="${escapeHtml(safeText(appointment.patient_id, ""))}">View Patient</button>
@@ -1103,7 +1688,8 @@
                     return;
                 }
                 empty.style.display = "none";
-                state.records.forEach((record) => {
+                state.records.forEach((record, index) => {
+                    const recordId = safeText(record.record_id || record.id, String(index));
                     const patient = safeText(record.patient_name || record.patient, patientNameById(record.patient_id));
                     const date = formatDate(record.record_date || record.date_created || record.created_at || record.date);
                     const diagnosis = safeText(record.diagnosis, "Not available");
@@ -1115,10 +1701,139 @@
                             <h3>${escapeHtml(diagnosis)}</h3>
                             <p>${escapeHtml(patient)} | ${escapeHtml(date)}${doctorLabel ? " | Dr. " + escapeHtml(doctorLabel) : ""}</p>
                         </div>
-                        <span class="badge ${getStatusBadgeClass(record.status || "pending")}">${escapeHtml(safeText(record.status, "pending"))}</span>
+                        <div class="panel-actions">
+                            <span class="badge ${getStatusBadgeClass(record.status || "pending")}">${escapeHtml(safeText(record.status, "pending"))}</span>
+                            <button type="button" class="btn btn-soft view-record-btn" data-record-id="${escapeHtml(recordId)}"><i class="fa-solid fa-eye"></i> View Record</button>
+                        </div>
                     `;
                     list.appendChild(item);
                 });
+            }
+
+            function clinicalText(value, emptyLabel) {
+                const text = safeText(value, "");
+                if (!text) return emptyLabel || "Not documented";
+                // Single-letter / tiny placeholders from quick tests still show,
+                // but get framed so the chart never looks like an empty page.
+                if (text.length <= 2) return text;
+                return text;
+            }
+
+            function setRecordViewBody(el, value, emptyLabel) {
+                if (!el) return;
+                const text = clinicalText(value, emptyLabel);
+                const isEmpty = !safeText(value, "");
+                el.classList.toggle("is-empty", isEmpty);
+                el.textContent = text;
+            }
+
+            function openRecordViewModal(recordId) {
+                const records = Array.isArray(state.records) ? state.records : [];
+                const record = records.find((r, index) =>
+                    String(r.record_id || r.id || index) === String(recordId));
+                if (!record) {
+                    notify("Record details are not available.");
+                    return;
+                }
+                const patient = safeText(record.patient_name || record.patient, patientNameById(record.patient_id));
+                const patientId = safeText(record.patient_id, "");
+                const doctor = safeText(
+                    record.doctor_name || record.doctor || state.doctorName,
+                    currentDoctorName()
+                );
+                const recordKey = safeText(record.record_id || record.id, recordId);
+                const recordDateRaw = record.record_date || record.date_created || record.created_at || record.date;
+                const followRaw = record.follow_up_date || record.followUpDate;
+                const diagnosis = safeText(record.diagnosis, "Clinical note");
+                const status = safeText(record.status, "on file");
+
+                const heroTitle = document.getElementById("rvHeroTitle");
+                const heroSub = document.getElementById("rvHeroSubtitle");
+                if (heroTitle) heroTitle.textContent = diagnosis.length > 64 ? `${diagnosis.slice(0, 64)}…` : diagnosis;
+                if (heroSub) heroSub.textContent = `${patient}${patientId ? ` · Patient #${patientId}` : ""}`;
+
+                const statusBadge = document.getElementById("rvStatusBadge");
+                if (statusBadge) {
+                    statusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                    statusBadge.className = "record-view-pill" + (status.toLowerCase() === "pending" ? " is-warn" : "");
+                }
+                const idBadge = document.getElementById("rvRecordIdBadge");
+                if (idBadge) idBadge.textContent = `Record #${recordKey}`;
+
+                const avatar = document.getElementById("rvPatientAvatar");
+                if (avatar) {
+                    const parts = patient.trim().split(/\s+/).filter(Boolean);
+                    avatar.textContent = parts.length >= 2
+                        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                        : (patient.slice(0, 2) || "P").toUpperCase();
+                }
+
+                document.getElementById("rvPatient").textContent = patient;
+                const idLine = document.getElementById("rvPatientIdLine");
+                if (idLine) idLine.textContent = patientId ? `Patient ID #${patientId}` : "ID not linked";
+                document.getElementById("rvDate").textContent = formatDate(recordDateRaw);
+                document.getElementById("rvDoctor").textContent = doctor;
+                document.getElementById("rvFollowUp").textContent = followRaw ? formatDate(followRaw) : "Not scheduled";
+
+                setRecordViewBody(document.getElementById("rvDiagnosis"), record.diagnosis, "No diagnosis documented");
+                setRecordViewBody(document.getElementById("rvSymptoms"), record.symptoms, "No symptoms documented for this visit");
+                setRecordViewBody(
+                    document.getElementById("rvTreatment"),
+                    record.treatment_plan || record.treatmentPlan,
+                    "No treatment plan documented"
+                );
+
+                const strip = document.getElementById("rvMetaStrip");
+                if (strip) {
+                    strip.innerHTML = `
+                        <span><i class="fa-regular fa-calendar"></i> ${escapeHtml(formatDate(recordDateRaw))}</span>
+                        <span><i class="fa-solid fa-user-doctor"></i> ${escapeHtml(doctor)}</span>
+                        <span><i class="fa-solid fa-hashtag"></i> Record ${escapeHtml(recordKey)}</span>
+                        ${followRaw ? `<span><i class="fa-solid fa-clock-rotate-left"></i> Follow-up ${escapeHtml(formatDate(followRaw))}</span>` : ""}
+                    `;
+                }
+
+                const openPatientBtn = document.getElementById("rvViewPatientBtn");
+                if (openPatientBtn) {
+                    openPatientBtn.onclick = () => {
+                        if (!patientId) {
+                            notify("Patient profile is not linked to this record.");
+                            return;
+                        }
+                        closeModal("recordViewModalBackdrop");
+                        openPatientModal(patientId);
+                    };
+                    openPatientBtn.style.display = patientId ? "" : "none";
+                }
+
+                openModal("recordViewModalBackdrop");
+            }
+
+            function openPrescriptionView(rx) {
+                if (!rx) return;
+                const medicine = safeText(rx.medicine || rx.medication || rx.medicine_name, "Medicine");
+                const patient = safeText(rx.patient_name || rx.patient, patientNameById(rx.patient_id));
+                const date = formatDate(rx.date_issued || rx.created_at || rx.date);
+                const status = safeText(rx.status, "active");
+                const dosage = safeText(rx.dosage, "—");
+                const duration = safeText(rx.duration || rx.notes, "—");
+                const instructions = safeText(rx.instructions || rx.frequency || rx.instruction, "—");
+                const rxId = safeText(rx.prescription_id || rx.id, "—");
+                const expiry = rx.expiry_date ? formatDate(rx.expiry_date) : "Not set";
+
+                document.getElementById("rxvMedicine").textContent = medicine;
+                document.getElementById("rxvSubtitle").textContent = `${patient} · ${date}`;
+                const statusEl = document.getElementById("rxvStatus");
+                statusEl.textContent = status;
+                statusEl.className = `rx-view-pill ${getStatusBadgeClass(status)}`;
+                document.getElementById("rxvPatient").textContent = patient;
+                document.getElementById("rxvDate").textContent = date;
+                document.getElementById("rxvDosage").textContent = dosage;
+                document.getElementById("rxvDuration").textContent = duration;
+                document.getElementById("rxvInstructions").textContent = instructions;
+                document.getElementById("rxvId").textContent = `#${rxId}`;
+                document.getElementById("rxvExpiry").textContent = expiry;
+                openModal("prescriptionViewModalBackdrop");
             }
 
             function renderPrescriptions() {
@@ -1130,21 +1845,37 @@
                     return;
                 }
                 empty.style.display = "none";
-                state.prescriptions.forEach((rx) => {
+                state.prescriptions.forEach((rx, index) => {
                     const patient = safeText(rx.patient_name || rx.patient, patientNameById(rx.patient_id));
                     const medicine = safeText(rx.medicine || rx.medication || rx.medicine_name, "Medicine");
+                    const dosage = safeText(rx.dosage, "");
                     const date = formatDate(rx.date_issued || rx.created_at || rx.date);
                     const status = safeText(rx.status, "active");
+                    const rxKey = String(rx.prescription_id || rx.id || index);
                     const item = document.createElement("div");
                     item.className = "list-item";
                     item.innerHTML = `
                         <div class="item-meta">
                             <h3>${escapeHtml(medicine)}</h3>
-                            <p>${escapeHtml(patient)} | ${escapeHtml(date)}</p>
+                            <p>${escapeHtml(patient)} | ${escapeHtml(date)}${dosage ? ` | ${escapeHtml(dosage)}` : ""}</p>
                         </div>
-                        <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                        <div class="panel-actions">
+                            <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                            <button type="button" class="btn btn-soft btn-sm view-rx-btn" data-rx-id="${escapeHtml(rxKey)}">
+                                <i class="fa-solid fa-eye"></i> View
+                            </button>
+                        </div>
                     `;
                     list.appendChild(item);
+                });
+                list.querySelectorAll(".view-rx-btn").forEach((btn) => {
+                    btn.addEventListener("click", () => {
+                        const id = btn.getAttribute("data-rx-id");
+                        const found = state.prescriptions.find((r, i) =>
+                            String(r.prescription_id || r.id || i) === String(id)
+                        );
+                        openPrescriptionView(found);
+                    });
                 });
             }
 
@@ -1188,6 +1919,19 @@
                 document.getElementById("pfDepartment").textContent = safeText(p.department, "Not available");
                 document.getElementById("pfPhone").textContent = safeText(p.phone || p.contact_number, "Not available");
                 document.getElementById("pfEmail").textContent = safeText(p.email, "Not available");
+                const feeRaw = p.consultation_fee !== undefined && p.consultation_fee !== null ? p.consultation_fee : p.consultationFee;
+                const feeNum = Number(feeRaw);
+                document.getElementById("pfConsultationFee").textContent =
+                    (feeRaw !== undefined && feeRaw !== null && feeRaw !== "" && Number.isFinite(feeNum) && feeNum > 0)
+                        ? `PKR ${feeNum.toLocaleString()}`
+                        : "Not set";
+                const days = safeText(p.availability_days || p.availabilityDays || "", "");
+                document.getElementById("pfAvailability").textContent = days ? days : "Not set";
+                const hours = p.office_hours_start || p.officeHoursStart || p.office_hours_end || p.officeHoursEnd
+                    ? `${safeText(p.office_hours_start || p.officeHoursStart, "--")}${safeText(p.office_hours_end || p.officeHoursEnd, "") ? " – " + safeText(p.office_hours_end || p.officeHoursEnd, "") : ""}`
+                    : "Not set";
+                document.getElementById("pfHours").textContent = hours;
+                document.getElementById("pfSlotDuration").textContent = `${safeText(p.slot_duration_minutes || p.slotDurationMinutes, 30)} min`;
             }
 
             function renderMessages() {
@@ -1365,12 +2109,20 @@
                 const recordCount = state.records.filter((r) => Number(r.patient_id) === id).length;
                 const rxCount = state.prescriptions.filter((p) => Number(p.patient_id) === id).length;
                 const completedCount = state.appointments.filter((a) => Number(a.patient_id) === id && safeText(a.status, "").toLowerCase() === "completed").length;
+                const unpaidCount = state.appointments.filter((a) =>
+                    Number(a.patient_id) === id &&
+                    String(a.payment_status || "").toLowerCase() === "pending"
+                ).length;
+                const paidCount = state.appointments.filter((a) =>
+                    Number(a.patient_id) === id &&
+                    String(a.payment_status || "").toLowerCase() === "paid"
+                ).length;
 
                 document.getElementById("patientQuickStats").innerHTML = `
                     <div class="patient-stat-tile"><span class="patient-stat-num">${escapeHtml(apptCount)}</span><span class="patient-stat-label">Appointments</span></div>
                     <div class="patient-stat-tile"><span class="patient-stat-num">${escapeHtml(completedCount)}</span><span class="patient-stat-label">Completed</span></div>
-                    <div class="patient-stat-tile"><span class="patient-stat-num">${escapeHtml(recordCount)}</span><span class="patient-stat-label">Records</span></div>
-                    <div class="patient-stat-tile"><span class="patient-stat-num">${escapeHtml(rxCount)}</span><span class="patient-stat-label">Prescriptions</span></div>
+                    <div class="patient-stat-tile"><span class="patient-stat-num">${escapeHtml(paidCount)}</span><span class="patient-stat-label">Paid</span></div>
+                    <div class="patient-stat-tile"><span class="patient-stat-num">${escapeHtml(unpaidCount)}</span><span class="patient-stat-label">Unpaid</span></div>
                 `;
 
                 document.getElementById("patientInfoGrid").innerHTML = `
@@ -1397,13 +2149,17 @@
                     apptList.innerHTML = recentAppointments.map((a) => {
                         const status = safeText(a.status, "scheduled");
                         const dateRaw = a.appointment_date || a.date_time || a.date;
+                        const pay = paymentStatusMeta(a.payment_status);
                         return `
                             <div class="patient-activity-item">
                                 <div class="patient-activity-meta">
                                     <strong>${escapeHtml(safeText(a.reason, "Consultation"))}</strong>
                                     <span>${escapeHtml(formatDate(dateRaw))} • ${escapeHtml(formatTime(dateRaw))}</span>
                                 </div>
-                                <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                                <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+                                    <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                                    <span class="badge ${pay.cls}"><i class="fa-solid ${pay.icon}"></i> ${escapeHtml(pay.label)}</span>
+                                </div>
                             </div>
                         `;
                     }).join("");
@@ -1438,18 +2194,31 @@
                 if (!recentRx.length) {
                     rxList.innerHTML = `<div class="patient-activity-empty">No prescriptions yet</div>`;
                 } else {
-                    rxList.innerHTML = recentRx.map((rx) => {
+                    rxList.innerHTML = recentRx.map((rx, idx) => {
                         const status = safeText(rx.status, "active");
+                        const rxKey = String(rx.prescription_id || rx.id || `p-${id}-${idx}`);
                         return `
                             <div class="patient-activity-item">
                                 <div class="patient-activity-meta">
                                     <strong>${escapeHtml(safeText(rx.medicine || rx.medication || rx.medicine_name, "Medication"))}</strong>
-                                    <span>${escapeHtml(safeText(rx.dosage, ""))}${rx.duration ? " • " + escapeHtml(rx.duration) : ""}</span>
+                                    <span>${escapeHtml(safeText(rx.dosage, ""))}${rx.duration || rx.notes ? " • " + escapeHtml(safeText(rx.duration || rx.notes, "")) : ""}</span>
                                 </div>
-                                <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                                <div class="panel-actions">
+                                    <span class="badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span>
+                                    <button type="button" class="btn btn-soft btn-sm view-rx-btn" data-rx-id="${escapeHtml(rxKey)}">View</button>
+                                </div>
                             </div>
                         `;
                     }).join("");
+                    rxList.querySelectorAll(".view-rx-btn").forEach((btn) => {
+                        btn.addEventListener("click", () => {
+                            const rxId = btn.getAttribute("data-rx-id");
+                            const found = state.prescriptions.find((r, i) =>
+                                String(r.prescription_id || r.id || `p-${id}-${i}`) === String(rxId)
+                            );
+                            openPrescriptionView(found);
+                        });
+                    });
                 }
 
                 const uploadsContainer = document.getElementById("patientUploadedRecords");
@@ -1461,6 +2230,24 @@
                 openModal("patientDetailModalBackdrop");
             }
 
+            function renderAvailabilityCheckboxes() {
+                const container = document.getElementById("availabilityDaysGroup");
+                if (!container) return;
+                const selected = _availabilityDaySetFromProfile();
+                container.innerHTML = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => `
+                    <label class="availability-day-option">
+                        <input type="checkbox" name="availabilityDays" value="${day}" ${selected.has(day) ? "checked" : ""}>
+                        <span>${day}</span>
+                    </label>
+                `).join("");
+            }
+
+            function _availabilityDaySetFromProfile() {
+                const raw = safeText((state.doctorProfile && (state.doctorProfile.availability_days || state.doctorProfile.availabilityDays)) || "", "");
+                if (!raw) return new Set();
+                return new Set(String(raw).split(',').map((item) => item.trim()).filter(Boolean));
+            }
+
             function fillProfileForm() {
                 const p = state.doctorProfile;
                 document.getElementById("editName").value = safeText(p.name || p.full_name || currentDoctorName(), "");
@@ -1469,6 +2256,13 @@
                 document.getElementById("editDepartment").value = safeText(p.department, "");
                 document.getElementById("editPhone").value = safeText(p.phone || p.contact_number, "");
                 document.getElementById("editEmail").value = safeText(p.email, "");
+                const feeVal = p.consultation_fee !== undefined && p.consultation_fee !== null ? p.consultation_fee : p.consultationFee;
+                document.getElementById("editConsultationFee").value =
+                    (feeVal !== undefined && feeVal !== null && feeVal !== "") ? Number(feeVal) : "";
+                document.getElementById("officeHoursStart").value = safeText(p.office_hours_start || p.officeHoursStart, "");
+                document.getElementById("officeHoursEnd").value = safeText(p.office_hours_end || p.officeHoursEnd, "");
+                document.getElementById("slotDurationMinutes").value = String(p.slot_duration_minutes || p.slotDurationMinutes || 30);
+                renderAvailabilityCheckboxes();
             }
 
             function applyLocalDoctorProfileOverrides() {
@@ -1590,8 +2384,11 @@
                 if (!(target instanceof Element)) return;
                 if (!target.closest(".topbar-actions")) notifDropdown.classList.remove("open");
                 if (target.matches(".modal-backdrop")) {
-                    target.classList.remove("open");
-                    target.setAttribute("aria-hidden", "true");
+                    if (target.id === "filePreviewModalBackdrop") {
+                        closeFilePreviewModal();
+                        return;
+                    }
+                    closeModal(target.id);
                 }
             });
 
@@ -1688,6 +2485,15 @@
                 renderTasks();
             });
 
+            document.getElementById("recordsList").addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                const viewBtn = target.closest(".view-record-btn");
+                if (!viewBtn) return;
+                const recordId = viewBtn.getAttribute("data-record-id");
+                openRecordViewModal(recordId);
+            });
+
             document.getElementById("openRecordModalBtn").addEventListener("click", () => {
                 seedPatientSelects();
                 openModal("recordModalBackdrop");
@@ -1724,7 +2530,14 @@
             });
 
             document.querySelectorAll("[data-close-modal]").forEach((btn) => {
-                btn.addEventListener("click", () => closeModal(btn.getAttribute("data-close-modal")));
+                btn.addEventListener("click", () => {
+                    const target = btn.getAttribute("data-close-modal");
+                    if (target === "filePreviewModalBackdrop") {
+                        closeFilePreviewModal();
+                        return;
+                    }
+                    closeModal(target);
+                });
             });
 
             document.getElementById("patientUploadedRecords").addEventListener("click", (event) => {
@@ -1734,7 +2547,6 @@
                 const id = target.getAttribute("data-id");
                 if (!id) return;
                 if (action === "view") viewDoctorUploadedRecord(id);
-                else if (action === "download") downloadDoctorUploadedRecord(id, target.getAttribute("data-filename"));
             });
 
             document.querySelectorAll("[data-patient-action]").forEach((btn) => {
@@ -1768,40 +2580,74 @@
                 document.getElementById("profilePhotoInput").click();
             });
 
-            document.getElementById("removePhotoBtn").addEventListener("click", () => {
+            // Downscale to a small square JPEG so the stored data URL stays
+            // tiny (well under the server's 4MB photo cap).
+            function compressPhotoToDataUrl(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(new Error("Unable to read image."));
+                    reader.onload = () => {
+                        const img = new Image();
+                        img.onerror = () => reject(new Error("Unable to load image."));
+                        img.onload = () => {
+                            const MAX = 512;
+                            const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+                            const canvas = document.createElement("canvas");
+                            canvas.width = Math.max(1, Math.round(img.width * scale));
+                            canvas.height = Math.max(1, Math.round(img.height * scale));
+                            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+                            resolve(canvas.toDataURL("image/jpeg", 0.85));
+                        };
+                        img.src = String(reader.result || "");
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            document.getElementById("removePhotoBtn").addEventListener("click", async () => {
                 const key = doctorAvatarKey();
                 if (key) localStorage.removeItem(key);
                 localStorage.removeItem("doctorAvatarDataUrl");
+                try {
+                    const docId = Number(state.doctorIdResolved || currentDoctorId() || 0);
+                    if (docId) await apiPut(`/api/doctors/${docId}`, { photo_data: "" });
+                    if (state.doctorProfile) state.doctorProfile.photo_data = "";
+                    notify("Profile photo removed.");
+                } catch (err) {
+                    notify(safeText(err.message, "Unable to remove photo from your profile."));
+                }
                 renderTopInfo(); // Rebuilds avatar, shows initials fallback
-                notify("Profile photo removed.");
             });
 
-            document.getElementById("profilePhotoInput").addEventListener("change", (event) => {
+            document.getElementById("profilePhotoInput").addEventListener("change", async (event) => {
                 const input = event.target;
                 if (!(input instanceof HTMLInputElement) || !input.files || !input.files[0]) return;
                 const file = input.files[0];
+                input.value = "";
                 if (!file.type.startsWith("image/")) {
                     notify("Please select an image file.");
                     return;
                 }
-                const reader = new FileReader();
-                reader.onload = function () {
-                    const result = typeof reader.result === "string" ? reader.result : "";
-                    if (!result) {
-                        notify("Unable to load selected image.");
-                        return;
-                    }
+                const docId = Number(state.doctorIdResolved || currentDoctorId() || 0);
+                if (!docId) {
+                    notify("Profile not loaded yet. Please refresh and try again.");
+                    return;
+                }
+                try {
+                    const dataUrl = await compressPhotoToDataUrl(file);
+                    // Persist server-side first — that is what survives logout.
+                    await apiPut(`/api/doctors/${docId}`, { photo_data: dataUrl });
+                    if (state.doctorProfile) state.doctorProfile.photo_data = dataUrl;
                     const key = doctorAvatarKey();
-                    if (!key) {
-                        notify("Profile not loaded yet. Please refresh and try again.");
-                        return;
-                    }
                     localStorage.removeItem("doctorAvatarDataUrl");
-                    localStorage.setItem(key, result);
+                    if (key) {
+                        try { localStorage.setItem(key, dataUrl); } catch (_e) { /* cache only */ }
+                    }
                     renderTopInfo();
                     notify("Profile photo updated.");
-                };
-                reader.readAsDataURL(file);
+                } catch (err) {
+                    notify(safeText(err.message, "Unable to save profile photo."));
+                }
             });
 
             document.getElementById("composeMessageForm").addEventListener("submit", async (event) => {
@@ -1886,18 +2732,35 @@
                     notify("Doctor id is missing. Please login again.");
                     return;
                 }
+                const selectedDays = Array.from(document.querySelectorAll("input[name='availabilityDays']:checked")).map((input) => input.value).join(",");
+                const emailValue = document.getElementById("editEmail").value.trim();
+                const feeInput = document.getElementById("editConsultationFee").value.trim();
                 const payload = {
                     phone: document.getElementById("editPhone").value.trim(),
-                    email: document.getElementById("editEmail").value.trim()
+                    availability_days: selectedDays,
+                    office_hours_start: document.getElementById("officeHoursStart").value,
+                    office_hours_end: document.getElementById("officeHoursEnd").value,
+                    slot_duration_minutes: Number(document.getElementById("slotDurationMinutes").value)
                 };
+                if (feeInput !== "") {
+                    const feeNumber = Number(feeInput);
+                    if (!Number.isFinite(feeNumber) || feeNumber < 0) {
+                        notify("Consultation fee must be a positive number.");
+                        return;
+                    }
+                    payload.consultation_fee = feeNumber;
+                }
+                if (emailValue && emailValue !== safeText(state.doctorProfile.email, "")) {
+                    payload.email = emailValue;
+                }
                 try {
                     await apiPut(`/api/doctors/${doctorId}`, payload);
                     const existingName = state.doctorName || currentDoctorName();
                     if (existingName) localStorage.setItem("doctorName", existingName);
-                    const userData = parseJsonSafe(localStorage.getItem("userData"));
+                    const userData = parseJsonSafe(localStorage.getItem("userData")) || {};
                     localStorage.setItem("userData", JSON.stringify(Object.assign({}, userData, {
                         name: existingName,
-                        email: payload.email,
+                        email: payload.email || userData.email || state.doctorProfile.email || "",
                         id: userData.id || doctorId,
                         role: "doctor"
                     })));

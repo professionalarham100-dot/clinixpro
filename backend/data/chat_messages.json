@@ -1,16 +1,1 @@
-[
-  {
-    "id": "MSG-1777110295",
-    "sender": "x",
-    "message": "hi",
-    "timestamp": "2026-04-25T14:44:55.238965",
-    "sessionId": "legacy_session"
-  },
-  {
-    "id": "MSG-1777110366",
-    "sender": "anonymous",
-    "message": "Hello, I need help with my account.",
-    "timestamp": "2026-04-25T14:46:06.084706",
-    "sessionId": "test_session_001"
-  }
-]
+[]

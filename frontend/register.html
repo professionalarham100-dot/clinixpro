@@ -31,11 +31,13 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="firstName"><i class="fas fa-user"></i> First Name</label>
-                        <input type="text" id="firstName" name="firstName" placeholder="First name" required>
+                        <input type="text" id="firstName" name="firstName" placeholder="First name" maxlength="20" autocomplete="given-name" required>
+                        <div class="inline-error" id="firstNameError"></div>
                     </div>
                     <div class="form-group">
                         <label for="lastName"><i class="fas fa-user"></i> Last Name</label>
-                        <input type="text" id="lastName" name="lastName" placeholder="Last name" required>
+                        <input type="text" id="lastName" name="lastName" placeholder="Last name" maxlength="20" autocomplete="family-name" required>
+                        <div class="inline-error" id="lastNameError"></div>
                     </div>
                 </div>
 

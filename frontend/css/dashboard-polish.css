@@ -308,6 +308,10 @@ table.cp-table tbody tr:last-child td,
     text-align: center;
     color: var(--cp-ink-soft);
 }
+.cp-empty-state.is-hidden,
+.empty-state.is-hidden {
+    display: none !important;
+}
 .cp-empty-state .es-illustration {
     width: 130px;
     height: 130px;
