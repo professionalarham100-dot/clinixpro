@@ -42,7 +42,7 @@ def send_email_brevo(to_email, subject, html_content):
     email delivery must never block the primary action.
     """
     api_key = os.getenv('BREVO_API_KEY', '')
-    sender_email = os.getenv('MAIL_DEFAULT_SENDER', 'supportclinixpro@gmail.com')
+    sender_email = os.getenv('MAIL_DEFAULT_SENDER', 'support@yourdomain.com')
     if not api_key:
         print("[ClinixPro] BREVO_API_KEY not set, skipping email")
         return False
@@ -663,7 +663,7 @@ def ensure_patients_photo_column():
 def send_clinixpro_email(to_email, subject, body_text):
     """Send email via Brevo HTTP API (bypasses Railway SMTP port blocks)."""
     api_key = os.getenv('BREVO_API_KEY', '')
-    sender_email = os.getenv('MAIL_DEFAULT_SENDER', 'supportclinixpro@gmail.com')
+    sender_email = os.getenv('MAIL_DEFAULT_SENDER', 'support@yourdomain.com')
     if not api_key:
         print("[ClinixPro] BREVO_API_KEY not set, skipping email")
         return False
@@ -1640,7 +1640,7 @@ def get_rule_based_response(message, user_type, user_id=None):
                 "1. Confirm your email and password are correct.\n"
                 "2. Check Caps Lock is off.\n"
                 "3. Use 'Forgot Password' on the login page.\n"
-                "4. Contact support at supportclinixpro@gmail.com if still blocked.")
+                "4. Contact support at support@yourdomain.com if still blocked.")
 
     # ── Register ───────────────────────────────────────────────────────────
     if any(p in msg for p in ["register", "sign up", "create account", "new account"]):
@@ -1652,7 +1652,7 @@ def get_rule_based_response(message, user_type, user_id=None):
     # ── Support ────────────────────────────────────────────────────────────
     if any(p in msg for p in ["support", "help desk", "contact", "ticket", "complaint"]):
         return ("For support:\n"
-                "• Email: supportclinixpro@gmail.com\n"
+                "• Email: support@yourdomain.com\n"
                 "• Open the Support/Tickets page for formal issue tracking.")
 
     # ── Logout ─────────────────────────────────────────────────────────────
@@ -1755,7 +1755,7 @@ def get_rule_based_response(message, user_type, user_id=None):
                 "1. Confirm your email and password are correct.\n"
                 "2. Check that Caps Lock is off.\n"
                 "3. Use 'Forgot Password' on the login page.\n"
-                "4. Contact support at supportclinixpro@gmail.com if still blocked.")
+                "4. Contact support at support@yourdomain.com if still blocked.")
 
     # ── Register ───────────────────────────────────────────────────────────
     if any(p in msg for p in ["register", "sign up", "create account", "new account"]):
@@ -1781,7 +1781,7 @@ def get_rule_based_response(message, user_type, user_id=None):
     # ── Support ────────────────────────────────────────────────────────────
     if any(p in msg for p in ["support", "help desk", "contact", "ticket", "complaint"]):
         return ("For support:\n"
-                "• Email: supportclinixpro@gmail.com\n"
+                "• Email: support@yourdomain.com\n"
                 "• Open the Support/Tickets page for formal issue tracking.\n"
                 "Include your role, page name, exact error, and a screenshot for faster resolution.")
 

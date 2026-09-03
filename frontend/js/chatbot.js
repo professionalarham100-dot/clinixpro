@@ -272,14 +272,14 @@
                     "ClinixPro clinic hours (standard):\n" +
                     "• Monday – Saturday: 9:00 AM – 6:00 PM\n" +
                     "• Sunday: Closed\n\n" +
-                    "For the latest schedule, check the clinic footer or contact supportclinixpro@gmail.com."
+                    "For the latest schedule, check the clinic footer or contact support@yourdomain.com."
             },
             {
                 keywords: ["support", "contact", "helpdesk", "ticket", "whatsapp", "email"],
                 reply:
                     "Support options:\n" +
                     "- Open Support/Tickets page for formal issue tracking.\n" +
-                    "- Email: supportclinixpro@gmail.com\n" +
+                    "- Email: support@yourdomain.com\n" +
                     "- WhatsApp/Phone shown in the footer for urgent coordination.\n" +
                     "Best practice: include your role, page name, timestamp, and screenshot for faster resolution."
             },

@@ -280,7 +280,7 @@ function initializeContactButtons() {
     const callButtons = document.querySelectorAll('[data-action="call"]');
     callButtons.forEach(btn => {
         btn.addEventListener('click', function() {
-            window.location.href = 'tel:03486277022';
+            window.location.href = 'tel:[YOUR_PHONE]';
         });
     });
     

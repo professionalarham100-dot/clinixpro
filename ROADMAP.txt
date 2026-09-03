@@ -69,11 +69,11 @@ PHASE 6 - AUTHENTICATION (IN PROGRESS 🔨)
 - First login profile completion for doctors (pending)
 
 CONTENT & UI FIXES ✅
-- Footer phone → 03190615822
+- Footer phone → [PHONE_NUMBER_REDACTED]
 - Footer city → Gujrat
-- Support page contact → 03486277022
+- Support page contact → [PHONE_NUMBER_REDACTED]
 - Fake stats removed from support page
-- NayaPay payment added (03096015198)
+- NayaPay payment added ([ACCOUNT_NUMBER_REDACTED])
 - WhatsApp screenshot instruction added
 - Pricing section updated
 
@@ -167,16 +167,16 @@ TARGET: 10/10 before presentation
 CONTEXT FOR AI ASSISTANT
 ================================================================
 When continuing this project, know that:
-- Project folder: C:\FYP\Fyp\Fyp
-- Backend folder: C:\FYP\Fyp\Fyp\backend
-- Frontend folder: C:\FYP\Fyp\Fyp\frontend
+- Project folder: [PROJECT_PATH]
+- Backend folder: [PROJECT_PATH]/backend
+- Frontend folder: [PROJECT_PATH]/frontend
 - Database: smart_clinic
-- MySQL password: root123
+- MySQL password: your-secure-password
 - Demo patient: ahmed.hassan@email.com / password123
 - Demo doctor: dr.amir@hospital.com / password123
 - Demo admin: admin@hospital.com / admin123
 - Backend runs on: http://127.0.0.1:5000
 - Frontend opens via: http://127.0.0.1:5000
 - AI Model: Groq llama3-8b-8192
-- GitHub: https://github.com/professionalarham100-dot/clinixpro
+- GitHub: [YOUR_GITHUB_REPO]
 ================================================================
